@@ -1,0 +1,29 @@
+function ClusterParameterUpdate.nonconjugate(dpObj):
+    number_clusters = dpObj.number_clusters
+    cluster_labels = dpObj.cluster_labels
+    data = dpObj.data
+    mixing_distribution = dpObj.mixing_distribution
+    mh_draws = dpObj.mh_draws_count // Number of Metropolis-Hastings iterations
+
+    for k = 1 to number_clusters:
+        // Get data points belonging to cluster k
+        data_for_cluster_k = empty_list
+        for i = 1 to dpObj.number_of_data_points:
+            if cluster_labels[i] == k:
+                data_for_cluster_k.add(data[i])
+
+        if length(data_for_cluster_k) > 0:
+            current_params_for_cluster_k = dpObj.cluster_parameters[k]
+            
+            // Draw samples from posterior using Metropolis-Hastings
+            // PosteriorDraw for non-conjugate internally calls MetropolisHastings
+            posterior_samples = PosteriorDraw(mixing_distribution, 
+                                              data_for_cluster_k, 
+                                              num_samples_to_draw = mh_draws, 
+                                              start_position = current_params_for_cluster_k)
+            
+            // Update cluster parameters with the last sample from MH
+            dpObj.cluster_parameters[k] = posterior_samples.last_sample 
+            // Optionally store acceptance_ratio from posterior_samples if returned
+
+    return dpObj

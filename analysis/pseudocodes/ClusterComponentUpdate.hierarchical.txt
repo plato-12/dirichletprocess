@@ -1,0 +1,21 @@
+function ClusterComponentUpdate.hierarchical(hdpObj):
+    // hdpObj contains a list of individual Dirichlet Process objects (indDPs)
+    // and global parameters.
+
+    for each indDP in hdpObj.indDP_list:
+        // Dispatch to the appropriate ClusterComponentUpdate based on indDP's type
+        // (conjugate or non-conjugate)
+        if indDP.type is "conjugate":
+            indDP = ClusterComponentUpdate.conjugate(indDP) 
+        else if indDP.type is "nonconjugate":
+            indDP = ClusterComponentUpdate.nonconjugate(indDP)
+        // (else handle other types or error)
+
+        // After updating components for an indDP, remove duplicate clusters
+        // This is important if local cluster parameters become identical
+        // either to other local clusters or to global atoms they point to.
+        // The exact mechanism of DuplicateClusterRemove can vary.
+        // It might merge clusters with identical parameters and update counts/labels.
+        indDP = DuplicateClusterRemove(indDP) 
+    
+    return hdpObj

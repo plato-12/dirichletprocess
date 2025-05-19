@@ -1,0 +1,57 @@
+function Likelihood(mixing_distribution_object_mdObj, data_point_x, parameters_theta):
+    // This is a generic function that dispatches to a specific kernel's likelihood.
+    // mdObj contains type information (e.g., "normal", "beta") and fixed params (e.g., maxT for Beta).
+    // parameters_theta is a list/structure containing parameters (e.g., {mean, variance}).
+    // data_point_x is the data point (or vector/matrix of points).
+
+    kernel_type = mdObj.type
+
+    if kernel_type == "normal":
+        return Likelihood.normal(mdObj, data_point_x, parameters_theta)
+    else if kernel_type == "beta":
+        return Likelihood.beta(mdObj, data_point_x, parameters_theta)
+    else if kernel_type == "weibull":
+        return Likelihood.weibull(mdObj, data_point_x, parameters_theta)
+    else if kernel_type == "mvnormal":
+        return Likelihood.mvnormal(mdObj, data_point_x, parameters_theta)
+    // ... other kernels ...
+    else:
+        error "Unsupported kernel type for Likelihood"
+
+// Example: Likelihood.normal
+function Likelihood.normal(mdObj, x, theta):
+    mean_mu = theta.mean 
+    std_dev_sigma = theta.std_dev
+    // If x is a single point and theta is a single param set:
+    return probability_density_Normal(x, mean_mu, std_dev_sigma)
+    // If x is multiple points or theta has multiple sets, handle vectorization/iteration:
+    // results = empty_list
+    // for each param_set_k in theta (if multiple sets):
+    //    results.add(probability_density_Normal(x, param_set_k.mean, param_set_k.std_dev))
+    // return results 
+    // R's dnorm handles vectorization of x, mean, sd well.
+
+// Example: Likelihood.beta
+function Likelihood.beta(mdObj, x, theta):
+    mean_mu = theta.mean
+    precision_tau = theta.precision // or scale_nu
+    max_T = mdObj.maxT // Upper bound for Beta distribution if not [0,1]
+
+    // Convert (mean, precision) to standard Beta parameters (alpha_shape, beta_shape)
+    // Ensure mu is within [0, max_T]
+    // Ensure tau is positive
+    alpha_shape = (mean_mu / max_T) * precision_tau
+    beta_shape = (1 - (mean_mu / max_T)) * precision_tau
+
+    // Ensure alpha_shape, beta_shape > 0
+    if alpha_shape <= 0 or beta_shape <= 0:
+        return 0 // Or handle error, likelihood is ill-defined
+
+    // Scale x to [0,1] for standard dbeta
+    scaled_x = x / max_T
+    if scaled_x < 0 or scaled_x > 1:
+        return 0 // Data outside support
+
+    // PDF of Beta(alpha, beta) is dbeta(y, alpha, beta) for y in [0,1]
+    // For X = max_T * Y, PDF(X) = (1/max_T) * PDF_Y(X/max_T)
+    return (1 / max_T) * probability_density_Beta(scaled_x, alpha_shape, beta_shape)

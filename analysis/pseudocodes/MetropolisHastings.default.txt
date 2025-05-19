@@ -1,0 +1,65 @@
+function MetropolisHastings.default(mixing_distribution_mdObj, data_x_cluster, start_params, num_draws):
+    all_parameter_samples = initialize_storage_for_samples(num_draws, structure_of_start_params)
+    
+    current_params = start_params
+    all_parameter_samples[0] = current_params
+    
+    // Calculate log-posterior for initial parameters
+    // Handle -Inf from log(0) carefully by using a very small number or by checking Likelihood/PriorDensity output
+    current_log_prior_density = log(PriorDensity(mdObj, current_params))
+    current_log_likelihood_sum = 0
+    for each data_point in data_x_cluster:
+        lik = Likelihood(mdObj, data_point, current_params)
+        if lik > 0:
+            current_log_likelihood_sum = current_log_likelihood_sum + log(lik)
+        else:
+            current_log_likelihood_sum = -Infinity // Data point has zero likelihood under current_params
+            break 
+            
+    if current_log_prior_density == -Infinity or current_log_likelihood_sum == -Infinity:
+        // Starting point is invalid, might need to handle this (e.g., error or try new start_pos)
+        // For now, assume start_pos yields finite log posterior.
+        pass
+
+    acceptance_count = 0
+
+    for i = 1 to num_draws - 1:
+        // Propose new parameters
+        proposed_params = MhParameterProposal(mdObj, current_params) // Uses mdObj.mhStepSize
+
+        // Calculate log-posterior for proposed parameters
+        proposed_log_prior_density = log(PriorDensity(mdObj, proposed_params))
+        proposed_log_likelihood_sum = 0
+        if proposed_log_prior_density == -Infinity: // Proposal is outside prior support
+            log_acceptance_ratio = -Infinity
+        else:
+            for each data_point in data_x_cluster:
+                lik = Likelihood(mdObj, data_point, proposed_params)
+                if lik > 0:
+                    proposed_log_likelihood_sum = proposed_log_likelihood_sum + log(lik)
+                else:
+                    proposed_log_likelihood_sum = -Infinity 
+                    break
+            
+            if proposed_log_likelihood_sum == -Infinity:
+                log_acceptance_ratio = -Infinity
+            else:
+                log_acceptance_ratio = (proposed_log_prior_density + proposed_log_likelihood_sum) - 
+                                       (current_log_prior_density + current_log_likelihood_sum)
+        
+        // Acceptance step
+        random_uniform = sample_from_Uniform(0, 1)
+        if log(random_uniform) < log_acceptance_ratio: // Equivalent to random_uniform < exp(log_acceptance_ratio)
+            current_params = proposed_params
+            current_log_prior_density = proposed_log_prior_density
+            current_log_likelihood_sum = proposed_log_likelihood_sum
+            acceptance_count = acceptance_count + 1
+        // else: current_params remain the same (rejected proposal)
+        
+        all_parameter_samples[i] = current_params
+        
+    acceptance_ratio = acceptance_count / (num_draws - 1)
+    
+    return list(parameter_samples = all_parameter_samples, 
+                  acceptance_ratio = acceptance_ratio,
+                  last_sample = current_params) // R usually needs last_sample for update

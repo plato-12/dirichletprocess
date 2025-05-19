@@ -1,0 +1,64 @@
+function GlobalParameterUpdate.hierarchical(hdpObj):
+    // hdpObj has indDP_list, globalParameters (list of atom params {phi_k}), 
+    // and mixingDistribution_for_G0 (defines prior H for phi_k).
+
+    current_global_atom_params = hdpObj.globalParameters 
+    num_global_atoms = length(current_global_atom_params)
+    mixing_dist_G0 = hdpObj.mixingDistribution_for_G0 // Defines kernel type and prior H for global atoms
+
+    // For each unique global atom phi_k currently active
+    // This requires identifying which local cluster parameters map to which global atom.
+    // Let's assume a mapping: local_cluster_in_indDP_j -> global_atom_index_k
+    
+    // Create a list to store data points associated with each global atom
+    data_per_global_atom = list_of_empty_lists(length = num_global_atoms)
+
+    // 1. Collect all data points associated with each global atom
+    for each indDP in hdpObj.indDP_list:
+        for local_cluster_idx = 1 to indDP.number_clusters:
+            local_params = indDP.cluster_parameters[local_cluster_idx]
+            
+            // Find which global atom these local_params correspond to.
+            // This might involve comparing local_params to each phi_k in current_global_atom_params.
+            // Or, indDP.cluster_parameters might already store indices to globalParameters.
+            // Let's assume indDP.cluster_parameter_global_indices[local_cluster_idx] gives the index.
+            global_atom_idx_for_this_local_cluster = indDP.map_local_param_to_global_atom_idx(local_params) // or indDP.cluster_parameter_global_indices[local_cluster_idx]
+
+            if global_atom_idx_for_this_local_cluster is valid:
+                points_in_local_cluster = get_data_points_for_label(indDP.data, indDP.cluster_labels, local_cluster_idx)
+                data_per_global_atom[global_atom_idx_for_this_local_cluster].append_all(points_in_local_cluster)
+
+    // 2. Update parameters for each global atom
+    new_global_atom_params = copy(current_global_atom_params) // To store updated params
+    for k = 1 to num_global_atoms:
+        all_data_for_global_atom_k = data_per_global_atom[k]
+        if length(all_data_for_global_atom_k) > 0:
+            // Draw new phi_k from PosteriorDraw(H, all_data_for_global_atom_k)
+            // The mixing_dist_G0 provides the "H" (prior for global atoms)
+            // and the kernel type for phi_k.
+            updated_phi_k = PosteriorDraw(mixing_dist_G0, 
+                                          all_data_for_global_atom_k, 
+                                          num_samples_n = 1) // Assuming one sample for update
+            new_global_atom_params[k] = updated_phi_k.last_sample // if PosteriorDraw returns multiple
+        // else: if no data maps to this global atom, its parameters might remain unchanged or be resampled from prior H.
+        // R code likely keeps them if no data, or they might get pruned in UpdateG0 if not used.
+
+    hdpObj.globalParameters = new_global_atom_params
+    
+    // 3. Propagate changes: Ensure individual DPs' mixing distributions (theta_k)
+    //    point to these NEW global atom parameters.
+    //    This is critical if indDPs store copies or direct references.
+    //    If indDP.mixingDistribution.theta_k was just a reference to hdpObj.globalParameters,
+    //    it's automatically updated. If it's a copy, it needs explicit update.
+    //    R code: `dpobjlist[[i]]$mixingDistribution$theta_k <- dpobjlist$globalParameters`
+    for each indDP in hdpObj.indDP_list:
+        indDP.mixing_distribution.theta_k = hdpObj.globalParameters 
+        // Also update local cluster parameters if they were direct copies of old global atoms
+        // R code: `dpobjlist[[i]]$clusterParameters[[j]] <- dpobjlist$globalParameters[[ GlobalClusterIndex ]]`
+        for local_cluster_idx = 1 to indDP.number_clusters:
+             global_atom_idx = indDP.map_local_param_to_global_atom_idx(indDP.cluster_parameters[local_cluster_idx]) // Get the original global index
+             if global_atom_idx is valid:
+                 indDP.cluster_parameters[local_cluster_idx] = hdpObj.globalParameters[global_atom_idx]
+
+
+    return hdpObj
