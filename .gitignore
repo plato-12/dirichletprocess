@@ -6,3 +6,6 @@ inst/doc
 clean_bib.sh
 tests/testthat/Rplots.pdf
 
+src/*.o
+src/*.so
+src/*.dll
