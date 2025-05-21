@@ -11,21 +11,63 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// likelihood_normal_cpp
-Rcpp::NumericVector likelihood_normal_cpp(const Rcpp::List& mdObj, const Rcpp::NumericVector& x, const Rcpp::List& theta);
-RcppExport SEXP _dirichletprocess_likelihood_normal_cpp(SEXP mdObjSEXP, SEXP xSEXP, SEXP thetaSEXP) {
+// normal_likelihood_cpp
+Rcpp::NumericVector normal_likelihood_cpp(const Rcpp::NumericVector& x, double mu, double sigma);
+RcppExport SEXP _dirichletprocess_normal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(normal_likelihood_cpp(x, mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// likelihood_cpp
+Rcpp::NumericVector likelihood_cpp(const Rcpp::List& mdObj, const Rcpp::NumericVector& x, const Rcpp::List& theta);
+RcppExport SEXP _dirichletprocess_likelihood_cpp(SEXP mdObjSEXP, SEXP xSEXP, SEXP thetaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::List& >::type mdObj(mdObjSEXP);
     Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type theta(thetaSEXP);
+    rcpp_result_gen = Rcpp::wrap(likelihood_cpp(mdObj, x, theta));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mvnormal_likelihood_cpp
+arma::vec mvnormal_likelihood_cpp(const arma::mat& x, const arma::rowvec& mu, const arma::mat& sigma);
+RcppExport SEXP _dirichletprocess_mvnormal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::rowvec& >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvnormal_likelihood_cpp(x, mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// likelihood_normal_cpp
+Rcpp::NumericVector likelihood_normal_cpp(Rcpp::List mdObj, Rcpp::NumericVector x, Rcpp::List theta);
+RcppExport SEXP _dirichletprocess_likelihood_normal_cpp(SEXP mdObjSEXP, SEXP xSEXP, SEXP thetaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type mdObj(mdObjSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type theta(thetaSEXP);
     rcpp_result_gen = Rcpp::wrap(likelihood_normal_cpp(mdObj, x, theta));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
+    {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
+    {"_dirichletprocess_mvnormal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
     {NULL, NULL, 0}
 };

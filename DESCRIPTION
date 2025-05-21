@@ -34,9 +34,10 @@ Suggests: testthat,
 Imports: gtools,
          ggplot2,
          mvtnorm,
-         Rcpp (>= 1.0.0)
+         Rcpp (>= 1.0.11),
+         RcppArmadillo
 LinkingTo: Rcpp, RcppArmadillo
 SystemRequirements: C++11
 URL: https://github.com/dm13450/dirichletprocess, https://dm13450.github.io/dirichletprocess/
 BugReports: https://github.com/dm13450/dirichletprocess/issues
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
