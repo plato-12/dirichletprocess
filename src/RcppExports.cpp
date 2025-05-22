@@ -12,6 +12,19 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// benchmark_cpp_components_impl
+Rcpp::List benchmark_cpp_components_impl(const Rcpp::List& dpObj, const Rcpp::StringVector& components, int times);
+RcppExport SEXP _dirichletprocess_benchmark_cpp_components_impl(SEXP dpObjSEXP, SEXP componentsSEXP, SEXP timesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type dpObj(dpObjSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type components(componentsSEXP);
+    Rcpp::traits::input_parameter< int >::type times(timesSEXP);
+    rcpp_result_gen = Rcpp::wrap(benchmark_cpp_components_impl(dpObj, components, times));
+    return rcpp_result_gen;
+END_RCPP
+}
 // current_memory_usage
 size_t current_memory_usage();
 RcppExport SEXP _dirichletprocess_current_memory_usage() {
@@ -108,6 +121,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_dirichletprocess_benchmark_cpp_components_impl", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components_impl, 3},
     {"_dirichletprocess_current_memory_usage", (DL_FUNC) &_dirichletprocess_current_memory_usage, 0},
     {"_dirichletprocess_benchmark_cpp_components", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components, 3},
     {"_dirichletprocess_get_memory_tracking", (DL_FUNC) &_dirichletprocess_get_memory_tracking, 0},

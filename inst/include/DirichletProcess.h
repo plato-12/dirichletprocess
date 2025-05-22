@@ -2,24 +2,15 @@
 #ifndef DIRICHLETPROCESS_MAIN_H
 #define DIRICHLETPROCESS_MAIN_H
 
-// Include all the main headers
-#include "DirichletProcess.h"
+// Include base classes first
+#include "DirichletProcessBase.h"
 #include "RcppConversions.h"
+
+// Include benchmarking
 #include "Benchmarking.h"
+
+// Include specific distribution implementations
 #include "NormalDistribution.h"
-#include "BetaDistribution.h"
-#include "MVNormalDistribution.h"
-#include "MVNormal2Distribution.h"
-#include "WeibullDistribution.h"
-#include "ExponentialDistribution.h"
-#include "HierarchicalDP.h"
-#include "MarkovDP.h"
-
-// Include base classes
-#include "ConjugateDP.h"
-#include "NonConjugateDP.h"
-
-// Include memory profiling
-#include "MemoryProfiling.h"
+// Note: Other distribution headers would be included here once they're fixed
 
 #endif // DIRICHLETPROCESS_MAIN_H

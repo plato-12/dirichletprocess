@@ -1,5 +1,5 @@
 // src/DirichletProcess.cpp
-#include "../inst/include/DirichletProcess.h"
+#include "../inst/include/DirichletProcessBase.h"
 #include "../inst/include/RcppConversions.h"
 
 namespace dp {
@@ -47,11 +47,12 @@ Rcpp::List MixingDistribution::toR() const {
   result["priorParameters"] = priorParameters;
   result["conjugate"] = conjugate;
 
-  if (mhStepSize.size() > 0) {
+  // Use proper Rcpp null checking
+  if (mhStepSize.sexp_type() != NILSXP) {
     result["mhStepSize"] = mhStepSize;
   }
 
-  if (hyperPriorParameters.size() > 0) {
+  if (hyperPriorParameters.sexp_type() != NILSXP) {
     result["hyperPriorParameters"] = hyperPriorParameters;
   }
 

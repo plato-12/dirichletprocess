@@ -19,6 +19,8 @@ std::vector<arma::cube> clusterParametersFromR(const Rcpp::List& rParams);
 // S3 class detection
 bool isConjugate(const Rcpp::List& dpObj);
 bool isNonConjugate(const Rcpp::List& dpObj);
+bool isHierarchical(const Rcpp::List& dpObj);
+bool isMarkov(const Rcpp::List& dpObj);
 std::string getDistributionType(const Rcpp::List& dpObj);
 
 // Factory functions to create appropriate C++ objects from R objects

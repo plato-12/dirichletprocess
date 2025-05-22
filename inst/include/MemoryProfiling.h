@@ -53,24 +53,12 @@ public:
   }
 };
 
-// Global memory tracker instance
+// Global memory tracker instance (declaration only)
 extern MemoryTracker g_memory_tracker;
 
-// Utility function to get memory usage on supported platforms
-// [[Rcpp::export]]
-size_t current_memory_usage();
-
-// Export memory tracking to R
-// [[Rcpp::export]]
-Rcpp::DataFrame get_memory_tracking() {
-  return g_memory_tracker.summary();
-}
-
-// Clear memory tracking from R
-// [[Rcpp::export]]
-void clear_memory_tracking() {
-  g_memory_tracker.clear();
-}
+// Function declarations (not definitions)
+Rcpp::DataFrame get_memory_tracking();
+void clear_memory_tracking();
 
 } // namespace dp
 

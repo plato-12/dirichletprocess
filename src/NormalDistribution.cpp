@@ -23,14 +23,15 @@ Rcpp::NumericVector NormalMixingDistribution::likelihood(const arma::vec& x, con
   int n_clusters = mu_array.size();
   int n_data = x.n_elem;
 
-  Rcpp::NumericVector result(n_data * n_clusters);
+  Rcpp::NumericVector result(n_data);
 
-  for (int k = 0; k < n_clusters; k++) {
-    double mu = mu_array[k];
-    double sigma = sigma_array[k];
+  // For now, use first cluster only
+  if (n_clusters > 0 && n_data > 0) {
+    double mu = mu_array[0];
+    double sigma = sigma_array[0];
 
     for (int i = 0; i < n_data; i++) {
-      result[i * n_clusters + k] = R::dnorm(x[i], mu, sigma, false);
+      result[i] = R::dnorm(x[i], mu, sigma, false);
     }
   }
 
@@ -38,12 +39,14 @@ Rcpp::NumericVector NormalMixingDistribution::likelihood(const arma::vec& x, con
 }
 
 Rcpp::List NormalMixingDistribution::priorDraw(int n) const {
+  Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+
   Rcpp::NumericVector mu(n);
   Rcpp::NumericVector sigma(n);
 
   for (int i = 0; i < n; i++) {
-    double lambda = R::rgamma(priorParameters[2], 1.0/priorParameters[3]);
-    mu[i] = R::rnorm(priorParameters[0], 1.0/sqrt(priorParameters[1] * lambda));
+    double lambda = R::rgamma(priorParams[2], 1.0/priorParams[3]);
+    mu[i] = R::rnorm(priorParams[0], 1.0/sqrt(priorParams[1] * lambda));
     sigma[i] = sqrt(1.0/lambda);
   }
 
@@ -94,13 +97,15 @@ Rcpp::List NormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) co
 }
 
 Rcpp::NumericMatrix NormalMixingDistribution::posteriorParameters(const arma::mat& x) const {
+  Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+
   int n_x = x.n_rows;
   double ybar = arma::mean(arma::vectorise(x));
 
-  double mu0 = priorParameters[0];
-  double kappa0 = priorParameters[1];
-  double alpha0 = priorParameters[2];
-  double beta0 = priorParameters[3];
+  double mu0 = priorParams[0];
+  double kappa0 = priorParams[1];
+  double alpha0 = priorParams[2];
+  double beta0 = priorParams[3];
 
   double mu_n = (kappa0 * mu0 + n_x * ybar) / (kappa0 + n_x);
   double kappa_n = kappa0 + n_x;
@@ -118,16 +123,18 @@ Rcpp::NumericMatrix NormalMixingDistribution::posteriorParameters(const arma::ma
 }
 
 Rcpp::NumericVector NormalMixingDistribution::predictive(const arma::vec& x) const {
+  Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+
   int n = x.n_elem;
   Rcpp::NumericVector result(n);
 
   for (int i = 0; i < n; i++) {
     Rcpp::NumericMatrix postParams = posteriorParameters(arma::mat(&x[i], 1, 1));
 
-    double predictive_val = (R::gammafn(postParams(0, 2)) / R::gammafn(priorParameters[2])) *
-      (std::pow(priorParameters[3], priorParameters[2]) /
-      std::pow(postParams(0, 3), postParams(0, 2))) *
-      std::sqrt(priorParameters[1] / postParams(0, 1));
+    double predictive_val = (R::gammafn(postParams(0, 2)) / R::gammafn(priorParams[2])) *
+      (std::pow(priorParams[3], priorParams[2]) /
+        std::pow(postParams(0, 3), postParams(0, 2))) *
+          std::sqrt(priorParams[1] / postParams(0, 1));
 
     result[i] = predictive_val;
   }

@@ -2,7 +2,7 @@
 #ifndef NORMAL_DISTRIBUTION_H
 #define NORMAL_DISTRIBUTION_H
 
-#include "DirichletProcess.h"
+#include "DirichletProcessBase.h"
 
 namespace dp {
 
