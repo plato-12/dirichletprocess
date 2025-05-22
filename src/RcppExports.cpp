@@ -12,6 +12,16 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// current_memory_usage
+size_t current_memory_usage();
+RcppExport SEXP _dirichletprocess_current_memory_usage() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(current_memory_usage());
+    return rcpp_result_gen;
+END_RCPP
+}
 // benchmark_cpp_components_impl
 Rcpp::List benchmark_cpp_components_impl(const Rcpp::List& dpObj, const Rcpp::StringVector& components, int times);
 RcppExport SEXP _dirichletprocess_benchmark_cpp_components_impl(SEXP dpObjSEXP, SEXP componentsSEXP, SEXP timesSEXP) {
@@ -22,16 +32,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type components(componentsSEXP);
     Rcpp::traits::input_parameter< int >::type times(timesSEXP);
     rcpp_result_gen = Rcpp::wrap(benchmark_cpp_components_impl(dpObj, components, times));
-    return rcpp_result_gen;
-END_RCPP
-}
-// current_memory_usage
-size_t current_memory_usage();
-RcppExport SEXP _dirichletprocess_current_memory_usage() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(current_memory_usage());
     return rcpp_result_gen;
 END_RCPP
 }
@@ -121,8 +121,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_dirichletprocess_benchmark_cpp_components_impl", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components_impl, 3},
     {"_dirichletprocess_current_memory_usage", (DL_FUNC) &_dirichletprocess_current_memory_usage, 0},
+    {"_dirichletprocess_benchmark_cpp_components_impl", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components_impl, 3},
     {"_dirichletprocess_benchmark_cpp_components", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components, 3},
     {"_dirichletprocess_get_memory_tracking", (DL_FUNC) &_dirichletprocess_get_memory_tracking, 0},
     {"_dirichletprocess_clear_memory_tracking", (DL_FUNC) &_dirichletprocess_clear_memory_tracking, 0},

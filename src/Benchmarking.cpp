@@ -22,7 +22,7 @@
 
 namespace dp {
 
-// Internal implementation functions
+// Internal implementation functions (NO [[Rcpp::export]] here)
 size_t current_memory_usage_impl() {
 #ifdef _WIN32
   // Windows implementation
@@ -48,7 +48,7 @@ size_t current_memory_usage_impl() {
 #endif
 }
 
-// [[Rcpp::export]]
+// Internal implementation (NO [[Rcpp::export]] here)
 Rcpp::List benchmark_cpp_components_impl(const Rcpp::List& dpObj,
                                          const Rcpp::StringVector& components,
                                          int times) {
@@ -109,10 +109,18 @@ Rcpp::List benchmark_cpp_components_impl(const Rcpp::List& dpObj,
 
 } // namespace dp
 
-// Exported functions (in global namespace)
+// Exported wrapper functions (ONLY these have [[Rcpp::export]])
+
 // [[Rcpp::export]]
 size_t current_memory_usage() {
   return dp::current_memory_usage_impl();
+}
+
+// [[Rcpp::export]]
+Rcpp::List benchmark_cpp_components_impl(const Rcpp::List& dpObj,
+                                         const Rcpp::StringVector& components,
+                                         int times) {
+  return dp::benchmark_cpp_components_impl(dpObj, components, times);
 }
 
 // [[Rcpp::export]]
