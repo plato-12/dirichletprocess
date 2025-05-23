@@ -37,3 +37,11 @@ likelihood_normal_cpp <- function(mdObj, x, theta) {
     .Call('_dirichletprocess_likelihood_normal_cpp', PACKAGE = 'dirichletprocess', mdObj, x, theta)
 }
 
+test_cpp_export <- function(x) {
+    .Call('_dirichletprocess_test_cpp_export', PACKAGE = 'dirichletprocess', x)
+}
+
+test_vector_cpp <- function(x) {
+    .Call('_dirichletprocess_test_vector_cpp', PACKAGE = 'dirichletprocess', x)
+}
+

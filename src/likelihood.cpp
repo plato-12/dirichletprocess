@@ -25,16 +25,33 @@ Rcpp::NumericVector likelihood_cpp(const Rcpp::List& mdObj,
                                    const Rcpp::NumericVector& x,
                                    const Rcpp::List& theta) {
   // Extract distribution type from mdObj
+  if (!mdObj.containsElementNamed("distribution")) {
+    Rcpp::stop("mdObj must contain 'distribution' field");
+  }
+
   std::string dist_type = Rcpp::as<std::string>(mdObj["distribution"]);
 
   if (dist_type == "normal") {
-    // Extract parameters - handle 3D arrays properly
+    // Extract parameters - handle the array structure properly
+    if (theta.size() < 2) {
+      Rcpp::stop("theta must contain at least 2 elements for normal distribution");
+    }
+
+    // Extract the parameter arrays
     Rcpp::NumericVector mu_array = theta[0];
     Rcpp::NumericVector sigma_array = theta[1];
+
+    if (mu_array.size() == 0 || sigma_array.size() == 0) {
+      Rcpp::stop("Parameter arrays cannot be empty");
+    }
 
     // Extract the first element from each array
     double mu = mu_array[0];
     double sigma = sigma_array[0];
+
+    if (sigma <= 0) {
+      Rcpp::stop("sigma must be positive");
+    }
 
     return normal_likelihood_cpp(x, mu, sigma);
   } else {
