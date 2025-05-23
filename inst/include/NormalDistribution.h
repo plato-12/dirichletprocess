@@ -19,6 +19,10 @@ public:
   // Specific methods for Normal distribution
   Rcpp::NumericMatrix posteriorParameters(const arma::mat& x) const;
   Rcpp::NumericVector predictive(const arma::vec& x) const;
+
+  // Export these methods for direct testing
+  static Rcpp::List priorDrawStatic(const Rcpp::NumericVector& priorParams, int n);
+  static Rcpp::List posteriorDrawStatic(const Rcpp::NumericVector& priorParams, const arma::mat& x, int n);
 };
 
 class ConjugateNormalDP : public DirichletProcess {

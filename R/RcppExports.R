@@ -21,6 +21,26 @@ clear_memory_tracking <- function() {
     invisible(.Call(`_dirichletprocess_clear_memory_tracking`))
 }
 
+normal_prior_draw_cpp <- function(priorParams, n = 1L) {
+    .Call(`_dirichletprocess_normal_prior_draw_cpp`, priorParams, n)
+}
+
+normal_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
+    .Call(`_dirichletprocess_normal_posterior_draw_cpp`, priorParams, x, n)
+}
+
+conjugate_cluster_component_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_cluster_component_update_cpp`, dpObj)
+}
+
+conjugate_cluster_parameter_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_cluster_parameter_update_cpp`, dpObj)
+}
+
+normal_posterior_parameters_cpp <- function(priorParams, x) {
+    .Call(`_dirichletprocess_normal_posterior_parameters_cpp`, priorParams, x)
+}
+
 normal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_normal_likelihood_cpp`, x, mu, sigma)
 }
