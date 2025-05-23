@@ -49,11 +49,16 @@ Rcpp::List NormalMixingDistribution::priorDraw(int n) const {
 
   Rcpp::NumericVector mu(n);
   Rcpp::NumericVector sigma(n);
+  Rcpp::NumericVector lambda_vec(n);
 
+  // 1. Draw all n lambda values first to match R's vectorized behavior
   for (int i = 0; i < n; i++) {
-    // Draw lambda from Gamma(alpha0, beta0)
-    double lambda = R::rgamma(alpha0, 1.0/beta0);
+    lambda_vec[i] = R::rgamma(alpha0, 1.0/beta0);
+  }
 
+  // 2. Then draw all n mu values
+  for (int i = 0; i < n; i++) {
+    double lambda = lambda_vec[i];
     // Draw mu from Normal(mu0, 1/(kappa0*lambda))
     double mu_sd = 1.0/sqrt(kappa0 * lambda);
     mu[i] = R::rnorm(mu0, mu_sd);
@@ -85,6 +90,7 @@ Rcpp::List NormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) co
 
   Rcpp::NumericVector mu(n);
   Rcpp::NumericVector sigma(n);
+  Rcpp::NumericVector lambda_vec(n);
 
   // Extract posterior parameters
   double mu_n = postParams(0, 0);
@@ -92,10 +98,14 @@ Rcpp::List NormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) co
   double alpha_n = postParams(0, 2);
   double beta_n = postParams(0, 3);
 
+  // 1. Draw all n lambda values first
   for (int i = 0; i < n; i++) {
-    // Draw lambda from Gamma(alpha_n, beta_n)
-    double lambda = R::rgamma(alpha_n, 1.0/beta_n);
+    lambda_vec[i] = R::rgamma(alpha_n, 1.0/beta_n);
+  }
 
+  // 2. Then draw all n mu values
+  for (int i = 0; i < n; i++) {
+    double lambda = lambda_vec[i];
     // Draw mu from Normal(mu_n, 1/(kappa_n*lambda))
     double mu_sd = 1.0/sqrt(kappa_n * lambda);
     mu[i] = R::rnorm(mu_n, mu_sd);
@@ -240,6 +250,10 @@ void ConjugateNormalDP::clusterComponentUpdate() {
       }
     }
 
+    // Put the point's count back before the change.
+    // The actual state change is handled entirely by clusterLabelChange now.
+    pointsPerCluster[currentLabel]++;
+
     // Update cluster assignment using clusterLabelChange
     Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel);
 
@@ -267,8 +281,8 @@ void ConjugateNormalDP::clusterParameterUpdate() {
       Rcpp::NumericVector mu_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
       Rcpp::NumericVector sigma_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
 
-      Rcpp::NumericVector new_mu = postDraw[0];
-      Rcpp::NumericVector new_sigma = postDraw[1];
+      Rcpp::NumericVector new_mu = postDraw["mu"];
+      Rcpp::NumericVector new_sigma = postDraw["sigma"];
 
       mu_vec[k] = new_mu[0];
       sigma_vec[k] = new_sigma[0];
@@ -302,107 +316,63 @@ void ConjugateNormalDP::updateAlpha() {
 }
 
 Rcpp::List ConjugateNormalDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
+  if (newLabel == currentLabel) {
+    return Rcpp::List::create(
+      Rcpp::Named("clusterLabels") = clusterLabels,
+      Rcpp::Named("pointsPerCluster") = pointsPerCluster,
+      Rcpp::Named("clusterParameters") = clusterParameters,
+      Rcpp::Named("numberClusters") = numberClusters
+    );
+  }
+
   arma::mat x_i = data.row(i);
 
-  if (newLabel < numberClusters) {
-    // Assign to existing cluster
+  // 1. Remove point from its old cluster
+  pointsPerCluster[currentLabel]--;
+
+  // 2. Assign point to its new cluster and update parameters
+  clusterLabels[i] = newLabel;
+  if (newLabel == numberClusters) { // This is a new cluster
+    numberClusters++;
+    pointsPerCluster.resize(numberClusters);
+    pointsPerCluster(newLabel) = 1;
+
+    // Safely create copies of parameter vectors, modify, and assign back
+    Rcpp::NumericVector mu_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
+    Rcpp::NumericVector sigma_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]));
+
+    Rcpp::List postDraw = mixingDistribution->posteriorDraw(x_i, 1);
+    mu_vec.push_back(Rcpp::as<Rcpp::NumericVector>(postDraw["mu"])[0]);
+    sigma_vec.push_back(Rcpp::as<Rcpp::NumericVector>(postDraw["sigma"])[0]);
+
+    clusterParameters[0] = mu_vec;
+    clusterParameters[1] = sigma_vec;
+
+  } else { // This is an existing cluster
     pointsPerCluster[newLabel]++;
-    clusterLabels[i] = newLabel;
+  }
 
-    // Check if old cluster is now empty
-    if (pointsPerCluster[currentLabel] == 0) {
-      // Remove empty cluster
-      numberClusters--;
+  // 3. If the old cluster is now empty, remove it
+  if (pointsPerCluster[currentLabel] == 0) {
+    pointsPerCluster.shed_row(currentLabel);
 
-      // Remove the empty cluster from pointsPerCluster
-      arma::uvec newPointsPerCluster(numberClusters);
-      int idx = 0;
-      for (int j = 0; j < (int)pointsPerCluster.n_elem; j++) {
-        if (j != currentLabel) {
-          newPointsPerCluster[idx++] = pointsPerCluster[j];
-        }
+    // Safely create copies, modify, and assign back
+    Rcpp::NumericVector mu_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
+    Rcpp::NumericVector sigma_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]));
+
+    mu_vec.erase(currentLabel);
+    sigma_vec.erase(currentLabel);
+
+    clusterParameters[0] = mu_vec;
+    clusterParameters[1] = sigma_vec;
+
+    numberClusters--;
+
+    // Shift all labels that were greater than the removed cluster's label
+    for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
+      if (clusterLabels[j] > currentLabel) {
+        clusterLabels[j]--;
       }
-      pointsPerCluster = newPointsPerCluster;
-
-      // Update cluster parameters
-      Rcpp::NumericVector mu_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
-      Rcpp::NumericVector sigma_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
-
-      Rcpp::NumericVector new_mu(numberClusters);
-      Rcpp::NumericVector new_sigma(numberClusters);
-      idx = 0;
-      for (int j = 0; j < mu_vec.size(); j++) {
-        if (j != currentLabel) {
-          new_mu[idx] = mu_vec[j];
-          new_sigma[idx] = sigma_vec[j];
-          idx++;
-        }
-      }
-
-      clusterParameters[0] = new_mu;
-      clusterParameters[1] = new_sigma;
-
-      // Update labels for clusters after the removed one
-      for (int j = 0; j < (int)clusterLabels.n_elem; j++) {
-        if ((int)clusterLabels[j] > currentLabel) {
-          clusterLabels[j]--;
-        }
-      }
-    }
-  } else {
-    // Create new cluster
-    clusterLabels[i] = numberClusters;
-
-    if (pointsPerCluster[currentLabel] == 0) {
-      // Reuse the empty cluster
-      pointsPerCluster[currentLabel] = 1;
-
-      // Draw from posterior for new cluster
-      Rcpp::List postDraw = mixingDistribution->posteriorDraw(x_i, 1);
-      Rcpp::NumericVector mu_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
-      Rcpp::NumericVector sigma_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
-
-      Rcpp::NumericVector new_mu = postDraw[0];
-      Rcpp::NumericVector new_sigma = postDraw[1];
-
-      mu_vec[currentLabel] = new_mu[0];
-      sigma_vec[currentLabel] = new_sigma[0];
-
-      clusterParameters[0] = mu_vec;
-      clusterParameters[1] = sigma_vec;
-    } else {
-      // Add new cluster
-      numberClusters++;
-
-      // Expand pointsPerCluster
-      arma::uvec newPointsPerCluster(numberClusters);
-      for (int j = 0; j < (int)pointsPerCluster.n_elem; j++) {
-        newPointsPerCluster[j] = pointsPerCluster[j];
-      }
-      newPointsPerCluster[numberClusters-1] = 1;
-      pointsPerCluster = newPointsPerCluster;
-
-      // Draw from posterior for new cluster
-      Rcpp::List postDraw = mixingDistribution->posteriorDraw(x_i, 1);
-
-      // Expand cluster parameters
-      Rcpp::NumericVector mu_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
-      Rcpp::NumericVector sigma_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
-
-      Rcpp::NumericVector new_mu(numberClusters);
-      Rcpp::NumericVector new_sigma(numberClusters);
-      for (int j = 0; j < mu_vec.size(); j++) {
-        new_mu[j] = mu_vec[j];
-        new_sigma[j] = sigma_vec[j];
-      }
-
-      Rcpp::NumericVector post_mu = postDraw[0];
-      Rcpp::NumericVector post_sigma = postDraw[1];
-      new_mu[numberClusters-1] = post_mu[0];
-      new_sigma[numberClusters-1] = post_sigma[0];
-
-      clusterParameters[0] = new_mu;
-      clusterParameters[1] = new_sigma;
     }
   }
 
@@ -413,6 +383,7 @@ Rcpp::List ConjugateNormalDP::clusterLabelChange(int i, int newLabel, int curren
     Rcpp::Named("numberClusters") = numberClusters
   );
 }
+
 
 void ConjugateNormalDP::initialisePredictive() {
   // Calculate predictive probabilities for all data points

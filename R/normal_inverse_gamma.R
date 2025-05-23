@@ -26,8 +26,7 @@ PriorDraw.normal <- function(mdObj, n = 1) {
 
   lambda <- rgamma(n, priorParameters[3], priorParameters[4])
   mu <- rnorm(n, priorParameters[1], (priorParameters[2] * lambda)^(-0.5))
-  theta <- list(array(mu, dim = c(1, 1, n)), array(sqrt(1/lambda), dim = c(1, 1,
-    n)))
+  theta <- list(mu = array(mu, dim = c(1, 1, n)), sigma = array(sqrt(1/lambda), dim = c(1, 1, n)))
   return(theta)
 }
 
@@ -65,8 +64,8 @@ PosteriorDraw.normal <- function(mdObj, x, n = 1, ...) {
   mu <- rnorm(n,
               PosteriorParameters_calc[1],
               1/sqrt(PosteriorParameters_calc[2] * lambda))
-  theta <- list(array(mu, dim = c(1, 1, n)),
-                array(sqrt(1/lambda), dim = c(1, 1, n)))
+  theta <- list(mu = array(mu, dim = c(1, 1, n)),
+                sigma = array(sqrt(1/lambda), dim = c(1, 1, n)))
   return(theta)
 }
 

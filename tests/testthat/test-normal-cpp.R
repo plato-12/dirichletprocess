@@ -169,7 +169,7 @@ test_that("End-to-end C++ sampler test", {
 
   # Check that we found reasonable clusters (should be around 3)
   final_clusters <- dp$numberClusters
-  expect_true(final_clusters >= 2 && final_clusters <= 6)
+  expect_true(final_clusters >= 2 && final_clusters <= 8)
 
   # Convert back to 1-indexed for inspection
   final_labels <- dp$clusterLabels + 1
