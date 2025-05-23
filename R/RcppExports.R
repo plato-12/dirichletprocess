@@ -2,46 +2,38 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 current_memory_usage <- function() {
-    .Call('_dirichletprocess_current_memory_usage', PACKAGE = 'dirichletprocess')
+    .Call(`_dirichletprocess_current_memory_usage`)
 }
 
 benchmark_cpp_components_impl <- function(dpObj, components, times) {
-    .Call('_dirichletprocess_benchmark_cpp_components_impl', PACKAGE = 'dirichletprocess', dpObj, components, times)
+    .Call(`_dirichletprocess_benchmark_cpp_components_impl`, dpObj, components, times)
 }
 
 benchmark_cpp_components <- function(dpObj, components, times) {
-    .Call('_dirichletprocess_benchmark_cpp_components', PACKAGE = 'dirichletprocess', dpObj, components, times)
+    .Call(`_dirichletprocess_benchmark_cpp_components`, dpObj, components, times)
 }
 
 get_memory_tracking <- function() {
-    .Call('_dirichletprocess_get_memory_tracking', PACKAGE = 'dirichletprocess')
+    .Call(`_dirichletprocess_get_memory_tracking`)
 }
 
 clear_memory_tracking <- function() {
-    invisible(.Call('_dirichletprocess_clear_memory_tracking', PACKAGE = 'dirichletprocess'))
+    invisible(.Call(`_dirichletprocess_clear_memory_tracking`))
 }
 
 normal_likelihood_cpp <- function(x, mu, sigma) {
-    .Call('_dirichletprocess_normal_likelihood_cpp', PACKAGE = 'dirichletprocess', x, mu, sigma)
+    .Call(`_dirichletprocess_normal_likelihood_cpp`, x, mu, sigma)
 }
 
 likelihood_cpp <- function(mdObj, x, theta) {
-    .Call('_dirichletprocess_likelihood_cpp', PACKAGE = 'dirichletprocess', mdObj, x, theta)
+    .Call(`_dirichletprocess_likelihood_cpp`, mdObj, x, theta)
 }
 
 mvnormal_likelihood_cpp <- function(x, mu, sigma) {
-    .Call('_dirichletprocess_mvnormal_likelihood_cpp', PACKAGE = 'dirichletprocess', x, mu, sigma)
+    .Call(`_dirichletprocess_mvnormal_likelihood_cpp`, x, mu, sigma)
 }
 
 likelihood_normal_cpp <- function(mdObj, x, theta) {
-    .Call('_dirichletprocess_likelihood_normal_cpp', PACKAGE = 'dirichletprocess', mdObj, x, theta)
-}
-
-test_cpp_export <- function(x) {
-    .Call('_dirichletprocess_test_cpp_export', PACKAGE = 'dirichletprocess', x)
-}
-
-test_vector_cpp <- function(x) {
-    .Call('_dirichletprocess_test_vector_cpp', PACKAGE = 'dirichletprocess', x)
+    .Call(`_dirichletprocess_likelihood_normal_cpp`, mdObj, x, theta)
 }
 

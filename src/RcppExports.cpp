@@ -119,28 +119,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// test_cpp_export
-double test_cpp_export(double x);
-RcppExport SEXP _dirichletprocess_test_cpp_export(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_cpp_export(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_vector_cpp
-Rcpp::NumericVector test_vector_cpp(Rcpp::NumericVector x);
-RcppExport SEXP _dirichletprocess_test_vector_cpp(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_vector_cpp(x));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_current_memory_usage", (DL_FUNC) &_dirichletprocess_current_memory_usage, 0},
@@ -152,8 +130,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
     {"_dirichletprocess_mvnormal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
-    {"_dirichletprocess_test_cpp_export", (DL_FUNC) &_dirichletprocess_test_cpp_export, 1},
-    {"_dirichletprocess_test_vector_cpp", (DL_FUNC) &_dirichletprocess_test_vector_cpp, 1},
     {NULL, NULL, 0}
 };
 
