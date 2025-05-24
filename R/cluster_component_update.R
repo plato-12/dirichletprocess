@@ -37,18 +37,14 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
 
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] - 1
 
-    # Compute probabilities for existing clusters - element by element to avoid array issues
     cluster_probs <- numeric(numLabels)
 
     for (j in 1:numLabels) {
       if (pointsPerCluster[j] > 0) {
-        # Create a single-cluster parameter list for likelihood computation
         single_cluster_params <- list(
           array(clusterParams[[1]][, , j], dim = c(1, 1, 1)),
           array(clusterParams[[2]][, , j], dim = c(1, 1, 1))
         )
-
-        # Compute likelihood for this specific cluster
         likelihood_val <- Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params)
         cluster_probs[j] <- pointsPerCluster[j] * as.numeric(likelihood_val[1])
       } else {
@@ -56,30 +52,23 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
       }
     }
 
-    # Probability for new cluster
     new_cluster_prob <- alpha * predictiveArray[i]
 
-    # Combine all probabilities
     probs <- c(cluster_probs, new_cluster_prob)
 
-    # Handle edge cases
     probs[is.na(probs) | is.infinite(probs)] <- 0
 
     if (all(probs == 0)) {
       probs <- rep_len(1, length(probs))
     }
 
-    # Sample new cluster assignment
     newLabel <- sample.int(numLabels + 1, 1, prob = probs)
 
-    # Restore the point count before calling ClusterLabelChange
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] + 1
     dpObj$pointsPerCluster <- pointsPerCluster
 
-    # Apply the cluster change
     dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel)
 
-    # Update local variables from the modified dpObj
     pointsPerCluster <- dpObj$pointsPerCluster
     clusterLabels <- dpObj$clusterLabels
     clusterParams <- dpObj$clusterParameters
@@ -97,6 +86,20 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
 #'@export
 ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
+  # C++ dispatch logic for Beta model
+  if (inherits(dpObj, "beta") && using_cpp_samplers()) {
+    # Call the C++ implementation
+    result <- nonconjugate_beta_cluster_component_update_cpp(dpObj)
+
+    # Update the dpObj with results
+    dpObj$clusterLabels <- result$clusterLabels
+    dpObj$pointsPerCluster <- result$pointsPerCluster
+    dpObj$numberClusters <- result$numberClusters
+    dpObj$clusterParameters <- result$clusterParameters
+    return(dpObj)
+  }
+
+  # Fall back to R implementation for other models or if C++ is disabled
   y <- dpObj$data
   n <- dpObj$n
   alpha <- dpObj$alpha
@@ -138,9 +141,7 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
       probs[is.nan(probs)] <- 0
     }
 
-
     probs[is.na(probs)] <- 0
-
 
     if (any(is.infinite(probs))) {
       probs[is.infinite(probs)] <- 1

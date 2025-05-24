@@ -38,20 +38,21 @@ run_benchmark <- function() {
 
     # C++ implementation benchmark
     dp_cpp <- DirichletProcessGaussian(y)
-
-    # Enable the C++ samplers using the package's own helper function
-    enable_cpp_samplers(TRUE)
+    dp_cpp$clusterLabels <- dp_cpp$clusterLabels - 1  # Convert to 0-indexed
 
     time_cpp <- system.time({
       for (i in 1:iterations) {
-        # Call the main R function. It will automatically find and use the C++ code.
-        dp_cpp <- ClusterComponentUpdate(dp_cpp)
-        dp_cpp <- ClusterParameterUpdate(dp_cpp)
+        # C++ cluster component update
+        update_result <- conjugate_cluster_component_update_cpp(dp_cpp)
+        dp_cpp$clusterLabels <- update_result$clusterLabels
+        dp_cpp$pointsPerCluster <- update_result$pointsPerCluster
+        dp_cpp$numberClusters <- update_result$numberClusters
+        dp_cpp$clusterParameters <- update_result$clusterParameters
+
+        # C++ cluster parameter update
+        dp_cpp$clusterParameters <- conjugate_cluster_parameter_update_cpp(dp_cpp)
       }
     })
-
-    # Disable C++ samplers after the benchmark if desired
-    enable_cpp_samplers(FALSE)
 
     # Convert back to 1-indexed for comparison
     dp_cpp$clusterLabels <- dp_cpp$clusterLabels + 1

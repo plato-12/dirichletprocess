@@ -2,7 +2,7 @@
 #ifndef BETA_DISTRIBUTION_H
 #define BETA_DISTRIBUTION_H
 
-#include "DirichletProcess.h"
+#include "DirichletProcessBase.h"
 
 namespace dp {
 
@@ -19,32 +19,22 @@ public:
   Rcpp::List posteriorDraw(const arma::mat& x, int n = 1) const override;
 
   // Specific methods for Beta distribution
-  Rcpp::NumericVector priorDensity(const Rcpp::List& theta) const;
+  double priorDensity(const Rcpp::List& theta) const;
   Rcpp::List mhParameterProposal(const Rcpp::List& oldParams) const;
-  Rcpp::List penalisedLikelihood(const arma::mat& x) const;
   void updatePriorParameters(const Rcpp::List& clusterParameters, int n = 1);
-};
 
-class ConjugateBetaDP : public DirichletProcess {
-public:
-  ConjugateBetaDP();
-  virtual ~ConjugateBetaDP();
+  // This method is now public
+  Rcpp::List metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws) const;
 
-  BetaMixingDistribution* mixingDistribution;
+  // Static methods for direct testing
+  static Rcpp::List priorDrawStatic(const Rcpp::NumericVector& priorParams, double maxT, int n);
+  static Rcpp::List posteriorDrawStatic(const Rcpp::NumericVector& priorParams, double maxT,
+                                        const Rcpp::NumericVector& mhStepSize,
+                                        const arma::mat& x, int n, int mhDraws = 250);
+  static Rcpp::NumericVector likelihoodStatic(const arma::vec& x, double mu, double nu, double maxT);
 
-  // Cluster information
-  arma::uvec clusterLabels;
-  arma::uvec pointsPerCluster;
-  int numberClusters;
-  Rcpp::List clusterParameters;
-
-  // Implementation of core MCMC methods
-  void clusterComponentUpdate() override;
-  void clusterParameterUpdate() override;
-  void updateAlpha() override;
-
-  // Additional methods
-  Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel);
+private:
+  // Helper methods (this block might now be empty, which is fine)
 };
 
 class NonConjugateBetaDP : public DirichletProcess {
@@ -68,7 +58,6 @@ public:
 
   // Additional methods specific to non-conjugate Beta
   Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux);
-  Rcpp::List metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws);
 };
 
 } // namespace dp

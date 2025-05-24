@@ -12,6 +12,7 @@
 #'
 #'@export
 ClusterParameterUpdate <- function(dpObj) UseMethod("ClusterParameterUpdate", dpObj)
+
 #'@export
 ClusterParameterUpdate.conjugate <- function(dpObj) {
 
@@ -36,9 +37,17 @@ ClusterParameterUpdate.conjugate <- function(dpObj) {
   dpObj$clusterParameters <- clusterParams
   return(dpObj)
 }
+
 #'@export
 ClusterParameterUpdate.nonconjugate <- function(dpObj) {
 
+  # C++ dispatch logic for Beta model
+  if (inherits(dpObj, "beta") && using_cpp_samplers()) {
+    dpObj$clusterParameters <- nonconjugate_beta_cluster_parameter_update_cpp(dpObj)
+    return(dpObj)
+  }
+
+  # Fall back to R implementation for other models or if C++ is disabled
   y <- dpObj$data
   numLabels <- dpObj$numberClusters
 
@@ -65,7 +74,6 @@ ClusterParameterUpdate.nonconjugate <- function(dpObj) {
       clusterParams[[j]][, , i] <- parameter_samples[[j]][, , mhDraws]
     }
 
-
     accept_ratio[i] <- length(unique(parameter_samples[[1]]))/mhDraws
   }
   dpObj$clusterParameters <- clusterParams
@@ -83,9 +91,5 @@ cluster_parameter_update <- function(mdobj, data, clusters, params){
 
   } )
 
-  #newParamsFull <- newParams[clusters]
   return(newParams)
 }
-
-
-
