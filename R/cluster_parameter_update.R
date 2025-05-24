@@ -17,21 +17,20 @@ ClusterParameterUpdate.conjugate <- function(dpObj) {
 
   y <- dpObj$data
   numLabels <- dpObj$numberClusters
-
   clusterLabels <- dpObj$clusterLabels
   clusterParams <- dpObj$clusterParameters
-
   mdobj <- dpObj$mixingDistribution
 
   for (i in 1:numLabels) {
-    pts <- y[which(clusterLabels == i), , drop = FALSE]
+    # Safeguard: only update clusters with points
+    if (dpObj$pointsPerCluster[i] > 0) {
+      pts <- y[which(clusterLabels == i), , drop = FALSE]
+      post_draw <- PosteriorDraw(mdobj, pts)
 
-    post_draw <- PosteriorDraw(mdobj, pts)
-
-    for (j in seq_along(clusterParams)) {
-      clusterParams[[j]][, , i] <- post_draw[[j]]
+      for (j in seq_along(clusterParams)) {
+        clusterParams[[j]][, , i] <- post_draw[[j]]
+      }
     }
-
   }
 
   dpObj$clusterParameters <- clusterParams

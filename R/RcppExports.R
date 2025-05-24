@@ -21,6 +21,21 @@ clear_memory_tracking <- function() {
     invisible(.Call(`_dirichletprocess_clear_memory_tracking`))
 }
 
+#' @title Draw from a Normal distribution prior (C++)
+NULL
+
+#' @title Draw from a Normal distribution posterior (C++)
+NULL
+
+#' @title Update cluster components (C++ conjugate)
+NULL
+
+#' @title Update cluster parameters (C++ conjugate)
+NULL
+
+#' @title Calculate Normal posterior parameters (C++)
+NULL
+
 normal_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_normal_prior_draw_cpp`, priorParams, n)
 }
