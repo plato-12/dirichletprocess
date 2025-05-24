@@ -1,7 +1,20 @@
+#' Change cluster labels in a Dirichlet Process object
+#'
+#' Internal function to handle cluster label changes, including creation of new clusters
+#' and removal of empty clusters.
+#'
+#' @param dpObj Dirichlet process object
+#' @param i Index of the data point to reassign
+#' @param newLabel New cluster label for the data point
+#' @param currentLabel Current cluster label of the data point
+#' @param aux Auxiliary parameters for non-conjugate case
+#' @return Updated Dirichlet process object
+#' @export
 ClusterLabelChange <- function(dpObj, i, newLabel, currentLabel, aux=0) {
   UseMethod("ClusterLabelChange", dpObj)
 }
 
+#' @export
 ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0) {
 
   x <- dpObj$data[i, , drop = FALSE]
@@ -22,7 +35,7 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
 
       # clusterParams <- clusterParams[-currentLabel, ,drop=FALSE]
       clusterParams <- lapply(clusterParams, function(x) x[, , -currentLabel,
-        drop = FALSE])
+                                                           drop = FALSE])
 
       inds <- clusterLabels > currentLabel
       clusterLabels[inds] <- clusterLabels[inds] - 1
@@ -50,8 +63,8 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
 
       for (j in seq_along(clusterParams)) {
         clusterParams[[j]] <- array(c(clusterParams[[j]], post_draw[[j]]),
-          dim = c(dim(post_draw[[j]])[1:2], dim(clusterParams[[j]])[3] +
-          1))
+                                    dim = c(dim(post_draw[[j]])[1:2], dim(clusterParams[[j]])[3] +
+                                              1))
       }
 
     }
@@ -64,6 +77,7 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
   return(dpObj)
 }
 
+#' @export
 ClusterLabelChange.nonconjugate <- function(dpObj, i, newLabel, currentLabel, aux=0) {
 
   pointsPerCluster <- dpObj$pointsPerCluster
@@ -82,7 +96,7 @@ ClusterLabelChange.nonconjugate <- function(dpObj, i, newLabel, currentLabel, au
       pointsPerCluster <- pointsPerCluster[-currentLabel]
       # clusterParams <- clusterParams[-currentLabel, ,drop=FALSE]
       clusterParams <- lapply(clusterParams, function(x) x[, , -currentLabel,
-        drop = FALSE])
+                                                           drop = FALSE])
 
       inds <- clusterLabels > currentLabel
       clusterLabels[inds] <- clusterLabels[inds] - 1
@@ -121,4 +135,14 @@ ClusterLabelChange.nonconjugate <- function(dpObj, i, newLabel, currentLabel, au
   return(dpObj)
 }
 
-
+#' @export
+ClusterLabelChange.default <- function(dpObj, i, newLabel, currentLabel, aux=0) {
+  # Determine conjugacy and dispatch appropriately
+  if (inherits(dpObj, "conjugate")) {
+    return(ClusterLabelChange.conjugate(dpObj, i, newLabel, currentLabel, aux))
+  } else if (inherits(dpObj, "nonconjugate")) {
+    return(ClusterLabelChange.nonconjugate(dpObj, i, newLabel, currentLabel, aux))
+  } else {
+    stop("ClusterLabelChange not implemented for this object type")
+  }
+}
