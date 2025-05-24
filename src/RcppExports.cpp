@@ -48,88 +48,99 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// beta_likelihood_cpp
-Rcpp::NumericVector beta_likelihood_cpp(const Rcpp::NumericVector& x_data, double mu_val, double nu_val, double maxT_val);
-RcppExport SEXP _dirichletprocess_beta_likelihood_cpp(SEXP x_dataSEXP, SEXP mu_valSEXP, SEXP nu_valSEXP, SEXP maxT_valSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type x_data(x_dataSEXP);
-    Rcpp::traits::input_parameter< double >::type mu_val(mu_valSEXP);
-    Rcpp::traits::input_parameter< double >::type nu_val(nu_valSEXP);
-    Rcpp::traits::input_parameter< double >::type maxT_val(maxT_valSEXP);
-    rcpp_result_gen = Rcpp::wrap(beta_likelihood_cpp(x_data, mu_val, nu_val, maxT_val));
-    return rcpp_result_gen;
-END_RCPP
-}
 // beta_prior_draw_cpp
-Rcpp::List beta_prior_draw_cpp(const Rcpp::NumericVector& priorParams, double maxT_val, int n_draws);
-RcppExport SEXP _dirichletprocess_beta_prior_draw_cpp(SEXP priorParamsSEXP, SEXP maxT_valSEXP, SEXP n_drawsSEXP) {
+Rcpp::List beta_prior_draw_cpp(const Rcpp::NumericVector& priorParams, double maxT, int n);
+RcppExport SEXP _dirichletprocess_beta_prior_draw_cpp(SEXP priorParamsSEXP, SEXP maxTSEXP, SEXP nSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
-    Rcpp::traits::input_parameter< double >::type maxT_val(maxT_valSEXP);
-    Rcpp::traits::input_parameter< int >::type n_draws(n_drawsSEXP);
-    rcpp_result_gen = Rcpp::wrap(beta_prior_draw_cpp(priorParams, maxT_val, n_draws));
+    Rcpp::traits::input_parameter< double >::type maxT(maxTSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(beta_prior_draw_cpp(priorParams, maxT, n));
     return rcpp_result_gen;
 END_RCPP
 }
-// beta_posterior_draw_cpp
-Rcpp::List beta_posterior_draw_cpp(const Rcpp::NumericVector& priorParams, double maxT_val, const Rcpp::NumericVector& mhStepSize_val, const Rcpp::NumericMatrix& x_data, int n_draws, int mhDrawsNum);
-RcppExport SEXP _dirichletprocess_beta_posterior_draw_cpp(SEXP priorParamsSEXP, SEXP maxT_valSEXP, SEXP mhStepSize_valSEXP, SEXP x_dataSEXP, SEXP n_drawsSEXP, SEXP mhDrawsNumSEXP) {
+// beta_likelihood_cpp
+Rcpp::NumericVector beta_likelihood_cpp(const Rcpp::NumericVector& x, double mu, double nu, double maxT);
+RcppExport SEXP _dirichletprocess_beta_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP nuSEXP, SEXP maxTSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
-    Rcpp::traits::input_parameter< double >::type maxT_val(maxT_valSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type mhStepSize_val(mhStepSize_valSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type x_data(x_dataSEXP);
-    Rcpp::traits::input_parameter< int >::type n_draws(n_drawsSEXP);
-    Rcpp::traits::input_parameter< int >::type mhDrawsNum(mhDrawsNumSEXP);
-    rcpp_result_gen = Rcpp::wrap(beta_posterior_draw_cpp(priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsNum));
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< double >::type maxT(maxTSEXP);
+    rcpp_result_gen = Rcpp::wrap(beta_likelihood_cpp(x, mu, nu, maxT));
     return rcpp_result_gen;
 END_RCPP
 }
 // beta_prior_density_cpp
-double beta_prior_density_cpp(double mu_val, double nu_val, const Rcpp::NumericVector& priorParams, double maxT_val);
-RcppExport SEXP _dirichletprocess_beta_prior_density_cpp(SEXP mu_valSEXP, SEXP nu_valSEXP, SEXP priorParamsSEXP, SEXP maxT_valSEXP) {
+double beta_prior_density_cpp(double mu, double nu, const Rcpp::NumericVector& priorParams, double maxT);
+RcppExport SEXP _dirichletprocess_beta_prior_density_cpp(SEXP muSEXP, SEXP nuSEXP, SEXP priorParamsSEXP, SEXP maxTSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type mu_val(mu_valSEXP);
-    Rcpp::traits::input_parameter< double >::type nu_val(nu_valSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
     Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
-    Rcpp::traits::input_parameter< double >::type maxT_val(maxT_valSEXP);
-    rcpp_result_gen = Rcpp::wrap(beta_prior_density_cpp(mu_val, nu_val, priorParams, maxT_val));
-    return rcpp_result_gen;
-END_RCPP
-}
-// nonconjugate_beta_cluster_parameter_update_cpp
-Rcpp::List nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dpObj);
-RcppExport SEXP _dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp(SEXP dpObjSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
-    rcpp_result_gen = Rcpp::wrap(nonconjugate_beta_cluster_parameter_update_cpp(dpObj));
+    Rcpp::traits::input_parameter< double >::type maxT(maxTSEXP);
+    rcpp_result_gen = Rcpp::wrap(beta_prior_density_cpp(mu, nu, priorParams, maxT));
     return rcpp_result_gen;
 END_RCPP
 }
 // beta_metropolis_hastings_cpp
-Rcpp::List beta_metropolis_hastings_cpp(const Rcpp::NumericMatrix& x_data, double startMu_val, double startNu_val, const Rcpp::NumericVector& priorParams, double maxT_val, const Rcpp::NumericVector& mhStepSize_val, int noDraws_val);
-RcppExport SEXP _dirichletprocess_beta_metropolis_hastings_cpp(SEXP x_dataSEXP, SEXP startMu_valSEXP, SEXP startNu_valSEXP, SEXP priorParamsSEXP, SEXP maxT_valSEXP, SEXP mhStepSize_valSEXP, SEXP noDraws_valSEXP) {
+Rcpp::List beta_metropolis_hastings_cpp(const Rcpp::NumericMatrix& x, double startMu, double startNu, const Rcpp::NumericVector& priorParams, double maxT, const Rcpp::NumericVector& mhStep, int noDraws);
+RcppExport SEXP _dirichletprocess_beta_metropolis_hastings_cpp(SEXP xSEXP, SEXP startMuSEXP, SEXP startNuSEXP, SEXP priorParamsSEXP, SEXP maxTSEXP, SEXP mhStepSEXP, SEXP noDrawsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type x_data(x_dataSEXP);
-    Rcpp::traits::input_parameter< double >::type startMu_val(startMu_valSEXP);
-    Rcpp::traits::input_parameter< double >::type startNu_val(startNu_valSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type startMu(startMuSEXP);
+    Rcpp::traits::input_parameter< double >::type startNu(startNuSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< double >::type maxT(maxTSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type mhStep(mhStepSEXP);
+    Rcpp::traits::input_parameter< int >::type noDraws(noDrawsSEXP);
+    rcpp_result_gen = Rcpp::wrap(beta_metropolis_hastings_cpp(x, startMu, startNu, priorParams, maxT, mhStep, noDraws));
+    return rcpp_result_gen;
+END_RCPP
+}
+// beta_posterior_draw_cpp
+Rcpp::List beta_posterior_draw_cpp(const Rcpp::NumericVector& priorParams, double maxT_val, const Rcpp::NumericVector& mhStepSize_val, const Rcpp::NumericMatrix& x_data, int n_draws, int mhDrawsVal);
+RcppExport SEXP _dirichletprocess_beta_posterior_draw_cpp(SEXP priorParamsSEXP, SEXP maxT_valSEXP, SEXP mhStepSize_valSEXP, SEXP x_dataSEXP, SEXP n_drawsSEXP, SEXP mhDrawsValSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
     Rcpp::traits::input_parameter< double >::type maxT_val(maxT_valSEXP);
     Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type mhStepSize_val(mhStepSize_valSEXP);
-    Rcpp::traits::input_parameter< int >::type noDraws_val(noDraws_valSEXP);
-    rcpp_result_gen = Rcpp::wrap(beta_metropolis_hastings_cpp(x_data, startMu_val, startNu_val, priorParams, maxT_val, mhStepSize_val, noDraws_val));
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type x_data(x_dataSEXP);
+    Rcpp::traits::input_parameter< int >::type n_draws(n_drawsSEXP);
+    Rcpp::traits::input_parameter< int >::type mhDrawsVal(mhDrawsValSEXP);
+    rcpp_result_gen = Rcpp::wrap(beta_posterior_draw_cpp(priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsVal));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_beta_cluster_parameter_update_cpp
+Rcpp::List nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dp_list);
+RcppExport SEXP _dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp(SEXP dp_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dp_list(dp_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_beta_cluster_parameter_update_cpp(dp_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_beta_cluster_component_update_cpp
+Rcpp::List nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list);
+RcppExport SEXP _dirichletprocess_nonconjugate_beta_cluster_component_update_cpp(SEXP dp_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dp_list(dp_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_beta_cluster_component_update_cpp(dp_list));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -268,12 +279,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_current_memory_usage", (DL_FUNC) &_dirichletprocess_current_memory_usage, 0},
     {"_dirichletprocess_benchmark_cpp_components_impl", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components_impl, 3},
     {"_dirichletprocess_benchmark_cpp_components", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components, 3},
-    {"_dirichletprocess_beta_likelihood_cpp", (DL_FUNC) &_dirichletprocess_beta_likelihood_cpp, 4},
     {"_dirichletprocess_beta_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_beta_prior_draw_cpp, 3},
-    {"_dirichletprocess_beta_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_beta_posterior_draw_cpp, 6},
+    {"_dirichletprocess_beta_likelihood_cpp", (DL_FUNC) &_dirichletprocess_beta_likelihood_cpp, 4},
     {"_dirichletprocess_beta_prior_density_cpp", (DL_FUNC) &_dirichletprocess_beta_prior_density_cpp, 4},
-    {"_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_beta_metropolis_hastings_cpp", (DL_FUNC) &_dirichletprocess_beta_metropolis_hastings_cpp, 7},
+    {"_dirichletprocess_beta_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_beta_posterior_draw_cpp, 6},
+    {"_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp, 1},
+    {"_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp, 1},
     {"_dirichletprocess_get_memory_tracking", (DL_FUNC) &_dirichletprocess_get_memory_tracking, 0},
     {"_dirichletprocess_clear_memory_tracking", (DL_FUNC) &_dirichletprocess_clear_memory_tracking, 0},
     {"_dirichletprocess_normal_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_normal_prior_draw_cpp, 2},

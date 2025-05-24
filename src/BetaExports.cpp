@@ -1,176 +1,173 @@
 // src/BetaExports.cpp
+
+#include <RcppArmadillo.h>
 #include "../inst/include/BetaDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "../inst/include/DirichletProcess.h"
+#include <iostream> // For Rcpp::Rcout
 
-//' @title Beta distribution likelihood (C++)
- //' @description C++ implementation for calculating the likelihood of data under a Beta distribution
- //' @param x A numeric vector of data points
- //' @param mu The mean parameter of the Beta distribution
- //' @param nu The precision parameter of the Beta distribution
- //' @param maxT The upper bound of the Beta distribution
- //' @return A numeric vector of likelihood values
- //' @export
- // [[Rcpp::export]]
- Rcpp::NumericVector beta_likelihood_cpp(const Rcpp::NumericVector& x_data, // Renamed x
-                                         double mu_val, double nu_val, double maxT_val) { // Renamed params
-   arma::vec x_arma = Rcpp::as<arma::vec>(x_data);
-   return dp::BetaMixingDistribution::likelihoodStatic(x_arma, mu_val, nu_val, maxT_val);
- }
+// Helper function to get a single data point (row)
+arma::rowvec get_row(const arma::mat& m, int i) {
+  return m.row(i);
+}
 
-//' @title Draw from a Beta distribution prior (C++)
- //' @description C++ implementation for drawing from the prior distribution of a Beta model
- //' @param priorParams A numeric vector of prior parameters (shape and rate for inverse gamma on nu)
- //' @param maxT The upper bound of the Beta distribution
- //' @param n The number of samples to draw
- //' @return A list containing the sampled parameters (mu and nu)
- //' @export
- // [[Rcpp::export]]
- Rcpp::List beta_prior_draw_cpp(const Rcpp::NumericVector& priorParams,
-                                double maxT_val, int n_draws = 1) { // Renamed params
-   return dp::BetaMixingDistribution::priorDrawStatic(priorParams, maxT_val, n_draws);
- }
+// [[Rcpp::export]]
+Rcpp::List beta_prior_draw_cpp(const Rcpp::NumericVector& priorParams, double maxT, int n) {
+  Rcpp::Rcout << "C++ priorParams: " << priorParams[0] << " " << priorParams[1] << std::endl;
+  Rcpp::Rcout << "C++ maxT: " << maxT << std::endl;
+  return dp::BetaMixingDistribution::priorDrawStatic(priorParams, maxT, n);
+}
 
-//' @title Draw from a Beta distribution posterior (C++)
- //' @description C++ implementation for drawing from the posterior distribution of a Beta model using Metropolis-Hastings
- //' @param priorParams A numeric vector of prior parameters
- //' @param maxT The upper bound of the Beta distribution
- //' @param mhStepSize A numeric vector of step sizes for the MH algorithm (for mu and nu)
- //' @param x A numeric matrix of data points
- //' @param n The number of samples to return (last n samples from MH chain)
- //' @param mhDrawsVal The total number of Metropolis-Hastings iterations
- //' @return A list containing the sampled parameters (mu and nu)
- //' @export
- // [[Rcpp::export]]
- Rcpp::List beta_posterior_draw_cpp(const Rcpp::NumericVector& priorParams,
-                                    double maxT_val, // Renamed maxT
-                                    const Rcpp::NumericVector& mhStepSize_val, // Renamed mhStepSize
-                                    const Rcpp::NumericMatrix& x_data, // Renamed x
-                                    int n_draws = 1, int mhDrawsNum = 250) { // Renamed n and mhDraws to mhDrawsNum
-   arma::mat x_arma = Rcpp::as<arma::mat>(x_data);
-   return dp::BetaMixingDistribution::posteriorDrawStatic(priorParams, maxT_val, mhStepSize_val, x_arma, n_draws, mhDrawsNum);
- }
+// [[Rcpp::export]]
+Rcpp::NumericVector beta_likelihood_cpp(const Rcpp::NumericVector& x, double mu, double nu, double maxT) {
+  arma::vec x_arma = Rcpp::as<arma::vec>(x);
+  return dp::BetaMixingDistribution::likelihoodStatic(x_arma, mu, nu, maxT);
+}
 
-//' @title Beta distribution prior density (C++)
- //' @description C++ implementation for calculating the prior density for Beta parameters
- //' @param mu The mean parameter
- //' @param nu The precision parameter
- //' @param priorParams A numeric vector of prior parameters
- //' @param maxT The upper bound of the Beta distribution
- //' @return The prior density value
- //' @export
- // [[Rcpp::export]]
- double beta_prior_density_cpp(double mu_val, double nu_val, // Renamed params
-                               const Rcpp::NumericVector& priorParams,
-                               double maxT_val) { // Renamed maxT
-   Rcpp::NumericVector mu_arr(1);
-   Rcpp::NumericVector nu_arr(1);
-   mu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-   nu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-   mu_arr[0] = mu_val;
-   nu_arr[0] = nu_val;
-   Rcpp::List theta = Rcpp::List::create(mu_arr, nu_arr);
+// [[Rcpp::export]]
+double beta_prior_density_cpp(double mu, double nu, const Rcpp::NumericVector& priorParams, double maxT) {
+  dp::BetaMixingDistribution md(priorParams);
+  md.maxT = maxT;
 
-   dp::BetaMixingDistribution md(priorParams);
-   md.maxT = maxT_val;
-   return md.priorDensity(theta);
- }
+  Rcpp::NumericVector mu_arr(1, mu);
+  Rcpp::NumericVector nu_arr(1, nu);
+  mu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  nu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
 
+  Rcpp::List theta = Rcpp::List::create(mu_arr, nu_arr);
+  return md.priorDensity(theta);
+}
 
-//' @title Non-conjugate Beta Cluster Parameter Update (C++)
- //' @description C++ implementation for updating cluster parameters for a non-conjugate Beta DP model
- //' @param dpObj A list representing the Dirichlet Process object
- //' @return A list containing the updated cluster parameters
- //' @export
- // [[Rcpp::export]]
- Rcpp::List nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dpObj) {
-   // Extract necessary components from dpObj
-   Rcpp::List mixingDistributionList = dpObj["mixingDistribution"];
-   Rcpp::NumericVector priorParams = mixingDistributionList["priorParameters"];
-   double maxT = Rcpp::as<double>(mixingDistributionList["maxT"]);
-   Rcpp::NumericVector mhStepSize = Rcpp::as<Rcpp::NumericVector>(mixingDistributionList["mhStepSize"]);
-   int mhDraws_val = Rcpp::as<int>(dpObj["mhDraws"]); // Get mhDraws from the dpObj and use it
+// [[Rcpp::export]]
+Rcpp::List beta_metropolis_hastings_cpp(const Rcpp::NumericMatrix& x, double startMu, double startNu,
+                                        const Rcpp::NumericVector& priorParams, double maxT,
+                                        const Rcpp::NumericVector& mhStep, int noDraws) {
+  dp::BetaMixingDistribution md(priorParams);
+  md.maxT = maxT;
+  md.mhStepSize = mhStep;
 
-   arma::mat data_mat = Rcpp::as<arma::mat>(dpObj["data"]); // Renamed data
-   arma::uvec clusterLabels_vec = Rcpp::as<arma::uvec>(dpObj["clusterLabels"]); // Renamed clusterLabels
-   int numberClusters_val = Rcpp::as<int>(dpObj["numberClusters"]); // Renamed numberClusters
-   Rcpp::List clusterParameters_list = dpObj["clusterParameters"]; // Renamed clusterParameters
+  Rcpp::NumericVector mu_start(1, startMu);
+  Rcpp::NumericVector nu_start(1, startNu);
+  mu_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  nu_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
 
+  Rcpp::List startPos = Rcpp::List::create(mu_start, nu_start);
+  arma::mat x_arma = Rcpp::as<arma::mat>(x);
+  return md.metropolisHastings(x_arma, startPos, noDraws);
+}
 
-   Rcpp::NumericVector current_mus = Rcpp::as<Rcpp::NumericVector>(clusterParameters_list[0]);
-   Rcpp::NumericVector current_nus = Rcpp::as<Rcpp::NumericVector>(clusterParameters_list[1]);
+// [[Rcpp::export]]
+Rcpp::List beta_posterior_draw_cpp(const Rcpp::NumericVector& priorParams, double maxT_val,
+                                   const Rcpp::NumericVector& mhStepSize_val, const Rcpp::NumericMatrix& x_data,
+                                   int n_draws, int mhDrawsVal) {
+  arma::mat x_arma = Rcpp::as<arma::mat>(x_data);
+  return dp::BetaMixingDistribution::posteriorDrawStatic(priorParams, maxT_val, mhStepSize_val, x_arma, n_draws, mhDrawsVal);
+}
 
-   dp::BetaMixingDistribution md(priorParams);
-   md.maxT = maxT;
-   md.mhStepSize = mhStepSize;
+// [[Rcpp::export]]
+Rcpp::List nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dp_list) {
+  Rcpp::warning("C++ function 'nonconjugate_beta_cluster_parameter_update_cpp' is not implemented.");
+  return dp_list;
+}
 
-   for (int k = 0; k < numberClusters_val; ++k) {
-     arma::uvec indices = arma::find(clusterLabels_vec == k);
-     if (indices.n_elem > 0) {
-       arma::mat cluster_data = data_mat.rows(indices);
+// [[Rcpp::export]]
+Rcpp::List nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list) {
 
-       Rcpp::NumericVector mu_start_vec(1);
-       Rcpp::NumericVector nu_start_vec(1);
-       mu_start_vec.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-       nu_start_vec.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-       mu_start_vec[0] = current_mus[k];
-       nu_start_vec[0] = current_nus[k];
-       Rcpp::List start_pos = Rcpp::List::create(mu_start_vec, nu_start_vec);
+  arma::mat data = Rcpp::as<arma::mat>(dp_list["data"]);
+  int n = data.n_rows;
+  double alpha = Rcpp::as<double>(dp_list["alpha"]);
+  arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dp_list["clusterLabels"]);
+  Rcpp::List clusterParameters = Rcpp::as<Rcpp::List>(dp_list["clusterParameters"]);
+  int numberClusters = Rcpp::as<int>(dp_list["numberClusters"]);
+  arma::uvec pointsPerCluster = Rcpp::as<arma::uvec>(dp_list["pointsPerCluster"]);
+  int m = Rcpp::as<int>(dp_list["m"]);
 
-       Rcpp::List mh_output = md.metropolisHastings(cluster_data, start_pos, mhDraws_val); // Use mhDraws_val
-       Rcpp::List posterior_samples = mh_output["parameter_samples"];
+  Rcpp::List md_list = Rcpp::as<Rcpp::List>(dp_list["mixingDistribution"]);
+  Rcpp::NumericVector priorParameters_md = Rcpp::as<Rcpp::NumericVector>(md_list["priorParameters"]); // Renamed to avoid conflict
+  dp::BetaMixingDistribution md(priorParameters_md);
+  md.maxT = Rcpp::as<double>(md_list["maxT"]);
+  md.mhStepSize = Rcpp::as<Rcpp::NumericVector>(md_list["mhStepSize"]);
 
-       Rcpp::NumericVector mu_samples = posterior_samples[0];
-       Rcpp::NumericVector nu_samples = posterior_samples[1];
+  for (int i = 0; i < n; ++i) {
 
-       if(mu_samples.size() > 0) { // Check if MH produced samples
-         current_mus[k] = mu_samples[mu_samples.size() - 1];  // Last sample
-         current_nus[k] = nu_samples[nu_samples.size() - 1];
-       }
-     }
-   }
+    int currentLabel = clusterLabels[i];
+    pointsPerCluster[currentLabel]--;
 
-   return Rcpp::List::create(
-     Rcpp::Named("mu") = current_mus,
-     Rcpp::Named("nu") = current_nus
-   );
- }
+    Rcpp::List auxParams;
+    if (pointsPerCluster[currentLabel] == 0) {
+      auxParams = md.priorDraw(m - 1); // This returns a List with "mu" and "nu"
+      Rcpp::NumericVector current_mu_vec = Rcpp::as<Rcpp::NumericVector>(Rcpp::as<Rcpp::List>(clusterParameters)[0]);
+      Rcpp::NumericVector current_nu_vec = Rcpp::as<Rcpp::NumericVector>(Rcpp::as<Rcpp::List>(clusterParameters)[1]);
 
-//' @title Beta Metropolis-Hastings Sampler (C++)
- //' @description C++ implementation of a Metropolis-Hastings sampler for Beta distribution parameters
- //' @param x A numeric matrix of data points
- //' @param startMu Initial value for mu
- //' @param startNu Initial value for nu
- //' @param priorParams A numeric vector of prior parameters
- //' @param maxT The upper bound of the Beta distribution
- //' @param mhStepSize A numeric vector of step sizes for the MH algorithm
- //' @param noDraws The number of MH iterations
- //' @return A list containing the sampled parameters and acceptance ratio
- //' @export
- // [[Rcpp::export]]
- Rcpp::List beta_metropolis_hastings_cpp(const Rcpp::NumericMatrix& x_data, // Renamed x
-                                         double startMu_val, double startNu_val, // Renamed params
-                                         const Rcpp::NumericVector& priorParams,
-                                         double maxT_val, // Renamed maxT
-                                         const Rcpp::NumericVector& mhStepSize_val, // Renamed mhStepSize
-                                         int noDraws_val = 100) { // Renamed noDraws
-   // Create distribution object
-   dp::BetaMixingDistribution md(priorParams);
-   md.maxT = maxT_val;
-   md.mhStepSize = mhStepSize_val;
+      Rcpp::NumericVector aux_mu_draws = Rcpp::as<Rcpp::NumericVector>(auxParams["mu"]);
+      Rcpp::NumericVector aux_nu_draws = Rcpp::as<Rcpp::NumericVector>(auxParams["nu"]);
 
-   // Create start position
-   Rcpp::NumericVector mu_start(1);
-   Rcpp::NumericVector nu_start(1);
-   mu_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-   nu_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-   mu_start[0] = startMu_val;
-   nu_start[0] = startNu_val;
+      Rcpp::NumericVector combined_mu(m);
+      Rcpp::NumericVector combined_nu(m);
 
-   Rcpp::List start_pos = Rcpp::List::create(mu_start, nu_start);
+      combined_mu[0] = current_mu_vec[currentLabel];
+      combined_nu[0] = current_nu_vec[currentLabel];
+      for(int k=0; k < m-1; ++k) {
+        combined_mu[k+1] = aux_mu_draws[k]; // priorDraw returns 3D array, access as flat vector
+        combined_nu[k+1] = aux_nu_draws[k];
+      }
+      combined_mu.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
+      combined_nu.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
+      auxParams = Rcpp::List::create(Rcpp::Named("mu") = combined_mu, Rcpp::Named("nu") = combined_nu);
+    } else {
+      auxParams = md.priorDraw(m); // This returns a List with "mu" and "nu"
+    }
 
-   // Convert data
-   arma::mat x_arma = Rcpp::as<arma::mat>(x_data);
+    Rcpp::NumericVector probs(numberClusters + m);
+    arma::rowvec y_i = get_row(data, i);
 
-   // Run MH sampler directly as it's public
-   return md.metropolisHastings(x_arma, start_pos, noDraws_val);
- }
+    Rcpp::NumericVector current_cluster_mus = Rcpp::as<Rcpp::NumericVector>(Rcpp::as<Rcpp::List>(clusterParameters)[0]);
+    Rcpp::NumericVector current_cluster_nus = Rcpp::as<Rcpp::NumericVector>(Rcpp::as<Rcpp::List>(clusterParameters)[1]);
+
+    for (int j = 0; j < numberClusters; ++j) {
+      if (pointsPerCluster[j] > 0) {
+        Rcpp::List theta_j = Rcpp::List::create(
+          Rcpp::Named("mu") = Rcpp::NumericVector::create(current_cluster_mus[j]),
+          Rcpp::Named("nu") = Rcpp::NumericVector::create(current_cluster_nus[j])
+        );
+        Rcpp::as<Rcpp::NumericVector>(theta_j["mu"]).attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        Rcpp::as<Rcpp::NumericVector>(theta_j["nu"]).attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+
+        probs[j] = pointsPerCluster[j] * md.likelihood(y_i, theta_j)[0];
+      } else {
+        probs[j] = 0;
+      }
+    }
+
+    Rcpp::NumericVector aux_mu_samples = Rcpp::as<Rcpp::NumericVector>(auxParams["mu"]);
+    Rcpp::NumericVector aux_nu_samples = Rcpp::as<Rcpp::NumericVector>(auxParams["nu"]);
+    for (int j = 0; j < m; ++j) {
+      Rcpp::List theta_aux_j = Rcpp::List::create(
+        Rcpp::Named("mu") = Rcpp::NumericVector::create(aux_mu_samples[j]), // Access as flat vector
+        Rcpp::Named("nu") = Rcpp::NumericVector::create(aux_nu_samples[j])  // Access as flat vector
+      );
+      Rcpp::as<Rcpp::NumericVector>(theta_aux_j["mu"]).attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+      Rcpp::as<Rcpp::NumericVector>(theta_aux_j["nu"]).attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+
+      probs[numberClusters + j] = (alpha / m) * md.likelihood(y_i, theta_aux_j)[0];
+    }
+
+    for(int k=0; k < probs.size(); ++k){
+      if(R_IsNA(probs[k]) || !R_finite(probs[k])) probs[k] = 0;
+    }
+    if(Rcpp::sum(probs) == 0.0) {
+      std::fill(probs.begin(), probs.end(), 1.0);
+    }
+
+    // CORRECTED: Using Rcpp::sample correctly
+    Rcpp::IntegerVector newLabel_vec = Rcpp::sample(probs.size(), 1, true, probs);
+    int newLabel_1based = newLabel_vec[0];
+
+    clusterLabels[i] = newLabel_1based -1;
+    pointsPerCluster[currentLabel]++;
+  }
+
+  dp_list["clusterLabels"] = clusterLabels;
+  dp_list["pointsPerCluster"] = pointsPerCluster;
+
+  return dp_list;
+}

@@ -49,7 +49,11 @@ Rcpp::NumericVector BetaMixingDistribution::likelihood(const arma::vec& x_data, 
 }
 
 Rcpp::List BetaMixingDistribution::priorDraw(int n_draws) const { // Renamed n to n_draws
+
   Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+
+  Rcpp::Rcout << "C++ priorParams: " << priorParams[0] << " " << priorParams[1] << std::endl;
+  Rcpp::Rcout << "C++ maxT: " << maxT << std::endl;
 
   Rcpp::NumericVector mu(n_draws);
   Rcpp::NumericVector nu(n_draws);
@@ -210,25 +214,9 @@ Rcpp::List BetaMixingDistribution::metropolisHastings(const arma::mat& x_data, /
     nu_samples[iter] = curr_nu[0];
   }
 
-  // Convert to 3D arrays for output
-  Rcpp::NumericVector mu_arr(noDraws);
-  Rcpp::NumericVector nu_arr(noDraws);
-  mu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, noDraws);
-  nu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, noDraws);
-
-  for (int i = 0; i < noDraws; i++) {
-    mu_arr[i] = mu_samples[i];
-    nu_arr[i] = nu_samples[i];
-  }
-
-  double accept_ratio_val = 0.0;
-  if (noDraws > 1) {
-    accept_ratio_val = (double)accept_count / (double)(noDraws - 1);
-  }
-
   return Rcpp::List::create(
-    Rcpp::Named("parameter_samples") = Rcpp::List::create(mu_arr, nu_arr),
-    Rcpp::Named("accept_ratio") = accept_ratio_val
+    Rcpp::Named("mu") = mu_samples,
+    Rcpp::Named("nu") = nu_samples
   );
 }
 
@@ -239,11 +227,7 @@ Rcpp::List BetaMixingDistribution::posteriorDraw(const arma::mat& x_data, int n_
   // Run Metropolis-Hastings
   Rcpp::List mh_result = metropolisHastings(x_data, start_pos, n_draws);
 
-  // Extract the parameter samples
-  Rcpp::List param_samples = mh_result["parameter_samples"];
-
-  // Return just the parameters (not the acceptance ratio)
-  return param_samples;
+  return mh_result;
 }
 
 void BetaMixingDistribution::updatePriorParameters(const Rcpp::List& clusterParameters, int n_clusters) {
@@ -285,9 +269,8 @@ Rcpp::List BetaMixingDistribution::posteriorDrawStatic(const Rcpp::NumericVector
   Rcpp::List start_pos = md.priorDraw(1);
   Rcpp::List mh_result = md.metropolisHastings(x_data, start_pos, mhDrawsVal);
 
-  Rcpp::List all_samples = mh_result["parameter_samples"];
-  Rcpp::NumericVector mu_all = all_samples[0];
-  Rcpp::NumericVector nu_all = all_samples[1];
+  Rcpp::NumericVector mu_all = mh_result["mu"];
+  Rcpp::NumericVector nu_all = mh_result["nu"];
 
   Rcpp::NumericVector mu_final(n_draws);
   Rcpp::NumericVector nu_final(n_draws);
@@ -384,10 +367,9 @@ void NonConjugateBetaDP::clusterParameterUpdate() {
       // the dpObj[["mhDraws"]] to BetaMixingDistribution::metropolisHastings.
 
       Rcpp::List mh_result = mixingDistribution->metropolisHastings(clusterData, start_pos, n_mh_draws);
-      Rcpp::List param_samples = mh_result["parameter_samples"];
 
-      Rcpp::NumericVector mu_samples = param_samples[0];
-      Rcpp::NumericVector nu_samples = param_samples[1];
+      Rcpp::NumericVector mu_samples = mh_result["mu"];
+      Rcpp::NumericVector nu_samples = mh_result["nu"];
 
       if(mu_samples.size() > 0) {
         mu_vec[k] = mu_samples[mu_samples.size() - 1];

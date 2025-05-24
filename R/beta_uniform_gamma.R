@@ -42,7 +42,8 @@ Likelihood.beta <- function(mdObj, x, theta) {
 #' @export
 #' @rdname PriorDraw
 PriorDraw.beta <- function(mdObj, n = 1) {
-
+  cat("R priorParameters:", mdObj$priorParameters, "\n")
+  cat("R maxT:", mdObj$maxT, "\n")
   priorParameters <- mdObj$priorParameters
 
   mu <- runif(n, 0, mdObj$maxT)
@@ -56,8 +57,14 @@ PriorDraw.beta <- function(mdObj, n = 1) {
 PriorDensity.beta <- function(mdObj, theta) {
 
   priorParameters <- mdObj$priorParameters
-  muDensity <- dunif(theta[[1]], 0, mdObj$maxT)
-  nuDensity <- dgamma(1/theta[[2]], priorParameters[1], priorParameters[2])
+  mu <- theta[[1]]
+  nu <- theta[[2]]
+
+  muDensity <- dunif(mu, 0, mdObj$maxT)
+
+  # Correctly calculate the Inverse-Gamma PDF
+  nuDensity <- dgamma(1/nu, priorParameters[1], priorParameters[2]) * (1/nu^2)
+
   thetaDensity <- muDensity * nuDensity
   return(as.numeric(thetaDensity))
 }

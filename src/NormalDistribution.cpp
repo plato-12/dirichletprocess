@@ -370,7 +370,7 @@ Rcpp::List ConjugateNormalDP::clusterLabelChange(int i, int newLabel, int curren
 
     // Shift all labels that were greater than the removed cluster's label
     for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
-      if (clusterLabels[j] > currentLabel) {
+      if (clusterLabels[j] > (unsigned int)currentLabel) {
         clusterLabels[j]--;
       }
     }

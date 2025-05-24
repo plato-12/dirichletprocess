@@ -13,46 +13,32 @@ benchmark_cpp_components <- function(dpObj, components, times) {
     .Call(`_dirichletprocess_benchmark_cpp_components`, dpObj, components, times)
 }
 
-#' @title Beta distribution likelihood (C++)
-NULL
-
-#' @title Draw from a Beta distribution prior (C++)
-NULL
-
-#' @title Draw from a Beta distribution posterior (C++)
-NULL
-
-#' @title Beta distribution prior density (C++)
-NULL
-
-#' @title Non-conjugate Beta Cluster Parameter Update (C++)
-NULL
-
-#' @title Beta Metropolis-Hastings Sampler (C++)
-NULL
-
-beta_likelihood_cpp <- function(x_data, mu_val, nu_val, maxT_val) {
-    .Call(`_dirichletprocess_beta_likelihood_cpp`, x_data, mu_val, nu_val, maxT_val)
+beta_prior_draw_cpp <- function(priorParams, maxT, n) {
+    .Call(`_dirichletprocess_beta_prior_draw_cpp`, priorParams, maxT, n)
 }
 
-beta_prior_draw_cpp <- function(priorParams, maxT_val, n_draws = 1L) {
-    .Call(`_dirichletprocess_beta_prior_draw_cpp`, priorParams, maxT_val, n_draws)
+beta_likelihood_cpp <- function(x, mu, nu, maxT) {
+    .Call(`_dirichletprocess_beta_likelihood_cpp`, x, mu, nu, maxT)
 }
 
-beta_posterior_draw_cpp <- function(priorParams, maxT_val, mhStepSize_val, x_data, n_draws = 1L, mhDrawsNum = 250L) {
-    .Call(`_dirichletprocess_beta_posterior_draw_cpp`, priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsNum)
+beta_prior_density_cpp <- function(mu, nu, priorParams, maxT) {
+    .Call(`_dirichletprocess_beta_prior_density_cpp`, mu, nu, priorParams, maxT)
 }
 
-beta_prior_density_cpp <- function(mu_val, nu_val, priorParams, maxT_val) {
-    .Call(`_dirichletprocess_beta_prior_density_cpp`, mu_val, nu_val, priorParams, maxT_val)
+beta_metropolis_hastings_cpp <- function(x, startMu, startNu, priorParams, maxT, mhStep, noDraws) {
+    .Call(`_dirichletprocess_beta_metropolis_hastings_cpp`, x, startMu, startNu, priorParams, maxT, mhStep, noDraws)
 }
 
-nonconjugate_beta_cluster_parameter_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp`, dpObj)
+beta_posterior_draw_cpp <- function(priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsVal) {
+    .Call(`_dirichletprocess_beta_posterior_draw_cpp`, priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsVal)
 }
 
-beta_metropolis_hastings_cpp <- function(x_data, startMu_val, startNu_val, priorParams, maxT_val, mhStepSize_val, noDraws_val = 100L) {
-    .Call(`_dirichletprocess_beta_metropolis_hastings_cpp`, x_data, startMu_val, startNu_val, priorParams, maxT_val, mhStepSize_val, noDraws_val)
+nonconjugate_beta_cluster_parameter_update_cpp <- function(dp_list) {
+    .Call(`_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp`, dp_list)
+}
+
+nonconjugate_beta_cluster_component_update_cpp <- function(dp_list) {
+    .Call(`_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp`, dp_list)
 }
 
 get_memory_tracking <- function() {

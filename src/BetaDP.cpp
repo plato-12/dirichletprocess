@@ -168,7 +168,7 @@ Rcpp::List NonConjugateBetaDP::clusterLabelChange(int i, int newLabel, int curre
 
       // Update labels
       for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
-        if (clusterLabels[j] > currentLabel) {
+        if (clusterLabels[j] > (unsigned int)currentLabel) {
           clusterLabels[j]--;
         }
       }
