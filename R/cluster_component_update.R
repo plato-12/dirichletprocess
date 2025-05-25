@@ -63,7 +63,8 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
 
     newLabel <- sample.int(numLabels + 1, 1, prob = probs)
 
-    pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] + 1
+    # The following line was the bug and has been removed:
+    # pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] + 1
     dpObj$pointsPerCluster <- pointsPerCluster
 
     dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel)
@@ -108,7 +109,7 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
   alpha <- dpObj$alpha
 
   clusterLabels <- dpObj$clusterLabels
-  clusterParams <- dpObj$clusterParameters # Ensure this is correctly structured list of 3D arrays
+  clusterParams <- dpObj$clusterParameters
   numLabels <- dpObj$numberClusters
 
   mdObj <- dpObj$mixingDistribution
@@ -116,25 +117,21 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
   pointsPerCluster <- dpObj$pointsPerCluster
 
-  aux <- vector("list", length(clusterParams)) # Should be list of 2 (mu, nu)
+  aux <- vector("list", length(clusterParams))
 
   for (i in seq_len(n)) {
     currentLabel <- clusterLabels[i]
 
-    pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] + 1
-    dpObj$pointsPerCluster <- pointsPerCluster  # Update dpObj
-    dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux)
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] - 1
 
     # Determine the correct parameters for the cluster being emptied (or use prior if it was a singleton)
-    # This logic might need to be robust if clusterParams structure isn't guaranteed
     current_params_for_empty_slot <- if(pointsPerCluster[currentLabel] == 0 && currentLabel <= dim(clusterParams[[1]])[3]) {
       list(
         mu = array(clusterParams[[1]][, , currentLabel], dim = c(1, 1, 1)),
         nu = array(clusterParams[[2]][, , currentLabel], dim = c(1, 1, 1))
       )
     } else {
-      NULL # Will draw all m from prior
+      NULL
     }
 
     if (!is.null(current_params_for_empty_slot) && pointsPerCluster[currentLabel] == 0) {
@@ -145,14 +142,10 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
       aux <- PriorDraw(mdObj, m)
     }
 
-    # Ensure clusterParams are correctly sliced for Likelihood call (list of 3D arrays for each cluster)
-    # This part is tricky if numLabels has changed or clusterParams is malformed
-    # For safety, always re-construct theta_k for Likelihood:
-
     cluster_probs <- numeric(numLabels)
     if (numLabels > 0) {
       for(k_idx in 1:numLabels) {
-        if(pointsPerCluster[k_idx] > 0 && k_idx <= dim(clusterParams[[1]])[3]) { # Check bounds
+        if(pointsPerCluster[k_idx] > 0 && k_idx <= dim(clusterParams[[1]])[3]) {
           theta_k <- list(
             mu = array(clusterParams[[1]][,,k_idx], dim=c(1,1,1)),
             nu = array(clusterParams[[2]][,,k_idx], dim=c(1,1,1))
@@ -174,21 +167,23 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     }
 
     probs <- c(cluster_probs, aux_probs)
-
     probs[is.na(probs) | !is.finite(probs)] <- 0
 
     if (all(probs == 0)) {
       probs <- rep_len(1, length(probs))
     }
-    newLabel <- sample.int(length(probs), 1, prob = probs) # sample from 1 to (numLabels + m)
+    newLabel <- sample.int(length(probs), 1, prob = probs)
 
-    dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux) # Existing call
+    dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux)
 
-    # Refresh state variables from dpObj after ClusterLabelChange
+    # THE CRITICAL FIX IS HERE:
+    # After a point is reassigned, the state of the clusters (number, labels, parameters)
+    # might have changed. You MUST refresh the local variables from the returned dpObj
+    # to ensure the next iteration of the loop has the most up-to-date information.
     pointsPerCluster <- dpObj$pointsPerCluster
-    clusterLabels <- dpObj$clusterLabels
-    clusterParams <- dpObj$clusterParameters
-    numLabels <- dpObj$numberClusters
+    clusterLabels    <- dpObj$clusterLabels
+    clusterParams    <- dpObj$clusterParameters
+    numLabels        <- dpObj$numberClusters
   }
 
   dpObj$pointsPerCluster <- pointsPerCluster
