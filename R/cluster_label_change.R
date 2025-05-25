@@ -55,7 +55,7 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
 
       # If newLabel itself was shifted down because it was > currentLabel
       if (original_newLabel_val > currentLabel) {
-        clusterLabels[i] <- original_newLabel_val - 1 // Correctly point to the shifted newLabel
+        clusterLabels[i] <- original_newLabel_val - 1 # Correctly point to the shifted newLabel
       }
     }
   } else { # Assigning to a new cluster (newLabel refers to an auxiliary parameter index)

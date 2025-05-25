@@ -69,6 +69,6 @@ SEXP nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dp_list) {
 
 // [[Rcpp::export]]
 SEXP nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list) {
-  Rcpp::warning("C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB and not implemented. R fallback should be used.");
-  return R_NilValue;
+  Rcpp::warning("C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...");
+  return Rcpp::List::create(Rcpp::Named("stub_result") = true);
 }

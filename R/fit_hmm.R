@@ -60,7 +60,7 @@ fit_hmm <- function(dpObj, its, progressBar=F){
 
 param_update <- function(dp){
 
-  newParams <- cluster_parameter_update(dp$mixingDistribution, dp$data, dp$states, dp$params)
+  newParams <- ClusterParameterUpdate(dp)
 
   dp$uniqueParams <- newParams
   dp$params <- newParams[dp$states]

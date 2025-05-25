@@ -1,0 +1,978 @@
+Starting devtools::test()...
+✔ | F W  S  OK | Context
+⠏ |          0 | beta-cpp                                          ⠏ |          0 | Beta Distribution C++ Implementation              ⠧ |         18 | Beta Distribution C++ Implementation              ⠴ |         26 | Beta Distribution C++ Implementation              ⠏ | 1       29 | Beta Distribution C++ Implementation              ✖ | 1       31 | Beta Distribution C++ Implementation
+───────────────────────────────────────────────────────────────────
+Error ('test-beta-cpp.R:170:3'): End-to-end Beta C++ sampler test (using R fallback for now)
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(dp <- Fit(dp, its = 10, progressBar = FALSE)) at test-beta-cpp.R:170:3
+  2. │ └─testthat:::quasi_capture(...)
+  3. │   ├─testthat (local) .capture(...)
+  4. │   │ └─base::withCallingHandlers(...)
+  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  6. ├─dirichletprocess::Fit(dp, its = 10, progressBar = FALSE)
+  7. └─dirichletprocess:::Fit.default(dp, its = 10, progressBar = FALSE) at dirichletprocess/R/fit.R:16:8
+  8.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+  9.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 10.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 11.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+───────────────────────────────────────────────────────────────────
+⠏ |          0 | beta-integration                                  ⠏ |          0 | Beta Distribution Full Integration Test           ⠋ | 1        0 | Beta Distribution Full Integration Test           ⠙ | 2        0 | Beta Distribution Full Integration Test           ✖ | 2        0 | Beta Distribution Full Integration Test
+───────────────────────────────────────────────────────────────────
+Error ('test-beta-integration.R:20:3'): Complete Beta DP workflow (expecting R fallback for C++)
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-beta-integration.R:20:3
+  2. │ └─testthat:::quasi_capture(...)
+  3. │   ├─testthat (local) .capture(...)
+  4. │   │ └─base::withCallingHandlers(...)
+  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  6. ├─dirichletprocess::Fit(dp, its = 20, progressBar = FALSE)
+  7. └─dirichletprocess:::Fit.default(dp, its = 20, progressBar = FALSE) at dirichletprocess/R/fit.R:16:8
+  8.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+  9.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 10.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 11.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test-beta-integration.R:52:5'): Performance comparison: Beta R vs C++ (Stub)
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-beta-integration.R:51:3
+ 2. ├─dirichletprocess::Fit(dp_r, its = 10, progressBar = FALSE) at test-beta-integration.R:52:5
+ 3. └─dirichletprocess:::Fit.default(dp_r, its = 10, progressBar = FALSE) at dirichletprocess/R/fit.R:16:8
+ 4.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 5.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 6.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 7.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+───────────────────────────────────────────────────────────────────
+⠏ |          0 | cpp-likelihood                                    ⠏ |          0 | C++ Likelihood Implementation                     R time: 0.02 C++ time: 0 Speedup: Inf 
+⠙ |      1   1 | C++ Likelihood Implementation                     ✔ |      1   1 | C++ Likelihood Implementation
+⠏ |          0 | cpp-sampler-demo                                  ⠏ |          0 | C++ Sampler End-to-End Demonstration              
+=== C++ Sampler Demonstration ===
+Data: 3 clusters with means at -5 0 5 
+Total observations: 90 
+
+Initial state: 1 cluster
+
+Running C++ sampler...
+  Iteration 5 :  3 clusters
+  Iteration 10 :  4 clusters
+  Iteration 15 :  5 clusters
+  Iteration 20 :  3 clusters
+
+Final results:
+  Number of clusters: 3 
+  Cluster sizes: 69 19 2 
+  Cluster means: 0.09 0.1 0.28 
+  Cluster sds: 5 0.48 1.23 
+⠋ |          1 | C++ Sampler End-to-End Demonstration              ⠸ | 1        3 | C++ Sampler End-to-End Demonstration              
+=== Demonstration Complete ===
+⠦ | 2 1      4 | C++ Sampler End-to-End Demonstration              ⠧ | 2 12      4 | C++ Sampler End-to-End Demonstration             ⠙ | 2 26      4 | C++ Sampler End-to-End Demonstration             
+Performance Comparison (10 iterations):
+R implementation: 0.3 seconds
+C++ implementation: 0.02 seconds
+Speedup: 15 x
+⠹ | 2 26  1   4 | C++ Sampler End-to-End Demonstration             ✖ | 2 26  1   4 | C++ Sampler End-to-End Demonstration
+───────────────────────────────────────────────────────────────────
+Failure ('test-cpp-sampler-demo.R:83:5'): Complete C++ sampler demonstration
+abs(cluster_means[1] - true_means[1]) < 1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-cpp-sampler-demo.R:85:5'): Complete C++ sampler demonstration
+abs(cluster_means[3] - true_means[3]) < 1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test-cpp-sampler-demo.R:102:7'): Performance comparison: C++ vs R
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-cpp-sampler-demo.R:99:3
+ 2. ├─dirichletprocess::ClusterParameterUpdate(dp_r) at test-cpp-sampler-demo.R:102:7
+ 3. └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp_r) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 4.   ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 5.   └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 6.     └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+───────────────────────────────────────────────────────────────────
+⠏ |          0 | normal-cpp                                        ⠏ |          0 | Normal Distribution C++ Implementation            ⠇ |         19 | Normal Distribution C++ Implementation            ⠙ |         52 | Normal Distribution C++ Implementation            
+End-to-end test summary:
+Initial clusters: 1 
+Final clusters: 7 
+Cluster sizes: 18 8 6 19 1 1 7 
+Cluster means: -3.376066 1.941834 2.241343 0.9193749 -0.4607041 -0.8780246 -0.5684257 
+✔ |         80 | Normal Distribution C++ Implementation
+⠏ |          0 | beta_uniform_gamma                                ⠏ |          0 | Beta Mixing Distribution Tests                    ⠸ |         24 | Beta Mixing Distribution Tests                    ⠙ | 1       31 | Beta Mixing Distribution Tests                    ⠹ | 1       32 | Beta Mixing Distribution Tests                    ⠋ | 1       40 | Beta Mixing Distribution Tests                    ⠇ | 1       48 | Beta Mixing Distribution Tests                    Accept Ratio:  0.021 
+Accept Ratio:  0.024 
+⠸ | 3       51 | Beta Mixing Distribution Tests                    ⠋ | 4       57 | Beta Mixing Distribution Tests                    ✖ | 4       57 | Beta Mixing Distribution Tests
+───────────────────────────────────────────────────────────────────
+Error ('test_beta_uniform_gamma.R:138:3'): Beta Component Update
+Error in `ClusterComponentUpdate.nonconjugate(beta_dpobj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::ClusterComponentUpdate(beta_dpobj) at test_beta_uniform_gamma.R:138:3
+ 2. └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(beta_dpobj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 3.   ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 4.   └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_beta_uniform_gamma.R:266:3'): Beta DP Posterior Clusters
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(beta_dpobj, 5, FALSE, FALSE) at test_beta_uniform_gamma.R:266:3
+ 2. └─dirichletprocess:::Fit.default(beta_dpobj, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_beta_uniform_gamma.R:282:3'): Beta DP Posterior Function
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(beta_dpobj, 5, FALSE, FALSE) at test_beta_uniform_gamma.R:282:3
+ 2. └─dirichletprocess:::Fit.default(beta_dpobj, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_beta_uniform_gamma.R:318:3'): Dirichlet Process Likelihood
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(beta_dpobj, 5, FALSE, FALSE) at test_beta_uniform_gamma.R:318:3
+ 2. └─dirichletprocess:::Fit.default(beta_dpobj, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+───────────────────────────────────────────────────────────────────
+⠏ |          0 | beta_uniform_pareto                               ⠏ |          0 | Beta Uniform Pareto Distribution                  ✔ |         15 | Beta Uniform Pareto Distribution
+⠏ |          0 | change_observations                               ⠏ |          0 | Change Observations                               ⠸ |   14      0 | Change Observations                              ⠏ | 2 28      0 | Change Observations                              ⠙ | 4 28      0 | Change Observations                              ✖ | 4 28      0 | Change Observations
+───────────────────────────────────────────────────────────────────
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rgamma(n, PosteriorParameters_calc[3], PosteriorParameters_calc[4]) at dirichletprocess/R/normal_inverse_gamma.R:63:3
+
+Warning ('test_change_observations.R:9:3'): Conjugate Change Observations
+NAs produced
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:9:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterParameterUpdate(dpObj) at dirichletprocess/R/fit.R:44:5
+ 4.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_parameter_update.R:14:27
+ 5.     ├─dirichletprocess::PosteriorDraw(mdobj, pts) at dirichletprocess/R/cluster_parameter_update.R:28:7
+ 6.     └─dirichletprocess:::PosteriorDraw.normal(mdobj, pts) at dirichletprocess/R/mixing_distribution_posterior_draw.R:10:3
+ 7.       └─stats::rnorm(...) at dirichletprocess/R/normal_inverse_gamma.R:64:3
+
+Error ('test_change_observations.R:12:3'): Conjugate Change Observations
+Error in `sample.int(ind, 1, prob = weights)`: NA in probability vector
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::ChangeObservations(dpobj, new_data_test) at test_change_observations.R:12:3
+ 2. └─dirichletprocess:::ChangeObservations.default(dpobj, new_data_test) at dirichletprocess/R/change_observations.R:14:23
+ 3.   ├─dirichletprocess::ClusterLabelPredict(dpobj, newData) at dirichletprocess/R/change_observations.R:22:3
+ 4.   └─dirichletprocess:::ClusterLabelPredict.conjugate(dpobj, newData) at dirichletprocess/R/cluster_label_predict.R:18:3
+ 5.     └─base::sample.int(ind, 1, prob = weights) at dirichletprocess/R/cluster_label_predict.R:48:5
+
+Error ('test_change_observations.R:25:3'): Non Conjugate Change Observations
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:25:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_change_observations.R:40:3'): Hierarchcial Change Observations
+Error in `ClusterComponentUpdate.nonconjugate(dpObj$indDP[[i]])`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpList, 5, FALSE, FALSE) at test_change_observations.R:40:3
+ 2. └─dirichletprocess:::Fit.hierarchical(dpList, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:80:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.hierarchical(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterComponentUpdate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:206:5
+ 6.     └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:14:3
+ 7.       ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 8.       └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_change_observations.R:60:3'): 2D Change Observations
+Error in `mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i])`: x and mean have non-conforming size
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dp, 3, progressBar = F) at test_change_observations.R:60:3
+ 2. └─dirichletprocess:::Fit.default(dp, 3, progressBar = F) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params) at dirichletprocess/R/cluster_component_update.R:48:9
+ 6.     └─dirichletprocess:::Likelihood.mvnormal(...) at dirichletprocess/R/mixing_distribution_likelihood.R:20:3
+ 7.       └─base::vapply(...) at dirichletprocess/R/mvnormal_normal_wishart.R:16:3
+ 8.         └─dirichletprocess (local) FUN(X[[i]], ...)
+ 9.           └─mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]) at dirichletprocess/R/mvnormal_normal_wishart.R:17:13
+───────────────────────────────────────────────────────────────────
+Maximum number of failures exceeded; quitting at end of
+file.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+
+══ Results ════════════════════════════════════════════════════════
+Duration: 5.6 s
+
+── Skipped tests (2) ──────────────────────────────────────────────
+• empty test (2): 'test-cpp-likelihood.R:24:1',
+  'test-cpp-sampler-demo.R:91:1'
+
+── Failed tests ───────────────────────────────────────────────────
+Error ('test-beta-cpp.R:170:3'): End-to-end Beta C++ sampler test (using R fallback for now)
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(dp <- Fit(dp, its = 10, progressBar = FALSE)) at test-beta-cpp.R:170:3
+  2. │ └─testthat:::quasi_capture(...)
+  3. │   ├─testthat (local) .capture(...)
+  4. │   │ └─base::withCallingHandlers(...)
+  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  6. ├─dirichletprocess::Fit(dp, its = 10, progressBar = FALSE)
+  7. └─dirichletprocess:::Fit.default(dp, its = 10, progressBar = FALSE) at dirichletprocess/R/fit.R:16:8
+  8.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+  9.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 10.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 11.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test-beta-integration.R:20:3'): Complete Beta DP workflow (expecting R fallback for C++)
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-beta-integration.R:20:3
+  2. │ └─testthat:::quasi_capture(...)
+  3. │   ├─testthat (local) .capture(...)
+  4. │   │ └─base::withCallingHandlers(...)
+  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  6. ├─dirichletprocess::Fit(dp, its = 20, progressBar = FALSE)
+  7. └─dirichletprocess:::Fit.default(dp, its = 20, progressBar = FALSE) at dirichletprocess/R/fit.R:16:8
+  8.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+  9.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 10.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 11.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test-beta-integration.R:52:5'): Performance comparison: Beta R vs C++ (Stub)
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─base::system.time(...) at test-beta-integration.R:51:3
+ 2. ├─dirichletprocess::Fit(dp_r, its = 10, progressBar = FALSE) at test-beta-integration.R:52:5
+ 3. └─dirichletprocess:::Fit.default(dp_r, its = 10, progressBar = FALSE) at dirichletprocess/R/fit.R:16:8
+ 4.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 5.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 6.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 7.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Failure ('test-cpp-sampler-demo.R:83:5'): Complete C++ sampler demonstration
+abs(cluster_means[1] - true_means[1]) < 1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-cpp-sampler-demo.R:85:5'): Complete C++ sampler demonstration
+abs(cluster_means[3] - true_means[3]) < 1 is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Error ('test_beta_uniform_gamma.R:138:3'): Beta Component Update
+Error in `ClusterComponentUpdate.nonconjugate(beta_dpobj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::ClusterComponentUpdate(beta_dpobj) at test_beta_uniform_gamma.R:138:3
+ 2. └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(beta_dpobj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 3.   ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 4.   └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_beta_uniform_gamma.R:266:3'): Beta DP Posterior Clusters
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(beta_dpobj, 5, FALSE, FALSE) at test_beta_uniform_gamma.R:266:3
+ 2. └─dirichletprocess:::Fit.default(beta_dpobj, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_beta_uniform_gamma.R:282:3'): Beta DP Posterior Function
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(beta_dpobj, 5, FALSE, FALSE) at test_beta_uniform_gamma.R:282:3
+ 2. └─dirichletprocess:::Fit.default(beta_dpobj, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_beta_uniform_gamma.R:318:3'): Dirichlet Process Likelihood
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(beta_dpobj, 5, FALSE, FALSE) at test_beta_uniform_gamma.R:318:3
+ 2. └─dirichletprocess:::Fit.default(beta_dpobj, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_change_observations.R:12:3'): Conjugate Change Observations
+Error in `sample.int(ind, 1, prob = weights)`: NA in probability vector
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::ChangeObservations(dpobj, new_data_test) at test_change_observations.R:12:3
+ 2. └─dirichletprocess:::ChangeObservations.default(dpobj, new_data_test) at dirichletprocess/R/change_observations.R:14:23
+ 3.   ├─dirichletprocess::ClusterLabelPredict(dpobj, newData) at dirichletprocess/R/change_observations.R:22:3
+ 4.   └─dirichletprocess:::ClusterLabelPredict.conjugate(dpobj, newData) at dirichletprocess/R/cluster_label_predict.R:18:3
+ 5.     └─base::sample.int(ind, 1, prob = weights) at dirichletprocess/R/cluster_label_predict.R:48:5
+
+Error ('test_change_observations.R:25:3'): Non Conjugate Change Observations
+Error in `ClusterComponentUpdate.nonconjugate(dpObj)`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpobj, 10, FALSE, FALSE) at test_change_observations.R:25:3
+ 2. └─dirichletprocess:::Fit.default(dpobj, 10, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 6.     └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_change_observations.R:40:3'): Hierarchcial Change Observations
+Error in `ClusterComponentUpdate.nonconjugate(dpObj$indDP[[i]])`: object 'newLabel' not found
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dpList, 5, FALSE, FALSE) at test_change_observations.R:40:3
+ 2. └─dirichletprocess:::Fit.hierarchical(dpList, 5, FALSE, FALSE) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:80:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.hierarchical(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::ClusterComponentUpdate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:206:5
+ 6.     └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:14:3
+ 7.       ├─dirichletprocess::ClusterLabelChange(...) at dirichletprocess/R/cluster_component_update.R:126:5
+ 8.       └─dirichletprocess:::ClusterLabelChange.nonconjugate(...) at dirichletprocess/R/cluster_label_change.R:14:3
+
+Error ('test_change_observations.R:60:3'): 2D Change Observations
+Error in `mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i])`: x and mean have non-conforming size
+Backtrace:
+    ▆
+ 1. ├─dirichletprocess::Fit(dp, 3, progressBar = F) at test_change_observations.R:60:3
+ 2. └─dirichletprocess:::Fit.default(dp, 3, progressBar = F) at dirichletprocess/R/fit.R:16:8
+ 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
+ 4.   └─dirichletprocess:::ClusterComponentUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
+ 5.     ├─dirichletprocess::Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params) at dirichletprocess/R/cluster_component_update.R:48:9
+ 6.     └─dirichletprocess:::Likelihood.mvnormal(...) at dirichletprocess/R/mixing_distribution_likelihood.R:20:3
+ 7.       └─base::vapply(...) at dirichletprocess/R/mvnormal_normal_wishart.R:16:3
+ 8.         └─dirichletprocess (local) FUN(X[[i]], ...)
+ 9.           └─mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]) at dirichletprocess/R/mvnormal_normal_wishart.R:17:13
+
+[ FAIL 13 | WARN 54 | SKIP 2 | PASS 188 ]
+══ Terminated early ═══════════════════════════════════════════════
+devtools::test() finished.

@@ -57,7 +57,6 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
     probs <- c(cluster_probs, new_cluster_prob)
 
     probs[is.na(probs) | is.infinite(probs)] <- 0
-
     if (all(probs == 0)) {
       probs <- rep_len(1, length(probs))
     }
@@ -90,7 +89,7 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     # Call the C++ implementation
     cpp_result <- nonconjugate_beta_cluster_component_update_cpp(dpObj)
 
-    if (!is.null(cpp_result)) {
+    if (!is.null(cpp_result) && !isTRUE(cpp_result$stub_result)) {
       # If C++ implementation is complete and returns the updated dpObj structure
       dpObj$clusterLabels <- cpp_result$clusterLabels
       dpObj$pointsPerCluster <- cpp_result$pointsPerCluster
@@ -121,6 +120,10 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
   for (i in seq_len(n)) {
     currentLabel <- clusterLabels[i]
+
+    pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] + 1
+    dpObj$pointsPerCluster <- pointsPerCluster  # Update dpObj
+    dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux)
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] - 1
 
     # Determine the correct parameters for the cluster being emptied (or use prior if it was a singleton)
