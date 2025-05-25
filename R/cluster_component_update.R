@@ -179,8 +179,7 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     }
     newLabel <- sample.int(length(probs), 1, prob = probs) # sample from 1 to (numLabels + m)
 
-    # Call R's ClusterLabelChange to handle state updates correctly
-    dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux)
+    dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux) # Existing call
 
     # Refresh state variables from dpObj after ClusterLabelChange
     pointsPerCluster <- dpObj$pointsPerCluster

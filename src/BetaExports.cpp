@@ -3,7 +3,7 @@
 #include <RcppArmadillo.h>
 #include "../inst/include/BetaDistribution.h"
 #include "../inst/include/DirichletProcess.h"
-#include <iostream> // For Rcpp::Rcout
+#include <iostream>
 
 // Helper function to get a single data point (row)
 arma::rowvec get_row(const arma::mat& m, int i) {
@@ -12,11 +12,6 @@ arma::rowvec get_row(const arma::mat& m, int i) {
 
 // [[Rcpp::export]]
 Rcpp::List beta_prior_draw_cpp(const Rcpp::NumericVector& priorParams, double maxT, int n) {
-  Rcpp::Function r_set_seed("set.seed");
-  r_set_seed(42); // Ensure C++ side also re-seeds right before drawing
-
-  Rcpp::Rcout << "C++ priorParams: " << priorParams[0] << " " << priorParams[1] << std::endl;
-  Rcpp::Rcout << "C++ maxT: " << maxT << std::endl;
   return dp::BetaMixingDistribution::priorDrawStatic(priorParams, maxT, n);
 }
 
@@ -66,16 +61,14 @@ Rcpp::List beta_posterior_draw_cpp(const Rcpp::NumericVector& priorParams, doubl
   return dp::BetaMixingDistribution::posteriorDrawStatic(priorParams, maxT_val, mhStepSize_val, x_arma, n_draws, mhDrawsVal);
 }
 
-// MODIFIED STUB: Returns R_NilValue to signal R wrapper to use R fallback
 // [[Rcpp::export]]
 SEXP nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dp_list) {
   Rcpp::warning("C++ function 'nonconjugate_beta_cluster_parameter_update_cpp' is a STUB and not implemented. R fallback should be used.");
-  return R_NilValue; // Signal R to use its own implementation
+  return R_NilValue;
 }
 
-// MODIFIED STUB: Returns R_NilValue to signal R wrapper to use R fallback
 // [[Rcpp::export]]
 SEXP nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list) {
   Rcpp::warning("C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB and not implemented. R fallback should be used.");
-  return R_NilValue; // Signal R to use its own implementation
+  return R_NilValue;
 }

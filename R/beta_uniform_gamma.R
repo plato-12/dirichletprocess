@@ -29,10 +29,6 @@ Likelihood.beta <- function(mdObj, x, theta) {
 
   a <- (mu * tau)/maxT
   b <- (1 - mu/maxT) * tau
-  #cat(c(mu, tau, a, b), '\n')
-  # numerator <- (a - 1) * log(x) + (b - 1) * log(maxT - x)
-  # numerator <- numerator - lbeta(a, b) - (tau - 1) * log(maxT)
-  # y <- exp(numerator)
 
   y <- 1/maxT * dbeta(x/maxT, a, b)
 
@@ -44,17 +40,8 @@ Likelihood.beta <- function(mdObj, x, theta) {
 PriorDraw.beta <- function(mdObj, n = 1) {
 
   priorParameters <- mdObj$priorParameters
-  cat("R priorParameters:", priorParameters, "\n") # Your existing debug print
-  cat("R maxT:", mdObj$maxT, "\n")                 # Your existing debug print
-
   mu <- runif(n, 0, mdObj$maxT)
-  # Use priorParameters[1] for shape and priorParameters[2] for rate
   nu <- 1/rgamma(n, shape = priorParameters[1], rate = priorParameters[2])
-
-  if (n > 0) {
-    cat("R_PriorDraw_first_mu:", mu[1], "\n")
-    cat("R_PriorDraw_first_nu:", nu[1], "\n")
-  }
 
   theta <- list(mu = array(mu, c(1, 1, n)), nu = array(nu, c(1, 1, n)))
   return(theta)
@@ -70,18 +57,15 @@ PriorDensity.beta <- function(mdObj, theta) {
 
   muDensity <- dunif(mu, 0, mdObj$maxT)
 
-  # Correctly calculate the Inverse-Gamma PDF
   nuDensity <- dgamma(1/nu, priorParameters[1], priorParameters[2]) * (1/nu^2)
+
+  if(is.infinite(nuDensity) | is.na(nuDensity)){
+    nuDensity <- 1e-10 # Return a very small number instead of Inf or NA
+  }
 
   thetaDensity <- muDensity * nuDensity
   return(as.numeric(thetaDensity))
 }
-
-# PosteriorDraw.beta <- function(mdObj, x, n=100, start_pos){
-# if(missing(start_pos)){ start_pos <- PriorDraw(mdObj) } mh_result <-
-# MetropolisHastings(x, start_pos, mdObj, no_draws=n) theta <-
-# list(mu=array(mh_result$parameter_samples[[1]], dim=c(1,1,n)),
-# nu=array(mh_result$parameter_samples[[2]], dim=c(1,1,n))) return(theta) }
 
 #' @export
 #' @rdname PriorParametersUpdate
@@ -118,6 +102,7 @@ MhParameterProposal.beta <- function(mdObj, old_params) {
   }
 
   new_params[[2]] <- abs(old_params[[2]] + mhStepSize[2] * rnorm(1, 0, 2.4))
+  if (new_params[[2]] == 0) new_params[[2]] <- 1e-4 # Prevent nu from being exactly zero
 
   return(new_params)
 }
@@ -130,19 +115,26 @@ PenalisedLikelihood.beta <- function(mdObj, x){
 
   optimParams <- tryCatch(optim(optimStartParams, function(params){
 
-    ll <- sum(log(Likelihood(mdObj, x, VectorToArray(params))))
-    ll <- ll + log(PriorDensity(mdObj, VectorToArray(params)))
+    # Ensure params are in a valid range for log calculation
+    params_mu <- params[1]
+    params_nu <- params[2]
+    if(params_mu <= 0 || params_mu >= mdObj$maxT || params_nu <= 0) return(1e30)
 
-    if (is.infinite(ll)) ll <- -1e30
+
+    ll <- sum(log(Likelihood(mdObj, x, VectorToArray(params))))
+    # Ensure PriorDensity does not return 0 or negative before taking log
+    prior_dens <- PriorDensity(mdObj, VectorToArray(params))
+    if(prior_dens <= 0) return(1e30)
+    ll <- ll + log(prior_dens)
+
+
+    if (is.infinite(ll) || is.na(ll)) ll <- -1e30 # Use a large negative finite number
 
     return(-ll)
-  }, method="L-BFGS-B", lower=c(0,0), upper=c(mdObj$maxT, Inf)), error = function(e) list(par=optimStartParams))
+  }, method="L-BFGS-B", lower=c(1e-6,1e-6), upper=c(mdObj$maxT - 1e-6, Inf)), error = function(e) list(par=optimStartParams))
 
 
   optimParamsRet <- VectorToArray(optimParams$par)
 
   return(optimParamsRet)
 }
-
-
-

@@ -24,7 +24,7 @@ MetropolisHastings.default <- function(mixingDistribution, x, start_pos, no_draw
 
     accept_prob <- min(1, exp(new_prior + new_Likelihood - old_prior - old_Likelihood))
 
-    if (is.na(accept_prob) | !length(accept_prob) ) {
+    if (is.na(accept_prob) || !is.finite(accept_prob) ) {
       accept_prob <- 0
     }
 
