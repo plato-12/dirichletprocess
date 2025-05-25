@@ -123,7 +123,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // nonconjugate_beta_cluster_parameter_update_cpp
-Rcpp::List nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dp_list);
+SEXP nonconjugate_beta_cluster_parameter_update_cpp(Rcpp::List dp_list);
 RcppExport SEXP _dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp(SEXP dp_listSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -134,7 +134,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // nonconjugate_beta_cluster_component_update_cpp
-Rcpp::List nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list);
+SEXP nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list);
 RcppExport SEXP _dirichletprocess_nonconjugate_beta_cluster_component_update_cpp(SEXP dp_listSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

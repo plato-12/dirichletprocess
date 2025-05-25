@@ -86,26 +86,30 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
 #'@export
 ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
-  # C++ dispatch logic for Beta model
   if (inherits(dpObj, "beta") && using_cpp_samplers()) {
     # Call the C++ implementation
-    result <- nonconjugate_beta_cluster_component_update_cpp(dpObj)
+    cpp_result <- nonconjugate_beta_cluster_component_update_cpp(dpObj)
 
-    # Update the dpObj with results
-    dpObj$clusterLabels <- result$clusterLabels
-    dpObj$pointsPerCluster <- result$pointsPerCluster
-    dpObj$numberClusters <- result$numberClusters
-    dpObj$clusterParameters <- result$clusterParameters
-    return(dpObj)
+    if (!is.null(cpp_result)) {
+      # If C++ implementation is complete and returns the updated dpObj structure
+      dpObj$clusterLabels <- cpp_result$clusterLabels
+      dpObj$pointsPerCluster <- cpp_result$pointsPerCluster
+      dpObj$numberClusters <- cpp_result$numberClusters
+      dpObj$clusterParameters <- cpp_result$clusterParameters
+      return(dpObj)
+    }
+    # If cpp_result is NULL, it means C++ stub signaled to use R fallback (or an error occurred)
+    # The warning from C++ will have already printed.
+    # Proceed to R fallback logic below
   }
 
-  # Fall back to R implementation for other models or if C++ is disabled
+  # R fallback implementation (will run if C++ is disabled or C++ stub returns NULL)
   y <- dpObj$data
   n <- dpObj$n
   alpha <- dpObj$alpha
 
   clusterLabels <- dpObj$clusterLabels
-  clusterParams <- dpObj$clusterParameters
+  clusterParams <- dpObj$clusterParameters # Ensure this is correctly structured list of 3D arrays
   numLabels <- dpObj$numberClusters
 
   mdObj <- dpObj$mixingDistribution
@@ -113,55 +117,76 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
   pointsPerCluster <- dpObj$pointsPerCluster
 
-  aux <- vector("list", length(clusterParams))
+  aux <- vector("list", length(clusterParams)) # Should be list of 2 (mu, nu)
 
   for (i in seq_len(n)) {
-
     currentLabel <- clusterLabels[i]
-
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] - 1
 
-    if (pointsPerCluster[currentLabel] == 0) {
+    # Determine the correct parameters for the cluster being emptied (or use prior if it was a singleton)
+    # This logic might need to be robust if clusterParams structure isn't guaranteed
+    current_params_for_empty_slot <- if(pointsPerCluster[currentLabel] == 0 && currentLabel <= dim(clusterParams[[1]])[3]) {
+      list(
+        mu = array(clusterParams[[1]][, , currentLabel], dim = c(1, 1, 1)),
+        nu = array(clusterParams[[2]][, , currentLabel], dim = c(1, 1, 1))
+      )
+    } else {
+      NULL # Will draw all m from prior
+    }
 
-      priorDraws <- PriorDraw(mdObj, m - 1)
-
-      for (j in seq_along(priorDraws)) {
-        aux[[j]] <- array(c(clusterParams[[j]][, , currentLabel], priorDraws[[j]]),
-                          dim = c(dim(priorDraws[[j]])[1:2], m))
-      }
+    if (!is.null(current_params_for_empty_slot) && pointsPerCluster[currentLabel] == 0) {
+      priorDraws_aux <- PriorDraw(mdObj, m - 1)
+      aux[[1]] <- array(c(current_params_for_empty_slot[[1]], priorDraws_aux[[1]]), dim = c(1, 1, m))
+      aux[[2]] <- array(c(current_params_for_empty_slot[[2]], priorDraws_aux[[2]]), dim = c(1, 1, m))
     } else {
       aux <- PriorDraw(mdObj, m)
     }
 
-    probs <- c(
-      pointsPerCluster * Likelihood(mdObj, y[i, , drop = FALSE],clusterParams),
-      (alpha/m) * Likelihood(mdObj, y[i, , drop = FALSE], aux))
+    # Ensure clusterParams are correctly sliced for Likelihood call (list of 3D arrays for each cluster)
+    # This part is tricky if numLabels has changed or clusterParams is malformed
+    # For safety, always re-construct theta_k for Likelihood:
 
-    if (any(is.nan(probs))) {
-      probs[is.nan(probs)] <- 0
+    cluster_probs <- numeric(numLabels)
+    if (numLabels > 0) {
+      for(k_idx in 1:numLabels) {
+        if(pointsPerCluster[k_idx] > 0 && k_idx <= dim(clusterParams[[1]])[3]) { # Check bounds
+          theta_k <- list(
+            mu = array(clusterParams[[1]][,,k_idx], dim=c(1,1,1)),
+            nu = array(clusterParams[[2]][,,k_idx], dim=c(1,1,1))
+          )
+          cluster_probs[k_idx] <- pointsPerCluster[k_idx] * Likelihood(mdObj, y[i, , drop = FALSE], theta_k)
+        } else {
+          cluster_probs[k_idx] <- 0
+        }
+      }
     }
 
-    probs[is.na(probs)] <- 0
-
-    if (any(is.infinite(probs))) {
-      probs[is.infinite(probs)] <- 1
-      probs[-is.infinite(probs)] <- 0
+    aux_probs <- numeric(m)
+    for(k_idx in 1:m) {
+      theta_aux_k <- list(
+        mu = array(aux[[1]][,,k_idx], dim=c(1,1,1)),
+        nu = array(aux[[2]][,,k_idx], dim=c(1,1,1))
+      )
+      aux_probs[k_idx] <- (alpha/m) * Likelihood(mdObj, y[i, , drop = FALSE], theta_aux_k)
     }
+
+    probs <- c(cluster_probs, aux_probs)
+
+    probs[is.na(probs) | !is.finite(probs)] <- 0
 
     if (all(probs == 0)) {
       probs <- rep_len(1, length(probs))
     }
-    newLabel <- sample.int(numLabels + m, 1, prob = probs)
+    newLabel <- sample.int(length(probs), 1, prob = probs) # sample from 1 to (numLabels + m)
 
-    dpObj$pointsPerCluster <- pointsPerCluster
-
+    # Call R's ClusterLabelChange to handle state updates correctly
     dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux)
 
+    # Refresh state variables from dpObj after ClusterLabelChange
     pointsPerCluster <- dpObj$pointsPerCluster
     clusterLabels <- dpObj$clusterLabels
     clusterParams <- dpObj$clusterParameters
     numLabels <- dpObj$numberClusters
-
   }
 
   dpObj$pointsPerCluster <- pointsPerCluster

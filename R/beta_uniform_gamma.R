@@ -42,12 +42,20 @@ Likelihood.beta <- function(mdObj, x, theta) {
 #' @export
 #' @rdname PriorDraw
 PriorDraw.beta <- function(mdObj, n = 1) {
-  cat("R priorParameters:", mdObj$priorParameters, "\n")
-  cat("R maxT:", mdObj$maxT, "\n")
+
   priorParameters <- mdObj$priorParameters
+  cat("R priorParameters:", priorParameters, "\n") # Your existing debug print
+  cat("R maxT:", mdObj$maxT, "\n")                 # Your existing debug print
 
   mu <- runif(n, 0, mdObj$maxT)
-  nu <- 1/rgamma(n, priorParameters[1], priorParameters[2])
+  # Use priorParameters[1] for shape and priorParameters[2] for rate
+  nu <- 1/rgamma(n, shape = priorParameters[1], rate = priorParameters[2])
+
+  if (n > 0) {
+    cat("R_PriorDraw_first_mu:", mu[1], "\n")
+    cat("R_PriorDraw_first_nu:", nu[1], "\n")
+  }
+
   theta <- list(mu = array(mu, c(1, 1, n)), nu = array(nu, c(1, 1, n)))
   return(theta)
 }

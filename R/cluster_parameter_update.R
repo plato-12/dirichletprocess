@@ -38,45 +38,55 @@ ClusterParameterUpdate.conjugate <- function(dpObj) {
   return(dpObj)
 }
 
-#'@export
+#' @export
+#' @rdname ClusterParameterUpdate
 ClusterParameterUpdate.nonconjugate <- function(dpObj) {
 
-  # C++ dispatch logic for Beta model
   if (inherits(dpObj, "beta") && using_cpp_samplers()) {
-    dpObj$clusterParameters <- nonconjugate_beta_cluster_parameter_update_cpp(dpObj)
-    return(dpObj)
+    # Call the C++ implementation STUB
+    cpp_result <- nonconjugate_beta_cluster_parameter_update_cpp(dpObj)
+
+    if (!is.null(cpp_result)) {
+      # If C++ were fully implemented, it would return the updated dpObj
+      # For a stub returning R_NilValue (which becomes NULL in R), this block is skipped
+      # dpObj <- cpp_result # Or assign components like in component_update
+      # return(dpObj)
+
+      # If the stub just returns dp_list, this line tries to re-assign
+      # This was likely the source of "length 11" if cpp_result was not dpObj
+      # but some other list created by Rcpp by mistake.
+      # Since the stub now returns R_NilValue, this will be skipped.
+      dpObj$clusterParameters <- cpp_result$clusterParameters
+      return(dpObj)
+    }
+    # If cpp_result is NULL, proceed to R fallback
   }
 
-  # Fall back to R implementation for other models or if C++ is disabled
-  y <- dpObj$data
-  numLabels <- dpObj$numberClusters
-
-  clusterLabels <- dpObj$clusterLabels
-  clusterParams <- dpObj$clusterParameters
-
-  mdobj <- dpObj$mixingDistribution
-  mhDraws <- dpObj$mhDraws
-
-  accept_ratio <- numeric(numLabels)
-
-  start_pos <- PriorDraw(mdobj)
-
-  for (i in 1:numLabels) {
-    pts <- y[which(clusterLabels == i), , drop = FALSE]
-
-    for (j in seq_along(clusterParams)) {
-      start_pos[[j]] <- clusterParams[[j]][, , i, drop = FALSE]
+  # R fallback implementation
+  for (i in seq_len(dpObj$numberClusters)) {
+    cluster_data_indices <- dpObj$clusterLabels == i
+    if (sum(cluster_data_indices) == 0) { # No data points in this cluster
+      next
     }
+    cluster_data <- dpObj$data[cluster_data_indices, , drop = FALSE]
 
-    parameter_samples <- PosteriorDraw(mdobj, pts, mhDraws, start_pos = start_pos)
+    # Current parameters for cluster i (to be used as start for MH)
+    current_params_list <- list(
+      mu = array(dpObj$clusterParameters[[1]][, , i], dim = c(1,1,1)),
+      nu = array(dpObj$clusterParameters[[2]][, , i], dim = c(1,1,1))
+    )
 
-    for (j in seq_along(clusterParams)) {
-      clusterParams[[j]][, , i] <- parameter_samples[[j]][, , mhDraws]
-    }
+    # PosteriorDraw for non-conjugate returns a list of samples (mu, nu)
+    # We need to take the last sample as the updated parameter
+    posterior_draw_samples <- PosteriorDraw(dpObj$mixingDistribution,
+                                            cluster_data,
+                                            current_params_list, # Start for MH
+                                            num_draws = dpObj$mhDraws) # Assuming PosteriorDraw for non-conj takes num_draws
 
-    accept_ratio[i] <- length(unique(parameter_samples[[1]]))/mhDraws
+    # Update the parameters for cluster i with the last sample from MH
+    dpObj$clusterParameters[[1]][, , i] <- posterior_draw_samples$mu[,,dpObj$mhDraws, drop=FALSE]
+    dpObj$clusterParameters[[2]][, , i] <- posterior_draw_samples$nu[,,dpObj$mhDraws, drop=FALSE]
   }
-  dpObj$clusterParameters <- clusterParams
   return(dpObj)
 }
 

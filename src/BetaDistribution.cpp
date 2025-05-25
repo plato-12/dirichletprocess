@@ -48,36 +48,43 @@ Rcpp::NumericVector BetaMixingDistribution::likelihood(const arma::vec& x_data, 
   return result;
 }
 
-Rcpp::List BetaMixingDistribution::priorDraw(int n_draws) const { // Renamed n to n_draws
+Rcpp::List BetaMixingDistribution::priorDraw(int n_draws) const {
+  Rcpp::NumericVector priorParams_local = Rcpp::as<Rcpp::NumericVector>(this->priorParameters);
 
-  Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+  Rcpp::Rcout << "C++ priorParams (in priorDraw): " << priorParams_local[0] << " " << priorParams_local[1] << std::endl;
+  Rcpp::Rcout << "C++ maxT (in priorDraw): " << this->maxT << std::endl;
 
-  Rcpp::Rcout << "C++ priorParams: " << priorParams[0] << " " << priorParams[1] << std::endl;
-  Rcpp::Rcout << "C++ maxT: " << maxT << std::endl;
+  Rcpp::NumericVector mu_values(n_draws);
+  Rcpp::NumericVector nu_values(n_draws);
 
-  Rcpp::NumericVector mu(n_draws);
-  Rcpp::NumericVector nu(n_draws);
+  if (n_draws > 0) {
+    // Get R's runif and rgamma functions
+    Rcpp::Function r_runif("runif");
+    Rcpp::Function r_rgamma("rgamma");
 
-  for (int i = 0; i < n_draws; i++) {
-    // mu ~ Uniform(0, maxT)
-    mu[i] = R::runif(0.0, maxT);
+    // Generate all mu values in one go, like R
+    mu_values = r_runif(Rcpp::Named("n", n_draws),
+                        Rcpp::Named("min", 0.0),
+                        Rcpp::Named("max", this->maxT));
 
-    // nu ~ InverseGamma(priorParams[0], priorParams[1])
-    // nu = 1/gamma where gamma ~ Gamma(priorParams[0], 1/priorParams[1])
-    double gamma_draw = R::rgamma(priorParams[0], 1.0/priorParams[1]);
-    nu[i] = 1.0 / gamma_draw;
+    // Generate all gamma draws in one go, like R
+    Rcpp::NumericVector gamma_draws = r_rgamma(Rcpp::Named("n", n_draws),
+                                               Rcpp::Named("shape", priorParams_local[0]),
+                                               Rcpp::Named("rate", priorParams_local[1]));
+
+    for (int i = 0; i < n_draws; ++i) {
+      nu_values[i] = 1.0 / gamma_draws[i];
+    }
+
+    // Print first raw values for debugging
+    Rcpp::Rcout << "CPP_PriorDraw_first_mu: " << mu_values[0] << std::endl;
+    Rcpp::Rcout << "CPP_PriorDraw_first_nu: " << nu_values[0] << std::endl;
   }
 
-  // Convert to 3D arrays with dimension (1,1,n_draws)
-  Rcpp::NumericVector mu_arr(n_draws);
-  Rcpp::NumericVector nu_arr(n_draws);
+  Rcpp::NumericVector mu_arr = Rcpp::clone(mu_values);
+  Rcpp::NumericVector nu_arr = Rcpp::clone(nu_values);
   mu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, n_draws);
   nu_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, n_draws);
-
-  for (int i = 0; i < n_draws; i++) {
-    mu_arr[i] = mu[i];
-    nu_arr[i] = nu[i];
-  }
 
   return Rcpp::List::create(
     Rcpp::Named("mu") = mu_arr,

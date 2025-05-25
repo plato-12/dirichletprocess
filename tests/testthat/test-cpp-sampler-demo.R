@@ -72,8 +72,7 @@ test_that("Complete C++ sampler demonstration", {
   # Validate results
   expect_true(dp$numberClusters >= 2 && dp$numberClusters <= 5,
               "Should find approximately 3 clusters")
-  expect_equal(sum(dp$pointsPerCluster), length(y),
-               "All points should be assigned")
+  expect_equal(sum(dp$pointsPerCluster), length(y), info = "All points should be assigned")
   expect_true(all(dp$clusterParameters[[2]] > 0),
               "All standard deviations should be positive")
 
