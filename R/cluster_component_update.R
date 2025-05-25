@@ -149,10 +149,15 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     if (numLabels > 0) {
       for(k_idx in 1:numLabels) {
         if(pointsPerCluster[k_idx] > 0 && k_idx <= dim(clusterParams[[1]])[3]) {
-          theta_k <- list(
-            mu = array(clusterParams[[1]][,,k_idx], dim=c(1,1,1)),
-            nu = array(clusterParams[[2]][,,k_idx], dim=c(1,1,1))
-          )
+          theta_k <- list()
+          for (j in seq_along(clusterParams)) {
+            param_dims <- dim(clusterParams[[j]])
+            if (length(param_dims) == 3) {
+              theta_k[[j]] <- array(clusterParams[[j]][,,k_idx], dim=c(param_dims[1], param_dims[2], 1))
+            } else {
+              theta_k[[j]] <- clusterParams[[j]][k_idx]
+            }
+          }
           cluster_probs[k_idx] <- pointsPerCluster[k_idx] * Likelihood(mdObj, y[i, , drop = FALSE], theta_k)
         } else {
           cluster_probs[k_idx] <- 0
@@ -162,10 +167,15 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
     aux_probs <- numeric(m)
     for(k_idx in 1:m) {
-      theta_aux_k <- list(
-        mu = array(aux[[1]][,,k_idx], dim=c(1,1,1)),
-        nu = array(aux[[2]][,,k_idx], dim=c(1,1,1))
-      )
+      theta_aux_k <- list()
+      for (j in seq_along(aux)) {
+        param_dims <- dim(aux[[j]])
+        if (length(param_dims) == 3) {
+          theta_aux_k[[j]] <- array(aux[[j]][,,k_idx], dim=c(param_dims[1], param_dims[2], 1))
+        } else {
+          theta_aux_k[[j]] <- aux[[j]][k_idx]
+        }
+      }
       aux_probs[k_idx] <- (alpha/m) * Likelihood(mdObj, y[i, , drop = FALSE], theta_aux_k)
     }
 
@@ -177,9 +187,10 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     }
     newLabel <- sample.int(length(probs), 1, prob = probs)
 
+    # CRITICAL FIX: Update dpObj$pointsPerCluster BEFORE calling ClusterLabelChange
+    dpObj$pointsPerCluster <- pointsPerCluster
     dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel, aux)
 
-    # THE CRITICAL FIX IS HERE:
     # After a point is reassigned, the state of the clusters (number, labels, parameters)
     # might have changed. You MUST refresh the local variables from the returned dpObj
     # to ensure the next iteration of the loop has the most up-to-date information.

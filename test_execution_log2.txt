@@ -1,265 +1,0 @@
-Starting devtools::test()...
-✔ | F W  S  OK | Context
-⠏ |          0 | beta-cpp                                          ⠏ |          0 | Beta Distribution C++ Implementation              ⠧ |          8 | Beta Distribution C++ Implementation              ⠸ |         14 | Beta Distribution C++ Implementation              ⠇ |         19 | Beta Distribution C++ Implementation              ⠴ |         26 | Beta Distribution C++ Implementation              ⠏ |         30 | Beta Distribution C++ Implementation              ⠸ |         34 | Beta Distribution C++ Implementation              ✔ |         35 | Beta Distribution C++ Implementation [2.2s]
-⠏ |          0 | beta-integration                                  ⠏ |          0 | Beta Distribution Full Integration Test           ⠋ |          1 | Beta Distribution Full Integration Test           ⠧ | 1        7 | Beta Distribution Full Integration Test           
-Beta Performance Comparison (10 iterations, 50 data points - C++ uses R fallback):
-R implementation: 0.36 seconds
-C++ (fallback) implementation: 0.31 seconds
-Speedup (R vs C++ fallback): 1.2 x
-✖ | 1        7 | Beta Distribution Full Integration Test [2.7s]
-───────────────────────────────────────────────────────────────────
-Failure ('test-beta-integration.R:32:3'): Complete Beta DP workflow (expecting R fallback for C++)
-sum(dp_fitted$pointsPerCluster) not equal to length(y).
-1/1 mismatches
-[1] 1260 - 60 == 1200
-───────────────────────────────────────────────────────────────────
-⠏ |          0 | cpp-likelihood                                    ⠏ |          0 | C++ Likelihood Implementation                     R time: 0.02 C++ time: 0.02 Speedup: 1 
-⠙ |      1   1 | C++ Likelihood Implementation                     ✔ |      1   1 | C++ Likelihood Implementation
-⠏ |          0 | cpp-sampler-demo                                  ⠏ |          0 | C++ Sampler End-to-End Demonstration              
-=== C++ Sampler Demonstration ===
-Data: 3 clusters with means at -5 0 5 
-Total observations: 90 
-
-Initial state: 1 cluster
-
-Running C++ sampler...
-  Iteration 5 :  3 clusters
-  Iteration 10 :  4 clusters
-  Iteration 15 :  5 clusters
-  Iteration 20 :  3 clusters
-
-Final results:
-  Number of clusters: 3 
-  Cluster sizes: 69 19 2 
-  Cluster means: 0.09 0.1 0.28 
-  Cluster sds: 5 0.48 1.23 
-⠋ |          1 | C++ Sampler End-to-End Demonstration              ⠸ | 1        3 | C++ Sampler End-to-End Demonstration              
-=== Demonstration Complete ===
-
-Performance Comparison (10 iterations):
-R implementation: 0.39 seconds
-C++ implementation: 0.04 seconds
-Speedup: 9.7 x
-⠦ | 2    1   4 | C++ Sampler End-to-End Demonstration              ✖ | 2    1   4 | C++ Sampler End-to-End Demonstration [1.5s]
-───────────────────────────────────────────────────────────────────
-Failure ('test-cpp-sampler-demo.R:83:5'): Complete C++ sampler demonstration
-abs(cluster_means[1] - true_means[1]) < 1 is not TRUE
-
-`actual`:   FALSE
-`expected`: TRUE 
-
-Failure ('test-cpp-sampler-demo.R:85:5'): Complete C++ sampler demonstration
-abs(cluster_means[3] - true_means[3]) < 1 is not TRUE
-
-`actual`:   FALSE
-`expected`: TRUE 
-───────────────────────────────────────────────────────────────────
-⠏ |          0 | normal-cpp                                        ⠏ |          0 | Normal Distribution C++ Implementation            ⠙ |         12 | Normal Distribution C++ Implementation            ⠇ |         19 | Normal Distribution C++ Implementation            ⠹ |         33 | Normal Distribution C++ Implementation            ⠼ |         45 | Normal Distribution C++ Implementation            ⠦ |         57 | Normal Distribution C++ Implementation            ⠏ |         70 | Normal Distribution C++ Implementation            
-End-to-end test summary:
-Initial clusters: 1 
-Final clusters: 7 
-Cluster sizes: 18 8 6 19 1 1 7 
-Cluster means: -3.376066 1.941834 2.241343 0.9193749 -0.4607041 -0.8780246 -0.5684257 
-✔ |         80 | Normal Distribution C++ Implementation
-⠏ |          0 | beta_uniform_gamma                                ⠏ |          0 | Beta Mixing Distribution Tests                    ⠧ |          8 | Beta Mixing Distribution Tests                    ⠙ |         22 | Beta Mixing Distribution Tests                    ⠸ |         24 | Beta Mixing Distribution Tests                    ⠴ |         26 | Beta Mixing Distribution Tests                    ⠙ |         32 | Beta Mixing Distribution Tests                    ⠼ | 1       34 | Beta Mixing Distribution Tests                    ⠧ | 1       37 | Beta Mixing Distribution Tests                    ⠹ | 1       42 | Beta Mixing Distribution Tests                    ⠦ | 1       46 | Beta Mixing Distribution Tests                    ⠋ | 1       50 | Beta Mixing Distribution Tests                    Accept Ratio:  0.024 
-⠼ | 1       54 | Beta Mixing Distribution Tests                    Accept Ratio:  0.025 
-⠇ | 1       58 | Beta Mixing Distribution Tests                    ⠴ | 1    1  64 | Beta Mixing Distribution Tests                    ✖ | 1    1  64 | Beta Mixing Distribution Tests [3.3s]
-───────────────────────────────────────────────────────────────────
-Failure ('test_beta_uniform_gamma.R:142:3'): Beta Component Update
-sum(beta_dpobj$pointsPerCluster) not equal to 10.
-1/1 mismatches
-[1] 20 - 10 == 10
-───────────────────────────────────────────────────────────────────
-⠏ |          0 | beta_uniform_pareto                               ⠏ |          0 | Beta Uniform Pareto Distribution                  ⠋ |         11 | Beta Uniform Pareto Distribution                  ✔ |         15 | Beta Uniform Pareto Distribution
-⠏ |          0 | change_observations                               ⠏ |          0 | Change Observations                               ⠸ |          4 | Change Observations                               ⠦ |          7 | Change Observations                               ⠋ |         11 | Change Observations                               ⠙ | 1       11 | Change Observations                               ✖ | 1       11 | Change Observations [1.9s]
-───────────────────────────────────────────────────────────────────
-Error ('test_change_observations.R:60:3'): 2D Change Observations
-Error in `mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i])`: x and mean have non-conforming size
-Backtrace:
-    ▆
- 1. ├─dirichletprocess::Fit(dp, 3, progressBar = F) at test_change_observations.R:60:3
- 2. └─dirichletprocess:::Fit.default(dp, 3, progressBar = F) at dirichletprocess/R/fit.R:16:8
- 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
- 4.   └─dirichletprocess:::ClusterComponentUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
- 5.     ├─dirichletprocess::Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params) at dirichletprocess/R/cluster_component_update.R:48:9
- 6.     └─dirichletprocess:::Likelihood.mvnormal(...) at dirichletprocess/R/mixing_distribution_likelihood.R:20:3
- 7.       └─base::vapply(...) at dirichletprocess/R/mvnormal_normal_wishart.R:16:3
- 8.         └─dirichletprocess (local) FUN(X[[i]], ...)
- 9.           └─mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]) at dirichletprocess/R/mvnormal_normal_wishart.R:17:13
-───────────────────────────────────────────────────────────────────
-⠏ |          0 | cluster_component_update                          ⠏ |          0 | Cluster Component Update                          ⠋ |          1 | Cluster Component Update                          ⠦ |          7 | Cluster Component Update                          ⠙ | 1 1     10 | Cluster Component Update                          ✖ | 1 1     10 | Cluster Component Update
-───────────────────────────────────────────────────────────────────
-Warning ('test_cluster_component_update.R:18:3'): Hierarchical Mv Normal 5 Data
-package ‘mvtnorm’ was built under R version 4.4.3
-Backtrace:
-    ▆
- 1. └─base::require(mvtnorm) at test_cluster_component_update.R:18:3
- 2.   ├─base::tryCatch(...)
- 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─base::library(...)
- 7.     └─base (local) testRversion(pkgInfo, package, pkgpath)
-
-Error ('test_cluster_component_update.R:22:3'): Hierarchical Mv Normal 5 Data
-Error in `mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i])`: x and mean have non-conforming size
-Backtrace:
-    ▆
- 1. ├─dirichletprocess::ClusterComponentUpdate(dpobjlistTest) at test_cluster_component_update.R:22:3
- 2. └─dirichletprocess:::ClusterComponentUpdate.hierarchical(dpobjlistTest) at dirichletprocess/R/cluster_component_update.R:14:3
- 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:201:5
- 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:14:3
- 5.     ├─dirichletprocess::Likelihood(mdObj, y[i, , drop = FALSE], theta_k) at dirichletprocess/R/cluster_component_update.R:153:11
- 6.     └─dirichletprocess:::Likelihood.mvnormal2(...) at dirichletprocess/R/mixing_distribution_likelihood.R:20:3
- 7.       └─base::vapply(...) at dirichletprocess/R/mvnormal_semi_conjugate.R:21:3
- 8.         └─dirichletprocess (local) FUN(X[[i]], ...)
- 9.           └─mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]) at dirichletprocess/R/mvnormal_semi_conjugate.R:22:15
-───────────────────────────────────────────────────────────────────
-⠏ |          0 | cluster_label_change                              ⠏ |          0 | Cluster Label Change                              ⠙ |          2 | Cluster Label Change                              ⠸ |         14 | Cluster Label Change                              ✔ |         18 | Cluster Label Change
-⠏ |          0 | conjugate                                         ⠏ |          0 | Dirichlet Conjugate Functions                     ⠸ |         14 | Dirichlet Conjugate Functions                     ⠼ |         15 | Dirichlet Conjugate Functions                     ✔ |         15 | Dirichlet Conjugate Functions
-⠏ |          0 | dirichlet_hmm                                     ⠏ |          0 | Hidden Markov Model                               ⠧ |          8 | Hidden Markov Model                               ⠼ | 1       14 | Hidden Markov Model                               ⠦ | 3       14 | Hidden Markov Model                               ✖ | 3       14 | Hidden Markov Model
-───────────────────────────────────────────────────────────────────
-Error ('test_dirichlet_hmm.R:45:3'): Update Parameters Integration
-Error in `1:numLabels`: argument of length 0
-Backtrace:
-    ▆
- 1. └─dirichletprocess:::param_update(dp) at test_dirichlet_hmm.R:45:3
- 2.   ├─dirichletprocess::ClusterParameterUpdate(dp) at dirichletprocess/R/fit_hmm.R:63:3
- 3.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp) at dirichletprocess/R/cluster_parameter_update.R:14:27
-
-Error ('test_dirichlet_hmm.R:55:3'): Fit Inner
-Error in `1:numLabels`: argument of length 0
-Backtrace:
-    ▆
- 1. └─dirichletprocess:::fit_hmm(dp, 10) at test_dirichlet_hmm.R:55:3
- 2.   └─dirichletprocess:::param_update(dpObj) at dirichletprocess/R/fit_hmm.R:40:5
- 3.     ├─dirichletprocess::ClusterParameterUpdate(dp) at dirichletprocess/R/fit_hmm.R:63:3
- 4.     └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp) at dirichletprocess/R/cluster_parameter_update.R:14:27
-
-Error ('test_dirichlet_hmm.R:65:3'): Fit Dispatch
-Error in `1:numLabels`: argument of length 0
-Backtrace:
-    ▆
- 1. ├─dirichletprocess::Fit(dp, 10) at test_dirichlet_hmm.R:65:3
- 2. └─dirichletprocess:::Fit.markov(dp, 10) at dirichletprocess/R/fit.R:16:8
- 3.   └─dirichletprocess:::fit_hmm(dpObj, its, progressBar) at dirichletprocess/R/fit_hmm.R:13:3
- 4.     └─dirichletprocess:::param_update(dpObj) at dirichletprocess/R/fit_hmm.R:40:5
- 5.       ├─dirichletprocess::ClusterParameterUpdate(dp) at dirichletprocess/R/fit_hmm.R:63:3
- 6.       └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp) at dirichletprocess/R/cluster_parameter_update.R:14:27
-───────────────────────────────────────────────────────────────────
-⠏ |          0 | dirichlet_process                                 ⠏ |          0 | Dirichlet Fit Functions                           ⠋ |         11 | Dirichlet Fit Functions                           ⠧ | 1       17 | Dirichlet Fit Functions                           ⠴ | 2       24 | Dirichlet Fit Functions                           ✖ | 2       24 | Dirichlet Fit Functions [1.6s]
-───────────────────────────────────────────────────────────────────
-Failure ('test_dirichlet_process.R:45:3'): Dirichlet Nonconjugate Process Fit
-sum(dpobj$pointsPerCluster) not equal to `num_test_points`.
-1/1 mismatches
-[1] 110 - 10 == 100
-
-Failure ('test_dirichlet_process.R:70:3'): Dirichlet Nonconjugate Procees Fit Prior Parameter Update
-sum(dpobj$pointsPerCluster) not equal to `num_test_points`.
-1/1 mismatches
-[1] 110 - 10 == 100
-───────────────────────────────────────────────────────────────────
-Maximum number of failures exceeded; quitting at end of
-file.
-ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
-
-══ Results ════════════════════════════════════════════════════════
-Duration: 17.7 s
-
-── Skipped tests (3) ──────────────────────────────────────────────
-• empty test (3): 'test-cpp-likelihood.R:24:1',
-  'test-cpp-sampler-demo.R:91:1',
-  'test_beta_uniform_gamma.R:314:1'
-
-── Failed tests ───────────────────────────────────────────────────
-Failure ('test-beta-integration.R:32:3'): Complete Beta DP workflow (expecting R fallback for C++)
-sum(dp_fitted$pointsPerCluster) not equal to length(y).
-1/1 mismatches
-[1] 1260 - 60 == 1200
-
-Failure ('test-cpp-sampler-demo.R:83:5'): Complete C++ sampler demonstration
-abs(cluster_means[1] - true_means[1]) < 1 is not TRUE
-
-`actual`:   FALSE
-`expected`: TRUE 
-
-Failure ('test-cpp-sampler-demo.R:85:5'): Complete C++ sampler demonstration
-abs(cluster_means[3] - true_means[3]) < 1 is not TRUE
-
-`actual`:   FALSE
-`expected`: TRUE 
-
-Failure ('test_beta_uniform_gamma.R:142:3'): Beta Component Update
-sum(beta_dpobj$pointsPerCluster) not equal to 10.
-1/1 mismatches
-[1] 20 - 10 == 10
-
-Error ('test_change_observations.R:60:3'): 2D Change Observations
-Error in `mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i])`: x and mean have non-conforming size
-Backtrace:
-    ▆
- 1. ├─dirichletprocess::Fit(dp, 3, progressBar = F) at test_change_observations.R:60:3
- 2. └─dirichletprocess:::Fit.default(dp, 3, progressBar = F) at dirichletprocess/R/fit.R:16:8
- 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj) at dirichletprocess/R/fit.R:43:5
- 4.   └─dirichletprocess:::ClusterComponentUpdate.conjugate(dpObj) at dirichletprocess/R/cluster_component_update.R:14:3
- 5.     ├─dirichletprocess::Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params) at dirichletprocess/R/cluster_component_update.R:48:9
- 6.     └─dirichletprocess:::Likelihood.mvnormal(...) at dirichletprocess/R/mixing_distribution_likelihood.R:20:3
- 7.       └─base::vapply(...) at dirichletprocess/R/mvnormal_normal_wishart.R:16:3
- 8.         └─dirichletprocess (local) FUN(X[[i]], ...)
- 9.           └─mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]) at dirichletprocess/R/mvnormal_normal_wishart.R:17:13
-
-Error ('test_cluster_component_update.R:22:3'): Hierarchical Mv Normal 5 Data
-Error in `mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i])`: x and mean have non-conforming size
-Backtrace:
-    ▆
- 1. ├─dirichletprocess::ClusterComponentUpdate(dpobjlistTest) at test_cluster_component_update.R:22:3
- 2. └─dirichletprocess:::ClusterComponentUpdate.hierarchical(dpobjlistTest) at dirichletprocess/R/cluster_component_update.R:14:3
- 3.   ├─dirichletprocess::ClusterComponentUpdate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:201:5
- 4.   └─dirichletprocess:::ClusterComponentUpdate.nonconjugate(dpObj$indDP[[i]]) at dirichletprocess/R/cluster_component_update.R:14:3
- 5.     ├─dirichletprocess::Likelihood(mdObj, y[i, , drop = FALSE], theta_k) at dirichletprocess/R/cluster_component_update.R:153:11
- 6.     └─dirichletprocess:::Likelihood.mvnormal2(...) at dirichletprocess/R/mixing_distribution_likelihood.R:20:3
- 7.       └─base::vapply(...) at dirichletprocess/R/mvnormal_semi_conjugate.R:21:3
- 8.         └─dirichletprocess (local) FUN(X[[i]], ...)
- 9.           └─mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]) at dirichletprocess/R/mvnormal_semi_conjugate.R:22:15
-
-Error ('test_dirichlet_hmm.R:45:3'): Update Parameters Integration
-Error in `1:numLabels`: argument of length 0
-Backtrace:
-    ▆
- 1. └─dirichletprocess:::param_update(dp) at test_dirichlet_hmm.R:45:3
- 2.   ├─dirichletprocess::ClusterParameterUpdate(dp) at dirichletprocess/R/fit_hmm.R:63:3
- 3.   └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp) at dirichletprocess/R/cluster_parameter_update.R:14:27
-
-Error ('test_dirichlet_hmm.R:55:3'): Fit Inner
-Error in `1:numLabels`: argument of length 0
-Backtrace:
-    ▆
- 1. └─dirichletprocess:::fit_hmm(dp, 10) at test_dirichlet_hmm.R:55:3
- 2.   └─dirichletprocess:::param_update(dpObj) at dirichletprocess/R/fit_hmm.R:40:5
- 3.     ├─dirichletprocess::ClusterParameterUpdate(dp) at dirichletprocess/R/fit_hmm.R:63:3
- 4.     └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp) at dirichletprocess/R/cluster_parameter_update.R:14:27
-
-Error ('test_dirichlet_hmm.R:65:3'): Fit Dispatch
-Error in `1:numLabels`: argument of length 0
-Backtrace:
-    ▆
- 1. ├─dirichletprocess::Fit(dp, 10) at test_dirichlet_hmm.R:65:3
- 2. └─dirichletprocess:::Fit.markov(dp, 10) at dirichletprocess/R/fit.R:16:8
- 3.   └─dirichletprocess:::fit_hmm(dpObj, its, progressBar) at dirichletprocess/R/fit_hmm.R:13:3
- 4.     └─dirichletprocess:::param_update(dpObj) at dirichletprocess/R/fit_hmm.R:40:5
- 5.       ├─dirichletprocess::ClusterParameterUpdate(dp) at dirichletprocess/R/fit_hmm.R:63:3
- 6.       └─dirichletprocess:::ClusterParameterUpdate.conjugate(dp) at dirichletprocess/R/cluster_parameter_update.R:14:27
-
-Failure ('test_dirichlet_process.R:45:3'): Dirichlet Nonconjugate Process Fit
-sum(dpobj$pointsPerCluster) not equal to `num_test_points`.
-1/1 mismatches
-[1] 110 - 10 == 100
-
-Failure ('test_dirichlet_process.R:70:3'): Dirichlet Nonconjugate Procees Fit Prior Parameter Update
-sum(dpobj$pointsPerCluster) not equal to `num_test_points`.
-1/1 mismatches
-[1] 110 - 10 == 100
-
-[ FAIL 11 | WARN 1 | SKIP 3 | PASS 298 ]
-══ Terminated early ═══════════════════════════════════════════════
-devtools::test() finished.

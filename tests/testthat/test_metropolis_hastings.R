@@ -21,7 +21,7 @@ test_that("Metropolis Hastings Full Sample Beta", {
 
   test_data <- rbeta(10, 2,2)
 
-  test_mdobj <- BetaMixtureCreate(mhStepSize = 0.1, maxT = 1)
+  test_mdobj <- BetaMixtureCreate(mhStepSize = c(0.1, 0.1), maxT = 1)
   test_start_pos <- PriorDraw(test_mdobj)
 
   test_mh <- MetropolisHastings(test_mdobj, test_data, test_start_pos, 20)
