@@ -121,7 +121,7 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
     }
 
     // Restore point count before update
-    pointsPerCluster[currentLabel]++;
+    // pointsPerCluster[currentLabel]++;
 
     // Update cluster assignment
     Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel, aux);

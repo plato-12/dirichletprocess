@@ -17,7 +17,6 @@ ClusterComponentUpdate <- function(dpObj){
 #' @export
 #' @rdname ClusterComponentUpdate
 ClusterComponentUpdate.conjugate <- function(dpObj) {
-
   y <- dpObj$data
   n <- dpObj$n
   alpha <- dpObj$alpha
@@ -28,23 +27,32 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
   mdObj <- dpObj$mixingDistribution
 
   pointsPerCluster <- dpObj$pointsPerCluster
-
   predictiveArray <- dpObj$predictiveArray
 
   for (i in seq_len(n)) {
-
     currentLabel <- clusterLabels[i]
-
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] - 1
 
     cluster_probs <- numeric(numLabels)
 
     for (j in 1:numLabels) {
       if (pointsPerCluster[j] > 0) {
-        single_cluster_params <- list(
-          array(clusterParams[[1]][, , j], dim = c(1, 1, 1)),
-          array(clusterParams[[2]][, , j], dim = c(1, 1, 1))
-        )
+        # Extract the parameters for cluster j, preserving dimensions
+        single_cluster_params <- list()
+        for (k in seq_along(clusterParams)) {
+          param_dims <- dim(clusterParams[[k]])
+          if (length(param_dims) == 3) {
+            # For 3D arrays, extract the slice for cluster j
+            single_cluster_params[[k]] <- array(
+              clusterParams[[k]][, , j],
+              dim = c(param_dims[1], param_dims[2], 1)
+            )
+          } else {
+            # Fallback for other structures
+            single_cluster_params[[k]] <- clusterParams[[k]][j]
+          }
+        }
+
         likelihood_val <- Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params)
         cluster_probs[j] <- pointsPerCluster[j] * as.numeric(likelihood_val[1])
       } else {
@@ -53,7 +61,6 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
     }
 
     new_cluster_prob <- alpha * predictiveArray[i]
-
     probs <- c(cluster_probs, new_cluster_prob)
 
     probs[is.na(probs) | is.infinite(probs)] <- 0
@@ -63,17 +70,13 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
 
     newLabel <- sample.int(numLabels + 1, 1, prob = probs)
 
-    # The following line was the bug and has been removed:
-    # pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] + 1
     dpObj$pointsPerCluster <- pointsPerCluster
-
     dpObj <- ClusterLabelChange(dpObj, i, newLabel, currentLabel)
 
     pointsPerCluster <- dpObj$pointsPerCluster
     clusterLabels <- dpObj$clusterLabels
     clusterParams <- dpObj$clusterParameters
     numLabels <- dpObj$numberClusters
-
   }
 
   dpObj$pointsPerCluster <- pointsPerCluster

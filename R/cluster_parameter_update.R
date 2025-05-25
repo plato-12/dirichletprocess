@@ -15,12 +15,16 @@ ClusterParameterUpdate <- function(dpObj) UseMethod("ClusterParameterUpdate", dp
 
 #'@export
 ClusterParameterUpdate.conjugate <- function(dpObj) {
-
   y <- dpObj$data
   numLabels <- dpObj$numberClusters
   clusterLabels <- dpObj$clusterLabels
   clusterParams <- dpObj$clusterParameters
   mdobj <- dpObj$mixingDistribution
+
+  # Check if numLabels is valid
+  if (is.null(numLabels) || numLabels == 0) {
+    return(dpObj)
+  }
 
   for (i in 1:numLabels) {
     if (dpObj$pointsPerCluster[i] > 0) {

@@ -199,6 +199,11 @@ ConjugateNormalDP::~ConjugateNormalDP() {
   }
 }
 
+void ConjugateNormalDP::initialisePredictive() {
+  // Calculate predictive probabilities for all data points
+  predictiveArray = mixingDistribution->predictive(arma::vectorise(data));
+}
+
 void ConjugateNormalDP::clusterComponentUpdate() {
   // Implementation of Chinese Restaurant Process for conjugate case
   int n = data.n_rows;
@@ -382,12 +387,6 @@ Rcpp::List ConjugateNormalDP::clusterLabelChange(int i, int newLabel, int curren
     Rcpp::Named("clusterParameters") = clusterParameters,
     Rcpp::Named("numberClusters") = numberClusters
   );
-}
-
-
-void ConjugateNormalDP::initialisePredictive() {
-  // Calculate predictive probabilities for all data points
-  predictiveArray = mixingDistribution->predictive(arma::vectorise(data));
 }
 
 } // namespace dp
