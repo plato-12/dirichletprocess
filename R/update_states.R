@@ -33,6 +33,18 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
         for (k in 1:2) {
           # Extract parameters for state k
           state_params <- params[[states[k]]]
+          if (inherits(mdobj, "normal")) {
+            if (!is.list(state_params) || !all(c("mean", "sd") %in% names(state_params))) {
+              if (is.numeric(state_params)) {
+                state_params <- list(mean = state_params, sd = 1)
+              } else if (is.list(state_params)) {
+                if (!("mean" %in% names(state_params))) state_params$mean <- 0
+                if (!("sd" %in% names(state_params))) state_params$sd <- 1
+              } else {
+                stop("Invalid state parameters for normal distribution")
+              }
+            }
+          }
           # Call Likelihood with properly formatted parameters
           likelihoodValue[k] <- Likelihood(mdobj, data[i], state_params)
         }
@@ -54,6 +66,18 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
         candidate_indices <- c(i-1, i)
         for (k in 1:2) {
           state_params <- params[[states[candidate_indices[k]]]]
+          if (inherits(mdobj, "normal")) {
+            if (!is.list(state_params) || !all(c("mean", "sd") %in% names(state_params))) {
+              if (is.numeric(state_params)) {
+                state_params <- list(mean = state_params, sd = 1)
+              } else if (is.list(state_params)) {
+                if (!("mean" %in% names(state_params))) state_params$mean <- 0
+                if (!("sd" %in% names(state_params))) state_params$sd <- 1
+              } else {
+                stop("Invalid state parameters for normal distribution")
+              }
+            }
+          }
           likelihoodValue[k] <- Likelihood(mdobj, data[i], state_params)
         }
 
@@ -83,6 +107,18 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
         likelihoodValue <- numeric(2)
         for (k in 1:2) {
           state_params <- params[[states[candiateStates[k]]]]
+          if (inherits(mdobj, "normal")) {
+            if (!is.list(state_params) || !all(c("mean", "sd") %in% names(state_params))) {
+              if (is.numeric(state_params)) {
+                state_params <- list(mean = state_params, sd = 1)
+              } else if (is.list(state_params)) {
+                if (!("mean" %in% names(state_params))) state_params$mean <- 0
+                if (!("sd" %in% names(state_params))) state_params$sd <- 1
+              } else {
+                stop("Invalid state parameters for normal distribution")
+              }
+            }
+          }
           likelihoodValue[k] <- Likelihood(mdobj, data[i], state_params)
         }
 

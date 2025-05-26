@@ -1,5 +1,23 @@
 context("Hidden Markov Model")
 
+# Helper function to ensure state parameters have correct structure
+ensure_state_params <- function(params) {
+  if (!is.list(params)) {
+    # If it's a single value, assume it's the mean with sd = 1
+    return(list(mean = params, sd = 1))
+  }
+
+  # Ensure both mean and sd exist
+  if (!("mean" %in% names(params))) {
+    params$mean <- 0  # default mean
+  }
+  if (!("sd" %in% names(params))) {
+    params$sd <- 1   # default sd
+  }
+
+  return(params)
+}
+
 testData <- c(rnorm(50, 1, sqrt(3)), rnorm(50, 3, sqrt(3)), rnorm(50, 5, sqrt(3)))
 normMD <- GaussianMixtureCreate()
 
@@ -67,4 +85,3 @@ test_that("Fit Dispatch", {
   HMM_dp_test(dp)
 
 })
-
