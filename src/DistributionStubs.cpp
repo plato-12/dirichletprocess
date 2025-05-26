@@ -14,85 +14,86 @@ namespace dp {
 
 // /* BetaMixingDistribution stubs - REMOVED/COMMENTED OUT as implemented in BetaDistribution.cpp
 // BetaMixingDistribution::BetaMixingDistribution(const Rcpp::NumericVector& priorParams) : maxT(1.0) {
-//   distribution = "beta";
-//   conjugate = false;
-//   priorParameters = priorParams;
+//     distribution = "beta";
+//     conjugate = false;
+//     priorParameters = priorParams;
 // }
 //
 // BetaMixingDistribution::~BetaMixingDistribution() {}
 //
 // Rcpp::NumericVector BetaMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
-//   Rcpp::stop("BetaMixingDistribution::likelihood not implemented");
-//   return Rcpp::NumericVector();
+//     Rcpp::stop("BetaMixingDistribution::likelihood not implemented");
+//     return Rcpp::NumericVector();
 // }
 //
 // Rcpp::List BetaMixingDistribution::priorDraw(int n) const {
-//   Rcpp::stop("BetaMixingDistribution::priorDraw not implemented");
-//   return Rcpp::List();
+//     Rcpp::stop("BetaMixingDistribution::priorDraw not implemented");
+//     return Rcpp::List();
 // }
 //
 // Rcpp::List BetaMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
-//   Rcpp::stop("BetaMixingDistribution::posteriorDraw not implemented");
-//   return Rcpp::List();
+//     Rcpp::stop("BetaMixingDistribution::posteriorDraw not implemented");
+//     return Rcpp::List();
 // }
 //
 // Rcpp::NumericVector BetaMixingDistribution::priorDensity(const Rcpp::List& theta) const {
-//   Rcpp::stop("BetaMixingDistribution::priorDensity not implemented");
-//   return Rcpp::NumericVector();
+//     Rcpp::stop("BetaMixingDistribution::priorDensity not implemented");
+//     return Rcpp::NumericVector();
 // }
 //
 // Rcpp::List BetaMixingDistribution::mhParameterProposal(const Rcpp::List& oldParams) const {
-//   Rcpp::stop("BetaMixingDistribution::mhParameterProposal not implemented");
-//   return Rcpp::List();
+//     Rcpp::stop("BetaMixingDistribution::mhParameterProposal not implemented");
+//     return Rcpp::List();
 // }
 //
 // Rcpp::List BetaMixingDistribution::penalisedLikelihood(const arma::mat& x) const {
-//   Rcpp::stop("BetaMixingDistribution::penalisedLikelihood not implemented");
-//   return Rcpp::List();
+//     Rcpp::stop("BetaMixingDistribution::penalisedLikelihood not implemented");
+//     return Rcpp::List();
 // }
 //
 // void BetaMixingDistribution::updatePriorParameters(const Rcpp::List& clusterParameters, int n) {
-//   Rcpp::stop("BetaMixingDistribution::updatePriorParameters not implemented");
+//     Rcpp::stop("BetaMixingDistribution::updatePriorParameters not implemented");
 // }
 // */
 
-// MVNormalMixingDistribution stubs
-MVNormalMixingDistribution::MVNormalMixingDistribution(const Rcpp::List& priorParams) : kappa0(1.0), nu(2.0) {
-  distribution = "mvnormal";
-  conjugate = true;
-}
+/* MVNormalMixingDistribution stubs - Commented out as full implementation is now in MVNormalDistribution.cpp
+ MVNormalMixingDistribution::MVNormalMixingDistribution(const Rcpp::List& priorParams) : kappa0(1.0), nu(2.0) {
+ distribution = "mvnormal";
+ conjugate = true;
+ }
 
-MVNormalMixingDistribution::~MVNormalMixingDistribution() {}
+ MVNormalMixingDistribution::~MVNormalMixingDistribution() {}
 
-Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
-  Rcpp::stop("MVNormalMixingDistribution::likelihood not implemented");
-  return Rcpp::NumericVector();
-}
+ Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
+ Rcpp::stop("MVNormalMixingDistribution::likelihood not implemented");
+ return Rcpp::NumericVector();
+ }
 
-arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x, const arma::rowvec& mu, const arma::mat& sigma) const {
-  Rcpp::stop("MVNormalMixingDistribution::mvnLikelihood not implemented");
-  return arma::vec();
-}
+ arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x, const arma::rowvec& mu, const arma::mat& sigma) const {
+ Rcpp::stop("MVNormalMixingDistribution::mvnLikelihood not implemented");
+ return arma::vec();
+ }
 
-Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
-  Rcpp::stop("MVNormalMixingDistribution::priorDraw not implemented");
-  return Rcpp::List();
-}
+ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
+ Rcpp::stop("MVNormalMixingDistribution::priorDraw not implemented");
+ return Rcpp::List();
+ }
 
-Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
-  Rcpp::stop("MVNormalMixingDistribution::posteriorDraw not implemented");
-  return Rcpp::List();
-}
+ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+ Rcpp::stop("MVNormalMixingDistribution::posteriorDraw not implemented");
+ return Rcpp::List();
+ }
 
-Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) const {
-  Rcpp::stop("MVNormalMixingDistribution::posteriorParameters not implemented");
-  return Rcpp::List();
-}
+ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) const {
+ Rcpp::stop("MVNormalMixingDistribution::posteriorParameters not implemented");
+ return Rcpp::List();
+ }
 
-Rcpp::NumericVector MVNormalMixingDistribution::predictive(const arma::mat& x) const {
-  Rcpp::stop("MVNormalMixingDistribution::predictive not implemented");
-  return Rcpp::NumericVector();
-}
+ Rcpp::NumericVector MVNormalMixingDistribution::predictive(const arma::mat& x) const {
+ Rcpp::stop("MVNormalMixingDistribution::predictive not implemented");
+ return Rcpp::NumericVector();
+ }
+ */
 
 // MVNormal2MixingDistribution stubs
 MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& priorParams) : nu0(2.0) {
@@ -214,15 +215,17 @@ Rcpp::NumericVector ExponentialMixingDistribution::predictive(const arma::vec& x
 // }
 // */
 
-ConjugateMVNormalDP::ConjugateMVNormalDP() : mixingDistribution(nullptr), numberClusters(0) {}
-ConjugateMVNormalDP::~ConjugateMVNormalDP() { if (mixingDistribution) delete mixingDistribution; }
-void ConjugateMVNormalDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
-void ConjugateMVNormalDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
-void ConjugateMVNormalDP::updateAlpha() { Rcpp::stop("Not implemented"); }
-Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
-  Rcpp::stop("Not implemented");
-  return Rcpp::List();
-}
+/* ConjugateMVNormalDP stubs - Commented out as full implementation is now in MVNormalDistribution.cpp
+ ConjugateMVNormalDP::ConjugateMVNormalDP() : mixingDistribution(nullptr), numberClusters(0) {}
+ ConjugateMVNormalDP::~ConjugateMVNormalDP() { if (mixingDistribution) delete mixingDistribution; }
+ void ConjugateMVNormalDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
+ void ConjugateMVNormalDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
+ void ConjugateMVNormalDP::updateAlpha() { Rcpp::stop("Not implemented"); }
+ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
+ Rcpp::stop("Not implemented");
+ return Rcpp::List();
+ }
+ */
 
 NonConjugateMVNormal2DP::NonConjugateMVNormal2DP() : mixingDistribution(nullptr), numberClusters(0), m(3) {}
 NonConjugateMVNormal2DP::~NonConjugateMVNormal2DP() { if (mixingDistribution) delete mixingDistribution; }

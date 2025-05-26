@@ -6,6 +6,7 @@ SOURCES = likelihood_functions.cpp likelihood.cpp \
           DirichletProcess.cpp RcppConversions.cpp \
           NormalDistribution.cpp NormalExports.cpp \
           BetaDistribution.cpp BetaExports.cpp BetaDP.cpp \
+          MVNormalDistribution.cpp MVNExports.cpp \
           DistributionStubs.cpp Benchmarking.cpp MemoryProfiling.cpp \
           RcppExports.cpp
 
