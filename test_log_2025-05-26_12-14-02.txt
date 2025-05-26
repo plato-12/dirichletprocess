@@ -1,0 +1,52 @@
+=================================================
+Starting devtools::test() at: 2025-05-26 12:14:02.826458 
+=================================================
+
+✔ | F W  S  OK | Context
+⠏ |          0 | beta-cpp                                          ⠏ |          0 | Beta Distribution C++ Implementation              ⠇ |         19 | Beta Distribution C++ Implementation              ⠴ | 1       25 | Beta Distribution C++ Implementation              ⠏ | 1       29 | Beta Distribution C++ Implementation              ✖ | 1       34 | Beta Distribution C++ Implementation
+───────────────────────────────────────────────────────────────────
+Failure ('test-beta-cpp.R:145:3'): NonconjugateBetaClusterParameterUpdate C++ STUB test
+`dp_updated_params <- ClusterParameterUpdate(dp)` did not produce any warnings.
+───────────────────────────────────────────────────────────────────
+⠏ |          0 | beta-integration                                  ⠏ |          0 | Beta Distribution Full Integration Test           ⠋ | 1        0 | Beta Distribution Full Integration Test           ⠧ | 1        7 | Beta Distribution Full Integration Test           
+Beta Performance Comparison (10 iterations, 50 data points - C++ uses R fallback):
+R implementation: 0.09 seconds
+C++ (fallback) implementation: 0.1 seconds
+Speedup (R vs C++ fallback): 0.9 x
+✖ | 1        7 | Beta Distribution Full Integration Test [1.0s]
+───────────────────────────────────────────────────────────────────
+Failure ('test-beta-integration.R:20:3'): Complete Beta DP workflow (expecting R fallback for C++)
+`dp_fitted <- Fit(dp, its = 20, progressBar = FALSE)` produced unexpected warnings.
+Expected match: C\\+\\+ function 'nonconjugate_beta_cluster_parameter_update_cpp' is a STUB
+Actual values:
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+* C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...
+───────────────────────────────────────────────────────────────────
+⠏ |          0 | cpp-likelihood                                    ⠏ |          0 | C++ Likelihood Implementation                     R time: 0 C++ time: 0 Speedup: NaN 
+⠙ |      1   1 | C++ Likelihood Implementation                     ✔ |      1   1 | C++ Likelihood Implementation
+⠏ |          0 | cpp-sampler-demo                                  ⠏ |          0 | C++ Sampler End-to-End Demonstration              
+=== C++ Sampler Demonstration ===
+Data: 3 clusters with means at -5 0 5 
+Total observations: 90 
+
+Initial state: 1 cluster
+
+Running C++ sampler...

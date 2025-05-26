@@ -220,10 +220,25 @@ void ConjugateNormalDP::clusterComponentUpdate() {
     // Probability for existing clusters
     for (int j = 0; j < numberClusters; j++) {
       if (pointsPerCluster[j] > 0) {
+        // Extract parameters for cluster j
+        Rcpp::NumericVector mu_vec = clusterParameters[0];
+        Rcpp::NumericVector sigma_vec = clusterParameters[1];
+
+        // Create properly formatted parameter arrays
+        Rcpp::NumericVector mu_j(1);
+        Rcpp::NumericVector sigma_j(1);
+        mu_j[0] = mu_vec[j];
+        sigma_j[0] = sigma_vec[j];
+
+        // Add dimension attributes
+        mu_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        sigma_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+
         Rcpp::List clusterParam = Rcpp::List::create(
-          Rcpp::as<Rcpp::NumericVector>(clusterParameters[0])[j],
-                                                             Rcpp::as<Rcpp::NumericVector>(clusterParameters[1])[j]
+          Rcpp::Named("mu") = mu_j,
+          Rcpp::Named("sigma") = sigma_j
         );
+
         double likelihood = mixingDistribution->likelihood(data.row(i).t(), clusterParam)[0];
         probs[j] = pointsPerCluster[j] * likelihood;
       } else {

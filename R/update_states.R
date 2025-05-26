@@ -29,7 +29,13 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
           (n_s2 + alpha)/(n_s2 + beta + alpha)
         )
 
-        likelihoodValue <- vapply(params[1:2], function(x) Likelihood(mdobj, data[i], x), numeric(1))
+        likelihoodValue <- numeric(2)
+        for (k in 1:2) {
+          # Extract parameters for state k
+          state_params <- params[[states[k]]]
+          # Call Likelihood with properly formatted parameters
+          likelihoodValue[k] <- Likelihood(mdobj, data[i], state_params)
+        }
 
         newState <- sample(states[1:2], 1, prob=wts*likelihoodValue)
         states[i] <- newState
@@ -44,7 +50,12 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
         n_sn1 <- sum(states_eq1) - 1
 
 
-        likelihoodValue <- vapply(params[(i-1):i], function(x) Likelihood(mdobj, data[i], x), numeric(1))
+        likelihoodValue <- numeric(2)
+        candidate_indices <- c(i-1, i)
+        for (k in 1:2) {
+          state_params <- params[[states[candidate_indices[k]]]]
+          likelihoodValue[k] <- Likelihood(mdobj, data[i], state_params)
+        }
 
         wts <- c(n_sn1 + alpha,
                  beta)
@@ -69,7 +80,11 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
 
         candiateStates <- c(i-1, i+1)
 
-        likelihoodValue <- vapply(params[candiateStates], function(x) Likelihood(mdobj, data[i], x), numeric(1))
+        likelihoodValue <- numeric(2)
+        for (k in 1:2) {
+          state_params <- params[[states[candiateStates[k]]]]
+          likelihoodValue[k] <- Likelihood(mdobj, data[i], state_params)
+        }
 
         wts <- c(
           (nii + alpha)/(nii + 1 + beta + alpha),
