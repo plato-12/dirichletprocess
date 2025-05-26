@@ -1,4 +1,3 @@
-
 UpdateStates <- function(dp){
 
   new_states <- update_states(dp$mixingDistribution,
@@ -34,7 +33,7 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
 
         newState <- sample(states[1:2], 1, prob=wts*likelihoodValue)
         states[i] <- newState
-        params[i] <- params[newState]
+        params[[i]] <- params[[newState]]
       }
 
     } else if ( (i == n)  ) {
@@ -55,7 +54,7 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
         newState <- sample(candiateStates, 1, prob=wts*likelihoodValue)
 
         states[i] <- states[newState]
-        params[i] <- params[newState]
+        params[[i]] <- params[[newState]]
       }
     } else {
 
@@ -80,7 +79,7 @@ update_states <- function(mdobj, data, states, params, alpha, beta){
         newState <- sample(candiateStates, 1, prob = wts*likelihoodValue)
 
         states[i] <- states[newState]
-        params[i] <- params[newState]
+        params[[i]] <- params[[newState]]
 
       }
 
@@ -98,5 +97,3 @@ relabel_states <- function(dp_states){
   newUniqueStates <- length(unique(dp_states))
   rep(seq_len(newUniqueStates), table(dp_states))
 }
-
-

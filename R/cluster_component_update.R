@@ -130,8 +130,8 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     # Determine the correct parameters for the cluster being emptied (or use prior if it was a singleton)
     current_params_for_empty_slot <- if(pointsPerCluster[currentLabel] == 0 && currentLabel <= dim(clusterParams[[1]])[3]) {
       list(
-        mu = array(clusterParams[[1]][, , currentLabel], dim = c(1, 1, 1)),
-        nu = array(clusterParams[[2]][, , currentLabel], dim = c(1, 1, 1))
+        mu = array(clusterParams[[1]][, , currentLabel], dim = c(1, dim(clusterParams[[1]])[2], 1)),
+        sig = array(clusterParams[[2]][, , currentLabel], dim = c(dim(clusterParams[[2]])[1], dim(clusterParams[[2]])[2], 1))
       )
     } else {
       NULL
@@ -139,8 +139,8 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
     if (!is.null(current_params_for_empty_slot) && pointsPerCluster[currentLabel] == 0) {
       priorDraws_aux <- PriorDraw(mdObj, m - 1)
-      aux[[1]] <- array(c(current_params_for_empty_slot[[1]], priorDraws_aux[[1]]), dim = c(1, 1, m))
-      aux[[2]] <- array(c(current_params_for_empty_slot[[2]], priorDraws_aux[[2]]), dim = c(1, 1, m))
+      aux[[1]] <- array(c(current_params_for_empty_slot[[1]], priorDraws_aux[[1]]), dim = c(dim(clusterParams[[1]])[1], dim(clusterParams[[1]])[2], m))
+      aux[[2]] <- array(c(current_params_for_empty_slot[[2]], priorDraws_aux[[2]]), dim = c(dim(clusterParams[[2]])[1], dim(clusterParams[[2]])[2], m))
     } else {
       aux <- PriorDraw(mdObj, m)
     }

@@ -17,9 +17,11 @@ Mvnormal2Create <- function(priorParameters) {
 #' @export
 #' @rdname Likelihood
 Likelihood.mvnormal2 <- function(mdObj, x, theta) {
-
+  if (!is.matrix(x)) {
+    x <- matrix(x, nrow = 1)
+  }
   y <- vapply(seq_len(dim(theta[[1]])[3]),
-              function(i) mvtnorm::dmvnorm(x, theta[[1]][,, i], theta[[2]][, , i]),
+              function(i) mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]),
               numeric(nrow(x)))
 
   return(y)
@@ -79,7 +81,7 @@ PosteriorDraw.mvnormal2 <- function(mdObj, x, n = 1, ...) {
 
     nuN <- nrow(x) +  mdObj$priorParameters$nu0
     phiN <- phi0 + Reduce("+", lapply(seq_len(nrow(x)),
-                                    function(j) (x[j,] - c(muSamp)) %*% t(x[j,] - c(muSamp))))
+                                      function(j) (x[j,] - c(muSamp)) %*% t(x[j,] - c(muSamp))))
 
     sigSamp <- solve(rWishart(1, nuN, solve(phiN))[,,1])
 
@@ -95,7 +97,3 @@ PosteriorDraw.mvnormal2 <- function(mdObj, x, n = 1, ...) {
 
   return(list(mu=muSamples, sig=sigSamples))
 }
-
-
-
-

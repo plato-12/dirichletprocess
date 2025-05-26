@@ -14,7 +14,9 @@ GaussianMixtureCreate <- function(priorParameters=c(0,1,1,1)){
 #' @export
 #' @rdname Likelihood
 Likelihood.normal <- function(mdObj, x, theta) {
-
+  if (!is.list(theta) || length(theta) < 2) {
+    stop("theta must be a list with at least two components (mean and sd)")
+  }
   as.numeric(dnorm(x, theta[[1]], theta[[2]]))
 }
 
@@ -48,7 +50,7 @@ PosteriorParameters.normal <- function(mdObj, x) {
   kappa.n <- kappa0 + n.x
   alpha.n <- alpha0 + n.x/2
   beta.n <- beta0 + 0.5 * sum((x - ybar)^2) + kappa0 * n.x * (ybar - mu0)^2/(2 *
-    (kappa0 + n.x))
+                                                                               (kappa0 + n.x))
 
   posteriorParameters <- matrix(c(mu.n, kappa.n, alpha.n, beta.n), ncol = 4)
   return(posteriorParameters)
