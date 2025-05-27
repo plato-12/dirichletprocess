@@ -41,6 +41,55 @@ nonconjugate_beta_cluster_component_update_cpp <- function(dp_list) {
     .Call(`_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp`, dp_list)
 }
 
+#' @title Draw from an Exponential distribution prior (C++)
+NULL
+
+#' @title Draw from an Exponential distribution posterior (C++)
+NULL
+
+#' @title Calculate Exponential posterior parameters (C++)
+NULL
+
+#' @title Calculate Exponential likelihood (C++)
+NULL
+
+#' @title Calculate Exponential predictive distribution (C++)
+NULL
+
+#' @title Update cluster components (C++ conjugate exponential)
+NULL
+
+#' @title Update cluster parameters (C++ conjugate exponential)
+NULL
+
+exponential_prior_draw_cpp <- function(priorParams, n = 1L) {
+    .Call(`_dirichletprocess_exponential_prior_draw_cpp`, priorParams, n)
+}
+
+exponential_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
+    .Call(`_dirichletprocess_exponential_posterior_draw_cpp`, priorParams, x, n)
+}
+
+exponential_posterior_parameters_cpp <- function(priorParams, x) {
+    .Call(`_dirichletprocess_exponential_posterior_parameters_cpp`, priorParams, x)
+}
+
+exponential_likelihood_cpp <- function(x, lambda) {
+    .Call(`_dirichletprocess_exponential_likelihood_cpp`, x, lambda)
+}
+
+exponential_predictive_cpp <- function(priorParams, x) {
+    .Call(`_dirichletprocess_exponential_predictive_cpp`, priorParams, x)
+}
+
+conjugate_exponential_cluster_component_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_exponential_cluster_component_update_cpp`, dpObj)
+}
+
+conjugate_exponential_cluster_parameter_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp`, dpObj)
+}
+
 #' @title Draw from a Multivariate Normal-Wishart prior (C++)
 NULL
 

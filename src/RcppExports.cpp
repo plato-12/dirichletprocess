@@ -144,6 +144,89 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// exponential_prior_draw_cpp
+Rcpp::List exponential_prior_draw_cpp(Rcpp::NumericVector priorParams, int n);
+RcppExport SEXP _dirichletprocess_exponential_prior_draw_cpp(SEXP priorParamsSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(exponential_prior_draw_cpp(priorParams, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// exponential_posterior_draw_cpp
+Rcpp::List exponential_posterior_draw_cpp(Rcpp::NumericVector priorParams, Rcpp::NumericMatrix x, int n);
+RcppExport SEXP _dirichletprocess_exponential_posterior_draw_cpp(SEXP priorParamsSEXP, SEXP xSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(exponential_posterior_draw_cpp(priorParams, x, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// exponential_posterior_parameters_cpp
+Rcpp::NumericMatrix exponential_posterior_parameters_cpp(Rcpp::NumericVector priorParams, Rcpp::NumericMatrix x);
+RcppExport SEXP _dirichletprocess_exponential_posterior_parameters_cpp(SEXP priorParamsSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(exponential_posterior_parameters_cpp(priorParams, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// exponential_likelihood_cpp
+Rcpp::NumericVector exponential_likelihood_cpp(Rcpp::NumericVector x, double lambda);
+RcppExport SEXP _dirichletprocess_exponential_likelihood_cpp(SEXP xSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(exponential_likelihood_cpp(x, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// exponential_predictive_cpp
+Rcpp::NumericVector exponential_predictive_cpp(Rcpp::NumericVector priorParams, Rcpp::NumericVector x);
+RcppExport SEXP _dirichletprocess_exponential_predictive_cpp(SEXP priorParamsSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(exponential_predictive_cpp(priorParams, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// conjugate_exponential_cluster_component_update_cpp
+Rcpp::List conjugate_exponential_cluster_component_update_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_exponential_cluster_component_update_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_exponential_cluster_component_update_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
+// conjugate_exponential_cluster_parameter_update_cpp
+Rcpp::List conjugate_exponential_cluster_parameter_update_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_exponential_cluster_parameter_update_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mvnormal_prior_draw_cpp
 Rcpp::List mvnormal_prior_draw_cpp(Rcpp::List priorParams, int n);
 RcppExport SEXP _dirichletprocess_mvnormal_prior_draw_cpp(SEXP priorParamsSEXP, SEXP nSEXP) {
@@ -444,6 +527,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_beta_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_beta_posterior_draw_cpp, 6},
     {"_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp, 1},
+    {"_dirichletprocess_exponential_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_exponential_prior_draw_cpp, 2},
+    {"_dirichletprocess_exponential_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_exponential_posterior_draw_cpp, 3},
+    {"_dirichletprocess_exponential_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_exponential_posterior_parameters_cpp, 2},
+    {"_dirichletprocess_exponential_likelihood_cpp", (DL_FUNC) &_dirichletprocess_exponential_likelihood_cpp, 2},
+    {"_dirichletprocess_exponential_predictive_cpp", (DL_FUNC) &_dirichletprocess_exponential_predictive_cpp, 2},
+    {"_dirichletprocess_conjugate_exponential_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_component_update_cpp, 1},
+    {"_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_mvnormal_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_prior_draw_cpp, 2},
     {"_dirichletprocess_mvnormal_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_posterior_draw_cpp, 3},
     {"_dirichletprocess_mvnormal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_posterior_parameters_cpp, 2},

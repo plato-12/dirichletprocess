@@ -162,33 +162,33 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
  */
 
 // ExponentialMixingDistribution stubs
-ExponentialMixingDistribution::ExponentialMixingDistribution(const Rcpp::NumericVector& priorParams) {
-  distribution = "exponential";
-  conjugate = true;
-  priorParameters = priorParams;
-}
-
-ExponentialMixingDistribution::~ExponentialMixingDistribution() {}
-
-Rcpp::NumericVector ExponentialMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
-  Rcpp::stop("ExponentialMixingDistribution::likelihood not implemented");
-  return Rcpp::NumericVector();
-}
-
-Rcpp::List ExponentialMixingDistribution::priorDraw(int n) const {
-  Rcpp::stop("ExponentialMixingDistribution::priorDraw not implemented");
-  return Rcpp::List();
-}
-
-Rcpp::List ExponentialMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
-  Rcpp::stop("ExponentialMixingDistribution::posteriorDraw not implemented");
-  return Rcpp::List();
-}
-
-Rcpp::NumericVector ExponentialMixingDistribution::predictive(const arma::vec& x) const {
-  Rcpp::stop("ExponentialMixingDistribution::predictive not implemented");
-  return Rcpp::NumericVector();
-}
+// ExponentialMixingDistribution::ExponentialMixingDistribution(const Rcpp::NumericVector& priorParams) {
+//   distribution = "exponential";
+//   conjugate = true;
+//   priorParameters = priorParams;
+// }
+//
+// ExponentialMixingDistribution::~ExponentialMixingDistribution() {}
+//
+// Rcpp::NumericVector ExponentialMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
+//   Rcpp::stop("ExponentialMixingDistribution::likelihood not implemented");
+//   return Rcpp::NumericVector();
+// }
+//
+// Rcpp::List ExponentialMixingDistribution::priorDraw(int n) const {
+//   Rcpp::stop("ExponentialMixingDistribution::priorDraw not implemented");
+//   return Rcpp::List();
+// }
+//
+// Rcpp::List ExponentialMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+//   Rcpp::stop("ExponentialMixingDistribution::posteriorDraw not implemented");
+//   return Rcpp::List();
+// }
+//
+// Rcpp::NumericVector ExponentialMixingDistribution::predictive(const arma::vec& x) const {
+//   Rcpp::stop("ExponentialMixingDistribution::predictive not implemented");
+//   return Rcpp::NumericVector();
+// }
 
 // /* Stub classes for DP implementations - REMOVED/COMMENTED OUT for Beta as implemented in BetaDP.cpp & BetaDistribution.cpp
 // ConjugateBetaDP::ConjugateBetaDP() : mixingDistribution(nullptr), numberClusters(0) {}
@@ -254,18 +254,18 @@ Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int 
  }
  */
 
-ConjugateExponentialDP::ConjugateExponentialDP() : mixingDistribution(nullptr), numberClusters(0) {}
-ConjugateExponentialDP::~ConjugateExponentialDP() { if (mixingDistribution) delete mixingDistribution; }
-void ConjugateExponentialDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
-void ConjugateExponentialDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
-void ConjugateExponentialDP::updateAlpha() { Rcpp::stop("Not implemented"); }
-Rcpp::List ConjugateExponentialDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
-  Rcpp::stop("Not implemented");
-  return Rcpp::List();
-}
-void ConjugateExponentialDP::initialisePredictive() {
-  Rcpp::stop("Not implemented");
-}
+// ConjugateExponentialDP::ConjugateExponentialDP() : mixingDistribution(nullptr), numberClusters(0) {}
+// ConjugateExponentialDP::~ConjugateExponentialDP() { if (mixingDistribution) delete mixingDistribution; }
+// void ConjugateExponentialDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
+// void ConjugateExponentialDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
+// void ConjugateExponentialDP::updateAlpha() { Rcpp::stop("Not implemented"); }
+// Rcpp::List ConjugateExponentialDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
+//   Rcpp::stop("Not implemented");
+//   return Rcpp::List();
+// }
+// void ConjugateExponentialDP::initialisePredictive() {
+//   Rcpp::stop("Not implemented");
+// }
 
 // Additional stub classes
 HierarchicalDP::HierarchicalDP() : gamma(1.0) {}
