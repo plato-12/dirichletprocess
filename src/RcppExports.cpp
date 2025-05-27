@@ -144,6 +144,90 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mvnormal_prior_draw_cpp
+Rcpp::List mvnormal_prior_draw_cpp(Rcpp::List priorParams, int n);
+RcppExport SEXP _dirichletprocess_mvnormal_prior_draw_cpp(SEXP priorParamsSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvnormal_prior_draw_cpp(priorParams, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mvnormal_posterior_draw_cpp
+Rcpp::List mvnormal_posterior_draw_cpp(Rcpp::List priorParams, Rcpp::NumericMatrix x, int n);
+RcppExport SEXP _dirichletprocess_mvnormal_posterior_draw_cpp(SEXP priorParamsSEXP, SEXP xSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvnormal_posterior_draw_cpp(priorParams, x, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mvnormal_posterior_parameters_cpp
+Rcpp::List mvnormal_posterior_parameters_cpp(Rcpp::List priorParams, Rcpp::NumericMatrix x);
+RcppExport SEXP _dirichletprocess_mvnormal_posterior_parameters_cpp(SEXP priorParamsSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvnormal_posterior_parameters_cpp(priorParams, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mvnormal_predictive_cpp
+Rcpp::NumericVector mvnormal_predictive_cpp(Rcpp::List priorParams, Rcpp::NumericMatrix x);
+RcppExport SEXP _dirichletprocess_mvnormal_predictive_cpp(SEXP priorParamsSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvnormal_predictive_cpp(priorParams, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mvnormal_likelihood_cpp
+Rcpp::NumericVector mvnormal_likelihood_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector mu, Rcpp::NumericMatrix sigma);
+RcppExport SEXP _dirichletprocess_mvnormal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvnormal_likelihood_cpp(x, mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// conjugate_mvnormal_cluster_component_update_cpp
+Rcpp::List conjugate_mvnormal_cluster_component_update_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_cluster_component_update_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
+// conjugate_mvnormal_cluster_parameter_update_cpp
+Rcpp::List conjugate_mvnormal_cluster_parameter_update_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_cluster_parameter_update_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
 // get_memory_tracking
 Rcpp::DataFrame get_memory_tracking();
 RcppExport SEXP _dirichletprocess_get_memory_tracking() {
@@ -286,6 +370,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_beta_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_beta_posterior_draw_cpp, 6},
     {"_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp, 1},
+    {"_dirichletprocess_mvnormal_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_prior_draw_cpp, 2},
+    {"_dirichletprocess_mvnormal_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_posterior_draw_cpp, 3},
+    {"_dirichletprocess_mvnormal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_posterior_parameters_cpp, 2},
+    {"_dirichletprocess_mvnormal_predictive_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_predictive_cpp, 2},
+    {"_dirichletprocess_mvnormal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_likelihood_cpp, 3},
+    {"_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp, 1},
+    {"_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_get_memory_tracking", (DL_FUNC) &_dirichletprocess_get_memory_tracking, 0},
     {"_dirichletprocess_clear_memory_tracking", (DL_FUNC) &_dirichletprocess_clear_memory_tracking, 0},
     {"_dirichletprocess_normal_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_normal_prior_draw_cpp, 2},

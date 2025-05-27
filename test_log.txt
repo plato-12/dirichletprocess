@@ -1,0 +1,33 @@
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 4 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 6 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 7 | WARN 0 | SKIP 0 | PASS 0 ]
+
+── Error ('test-mvnormal-cpp.R:14:3'): MVNormal PriorDraw C++ matches R implementation ──
+Error in `MvnormalCreate(priorParams)`: could not find function "MvnormalCreate"
+
+── Error ('test-mvnormal-cpp.R:46:3'): MVNormal PosteriorDraw C++ matches R implementation ──
+Error in `MvnormalCreate(priorParams)`: could not find function "MvnormalCreate"
+
+── Error ('test-mvnormal-cpp.R:82:3'): MVNormal Likelihood C++ matches R implementation ──
+Error in `mvnormal_likelihood_cpp(x, mu, sigma)`: could not find function "mvnormal_likelihood_cpp"
+
+── Error ('test-mvnormal-cpp.R:98:3'): MVNormal Predictive C++ matches R implementation ──
+Error in `MvnormalCreate(priorParams)`: could not find function "MvnormalCreate"
+
+── Error ('test-mvnormal-cpp.R:116:3'): MVNormal ClusterComponentUpdate C++ works correctly ──
+Error in `DirichletProcessMvnormal(y)`: could not find function "DirichletProcessMvnormal"
+
+── Error ('test-mvnormal-cpp.R:159:3'): MVNormal ClusterParameterUpdate C++ works correctly ──
+Error in `DirichletProcessMvnormal(y)`: could not find function "DirichletProcessMvnormal"
+
+── Error ('test-mvnormal-cpp.R:206:3'): End-to-end MVNormal C++ sampler test ──
+Error in `DirichletProcessMvnormal(y)`: could not find function "DirichletProcessMvnormal"
+
+[ FAIL 7 | WARN 0 | SKIP 0 | PASS 0 ]
