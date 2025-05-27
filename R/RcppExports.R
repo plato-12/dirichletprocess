@@ -133,6 +133,34 @@ normal_posterior_parameters_cpp <- function(priorParams, x) {
     .Call(`_dirichletprocess_normal_posterior_parameters_cpp`, priorParams, x)
 }
 
+weibull_prior_draw_cpp <- function(priorParams, n = 1L) {
+    .Call(`_dirichletprocess_weibull_prior_draw_cpp`, priorParams, n)
+}
+
+weibull_likelihood_cpp <- function(x, alpha, lambda) {
+    .Call(`_dirichletprocess_weibull_likelihood_cpp`, x, alpha, lambda)
+}
+
+weibull_prior_density_cpp <- function(alpha, priorParams) {
+    .Call(`_dirichletprocess_weibull_prior_density_cpp`, alpha, priorParams)
+}
+
+weibull_posterior_draw_cpp <- function(priorParams, mhStepSize, x, n = 1L) {
+    .Call(`_dirichletprocess_weibull_posterior_draw_cpp`, priorParams, mhStepSize, x, n)
+}
+
+weibull_prior_parameters_update_cpp <- function(priorParams, hyperPriorParams, clusterParameters, n = 1L) {
+    .Call(`_dirichletprocess_weibull_prior_parameters_update_cpp`, priorParams, hyperPriorParams, clusterParameters, n)
+}
+
+nonconjugate_weibull_cluster_parameter_update_cpp <- function(dp_list) {
+    .Call(`_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp`, dp_list)
+}
+
+nonconjugate_weibull_cluster_component_update_cpp <- function(dp_list) {
+    .Call(`_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp`, dp_list)
+}
+
 normal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_normal_likelihood_cpp`, x, mu, sigma)
 }

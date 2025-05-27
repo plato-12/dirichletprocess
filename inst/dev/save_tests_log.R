@@ -2,7 +2,7 @@
 library(testthat)
 
 # Open a file connection to write the logs
-log_connection <- file("test_log.txt", open = "wt")
+log_connection <- file("test_log_test-mvnormal-cpp.txt", open = "wt")
 
 # Redirect both standard output and messages to the file
 sink(log_connection)

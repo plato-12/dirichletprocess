@@ -306,6 +306,93 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// weibull_prior_draw_cpp
+Rcpp::List weibull_prior_draw_cpp(const Rcpp::NumericVector& priorParams, int n);
+RcppExport SEXP _dirichletprocess_weibull_prior_draw_cpp(SEXP priorParamsSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_prior_draw_cpp(priorParams, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_likelihood_cpp
+Rcpp::NumericVector weibull_likelihood_cpp(const Rcpp::NumericVector& x, double alpha, double lambda);
+RcppExport SEXP _dirichletprocess_weibull_likelihood_cpp(SEXP xSEXP, SEXP alphaSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_likelihood_cpp(x, alpha, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_prior_density_cpp
+double weibull_prior_density_cpp(double alpha, const Rcpp::NumericVector& priorParams);
+RcppExport SEXP _dirichletprocess_weibull_prior_density_cpp(SEXP alphaSEXP, SEXP priorParamsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_prior_density_cpp(alpha, priorParams));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_posterior_draw_cpp
+Rcpp::List weibull_posterior_draw_cpp(const Rcpp::NumericVector& priorParams, const Rcpp::NumericVector& mhStepSize, const Rcpp::NumericMatrix& x, int n);
+RcppExport SEXP _dirichletprocess_weibull_posterior_draw_cpp(SEXP priorParamsSEXP, SEXP mhStepSizeSEXP, SEXP xSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type mhStepSize(mhStepSizeSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_posterior_draw_cpp(priorParams, mhStepSize, x, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_prior_parameters_update_cpp
+Rcpp::NumericMatrix weibull_prior_parameters_update_cpp(const Rcpp::NumericVector& priorParams, const Rcpp::NumericVector& hyperPriorParams, const Rcpp::List& clusterParameters, int n);
+RcppExport SEXP _dirichletprocess_weibull_prior_parameters_update_cpp(SEXP priorParamsSEXP, SEXP hyperPriorParamsSEXP, SEXP clusterParametersSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type hyperPriorParams(hyperPriorParamsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type clusterParameters(clusterParametersSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_prior_parameters_update_cpp(priorParams, hyperPriorParams, clusterParameters, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_weibull_cluster_parameter_update_cpp
+Rcpp::List nonconjugate_weibull_cluster_parameter_update_cpp(Rcpp::List dp_list);
+RcppExport SEXP _dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp(SEXP dp_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dp_list(dp_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_weibull_cluster_parameter_update_cpp(dp_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_weibull_cluster_component_update_cpp
+Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list);
+RcppExport SEXP _dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp(SEXP dp_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dp_list(dp_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_weibull_cluster_component_update_cpp(dp_list));
+    return rcpp_result_gen;
+END_RCPP
+}
 // normal_likelihood_cpp
 Rcpp::NumericVector normal_likelihood_cpp(const Rcpp::NumericVector& x, double mu, double sigma);
 RcppExport SEXP _dirichletprocess_normal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
@@ -371,6 +458,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_conjugate_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_cluster_component_update_cpp, 1},
     {"_dirichletprocess_conjugate_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_normal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_normal_posterior_parameters_cpp, 2},
+    {"_dirichletprocess_weibull_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_draw_cpp, 2},
+    {"_dirichletprocess_weibull_likelihood_cpp", (DL_FUNC) &_dirichletprocess_weibull_likelihood_cpp, 3},
+    {"_dirichletprocess_weibull_prior_density_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_density_cpp, 2},
+    {"_dirichletprocess_weibull_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_weibull_posterior_draw_cpp, 4},
+    {"_dirichletprocess_weibull_prior_parameters_update_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_parameters_update_cpp, 4},
+    {"_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp, 1},
+    {"_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp, 1},
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},

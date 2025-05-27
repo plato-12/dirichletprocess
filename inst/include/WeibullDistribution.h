@@ -21,6 +21,8 @@ public:
   Rcpp::NumericVector priorDensity(const Rcpp::List& theta) const;
   Rcpp::List mhParameterProposal(const Rcpp::List& oldParams) const;
   void updatePriorParameters(const Rcpp::List& clusterParameters, int n = 1);
+private:
+  double qpareto(double p, double xm, double alpha) const;
 };
 
 class NonConjugateWeibullDP : public DirichletProcess {

@@ -1,13 +1,9 @@
-CXX_STD = CXX11
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
-PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
-
+# In src/Makevars
 SOURCES = likelihood_functions.cpp likelihood.cpp \
           DirichletProcess.cpp RcppConversions.cpp \
           NormalDistribution.cpp NormalExports.cpp \
           BetaDistribution.cpp BetaExports.cpp BetaDP.cpp \
           MVNormalDistribution.cpp MVNExports.cpp \
+          WeibullDistribution.cpp WeibullExports.cpp \
           DistributionStubs.cpp Benchmarking.cpp MemoryProfiling.cpp \
           RcppExports.cpp
-
-OBJECTS = $(SOURCES:.cpp=.o)
