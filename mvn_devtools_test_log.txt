@@ -1,0 +1,18 @@
+==== Test Log Started at: 1748281640 ====
+✔ | F W  S  OK | Context
+⠏ |          0 | beta-cpp                                          ⠏ |          0 | Beta Distribution C++ Implementation              ⠧ |          8 | Beta Distribution C++ Implementation              ⠴ |         16 | Beta Distribution C++ Implementation              ⠇ |         19 | Beta Distribution C++ Implementation              ⠴ |         26 | Beta Distribution C++ Implementation              ⠏ |         30 | Beta Distribution C++ Implementation              ⠸ |         34 | Beta Distribution C++ Implementation              ✔ |         35 | Beta Distribution C++ Implementation [2.2s]
+⠏ |          0 | beta-integration                                  ⠏ |          0 | Beta Distribution Full Integration Test           ⠋ |          1 | Beta Distribution Full Integration Test           ⠧ |          8 | Beta Distribution Full Integration Test           
+Beta Performance Comparison (10 iterations, 50 data points - C++ uses R fallback):
+R implementation: 0.36 seconds
+C++ (fallback) implementation: 0.36 seconds
+Speedup (R vs C++ fallback): 1 x
+✔ |          8 | Beta Distribution Full Integration Test [2.7s]
+⠏ |          0 | cpp-likelihood                                    ⠏ |          0 | C++ Likelihood Implementation                     R time: 0.02 C++ time: 0.01 Speedup: 2 
+⠙ |      1   1 | C++ Likelihood Implementation                     ✔ |      1   1 | C++ Likelihood Implementation
+⠏ |          0 | cpp-sampler-demo                                  ⠏ |          0 | C++ Sampler End-to-End Demonstration              
+Performance Comparison (10 iterations):
+R implementation: 0.48 seconds
+C++ implementation: 0.04 seconds
+Speedup: 12 x
+⠙ |      2   0 | C++ Sampler End-to-End Demonstration              ✔ |      2   0 | C++ Sampler End-to-End Demonstration
+⠏ |          0 | mvnormal-cpp                                      ⠏ |          0 | Multivariate Normal Distribution C++ Implementation⠇ | 3        6 | Multivariate Normal Distribution C++ Implementation⠼ | 6 1      8 | Multivariate Normal Distribution C++ Implementation⠸ | 6 10      8 | Multivariate Normal Distribution C++ Implementation⠹ | 6 12     15 | Multivariate Normal Distribution C++ Implementation

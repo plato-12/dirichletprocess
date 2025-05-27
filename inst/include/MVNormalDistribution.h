@@ -23,6 +23,9 @@ public:
   Rcpp::List priorDraw(int n) const override;
   Rcpp::List posteriorDraw(const arma::mat& x, int n = 1) const override;
 
+  // Helper method for multivariate normal likelihood calculation
+  arma::vec mvnLikelihood(const arma::mat& x, const arma::vec& mu, const arma::mat& sigma) const;
+
   // Specific methods for MVN distribution
   Rcpp::List posteriorParameters(const arma::mat& x) const;
   Rcpp::NumericVector predictive(const arma::mat& x) const;
@@ -32,8 +35,7 @@ public:
   static Rcpp::List posteriorDrawStatic(const Rcpp::List& priorParams, const arma::mat& x, int n);
 
 private:
-  // Helper method for multivariate normal likelihood calculation
-  arma::vec mvnLikelihood(const arma::mat& x, const arma::vec& mu, const arma::mat& sigma) const;
+
 };
 
 class ConjugateMVNormalDP : public DirichletProcess {
