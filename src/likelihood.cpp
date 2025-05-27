@@ -60,7 +60,6 @@ Rcpp::NumericVector likelihood_cpp(const Rcpp::List& mdObj,
 }
 
 // Multivariate normal distribution likelihood calculation
-// [[Rcpp::export]]
 arma::vec mvnormal_likelihood_cpp(const arma::mat& x,
                                   const arma::rowvec& mu,
                                   const arma::mat& sigma) {

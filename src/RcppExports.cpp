@@ -332,19 +332,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// mvnormal_likelihood_cpp
-arma::vec mvnormal_likelihood_cpp(const arma::mat& x, const arma::rowvec& mu, const arma::mat& sigma);
-RcppExport SEXP _dirichletprocess_mvnormal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< const arma::rowvec& >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type sigma(sigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(mvnormal_likelihood_cpp(x, mu, sigma));
-    return rcpp_result_gen;
-END_RCPP
-}
 // likelihood_normal_cpp
 Rcpp::NumericVector likelihood_normal_cpp(Rcpp::List mdObj, Rcpp::NumericVector x, Rcpp::List theta);
 RcppExport SEXP _dirichletprocess_likelihood_normal_cpp(SEXP mdObjSEXP, SEXP xSEXP, SEXP thetaSEXP) {
@@ -386,7 +373,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_normal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_normal_posterior_parameters_cpp, 2},
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
-    {"_dirichletprocess_mvnormal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
     {NULL, NULL, 0}
 };
