@@ -136,7 +136,7 @@ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) c
   // Initialize with analytical lambda update
   Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
   double sum_x_alpha = 0.0;
-  for (int j = 0; j < x.n_rows; j++) {
+  for (arma::uword j = 0; j < x.n_rows; j++) {
     sum_x_alpha += std::pow(x(j, 0), alpha_current);
   }
   double lambda_current = 1.0 / R::rgamma(x.n_rows + priorParams[1],
@@ -178,7 +178,7 @@ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) c
 
     // Analytically update lambda given proposed alpha
     sum_x_alpha = 0.0;
-    for (int j = 0; j < x.n_rows; j++) {
+    for (arma::uword j = 0; j < x.n_rows; j++) {
       sum_x_alpha += std::pow(x(j, 0), alpha_prop);
     }
     double lambda_prop = 1.0 / R::rgamma(x.n_rows + priorParams[1],

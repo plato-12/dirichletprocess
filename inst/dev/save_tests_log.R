@@ -11,7 +11,7 @@ sink(log_connection, type = "message")
 # Run the tests for the specified file.
 # Make sure your working directory is the root of your package.
 tryCatch({
-  test_file("tests/testthat/test-mvnormal-cpp.R")
+  test_file("test-weibull-cpp.R")
 }, finally = {
   # Stop redirecting output and close the file connection
   # This ensures that the connection is closed even if there's an error

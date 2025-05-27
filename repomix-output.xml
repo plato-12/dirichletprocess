@@ -384,7 +384,9 @@ src/NormalDistribution.cpp
 src/NormalExports.cpp
 src/RcppConversions.cpp
 src/RcppExports.cpp
-test_log.txt
+src/WeibullDistribution.cpp
+src/WeibullExports.cpp
+test_log_test-mvnormal-cpp.txt
 tests/testthat.R
 tests/testthat/test_beta_uniform_gamma.R
 tests/testthat/test_beta_uniform_pareto.R
@@ -430,6 +432,7 @@ tests/testthat/test-cpp-likelihood.R
 tests/testthat/test-cpp-sampler-demo.R
 tests/testthat/test-mvnormal-cpp.R
 tests/testthat/test-normal-cpp.R
+tests/testthat/test-weibull-cpp.R
 vignettes/Code/custom_models.R
 vignettes/Code/generate_graphs.R
 vignettes/Code/graph_theme.R
@@ -489,32 +492,6 @@ artifacts:
 
   - path: '\*_*.zip'
     name: Bits
-</file>
-
-<file path="inst/dev/save_tests_log.R">
-# Load the testthat library
-library(testthat)
-
-# Open a file connection to write the logs
-log_connection <- file("test_log.txt", open = "wt")
-
-# Redirect both standard output and messages to the file
-sink(log_connection)
-sink(log_connection, type = "message")
-
-# Run the tests for the specified file.
-# Make sure your working directory is the root of your package.
-tryCatch({
-  test_file("tests/testthat/test-mvnormal-cpp.R")
-}, finally = {
-  # Stop redirecting output and close the file connection
-  # This ensures that the connection is closed even if there's an error
-  sink(type = "message")
-  sink()
-  close(log_connection)
-})
-
-# The output is now saved in "test_log.txt" in your working directory.
 </file>
 
 <file path="man/Burn.Rd">
@@ -1691,6 +1668,87 @@ HierarchicalBetaCreate <- function(n, priorParameters, hyperPriorParameters,
 }
 </file>
 
+<file path="R/initialise.R">
+#' Initialise a Dirichlet process object
+#'
+#' Initialise a Dirichlet process object by assigning all the data points to a single cluster with a posterior or prior draw for parameters.
+#'
+#' @param dpObj A Dirichlet process object.
+#' @param posterior TRUE/FALSE value for whether the cluster parameters should be from the posterior. If false then the values are from the prior.
+#' @param m Number of auxiliary variables to use for a non-conjugate mixing distribution. Defaults to m=3. See \code{\link{ClusterComponentUpdate}} for more details on m.
+#' @param verbose Logical flag indicating whether to output the acceptance ratio for non-conjugate mixtures.
+#' @param numInitialClusters Number of clusters to initialise with.
+#' @return A Dirichlet process object that has initial cluster allocations.
+#' @export
+Initialise <- function(dpObj, posterior = TRUE, m=3, verbose=TRUE, numInitialClusters = 1){
+  UseMethod("Initialise", dpObj)
+}
+
+#' @export
+Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, numInitialClusters = 1) {
+
+  dpObj$clusterLabels <- rep_len(seq_len(numInitialClusters), length.out = dpObj$n)
+  dpObj$numberClusters <- numInitialClusters
+  dpObj$pointsPerCluster <- vapply(seq_len(numInitialClusters), function(x) sum(dpObj$clusterLabels == x), numeric(1))
+
+  if (posterior && numInitialClusters == 1) {
+    dpObj$clusterParameters <- PosteriorDraw(dpObj$mixingDistribution, dpObj$data, 1)
+  } else {
+    dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution, numInitialClusters)
+  }
+
+  dpObj <- InitialisePredictive(dpObj)
+
+  return(dpObj)
+}
+
+#'@export
+Initialise.nonconjugate <- function(dpObj, posterior = TRUE, m = 3, verbose = TRUE, numInitialClusters=1) {
+
+  # dpObj$clusterLabels <- 1:dpObj$n dpObj$numberClusters <- dpObj$n
+  # dpObj$pointsPerCluster <- rep(1, dpObj$n) dpObj$clusterParameters <-
+  # PosteriorDraw(dpObj$MixingDistribution, dpObj$data, dpObj$n)
+  dpObj$clusterLabels <- rep(1, dpObj$n)
+  dpObj$numberClusters <- 1
+  dpObj$pointsPerCluster <- dpObj$n
+
+  if (posterior) {
+    post_draws <- PosteriorDraw(dpObj$mixingDistribution, dpObj$data, 1000)
+
+    if (verbose)
+      cat(paste("Accept Ratio: ",
+                length(unique(c(post_draws[[1]])))/1000,
+                "\n"))
+
+    dpObj$clusterParameters <- lapply(post_draws, function(x) x[, , 1000, drop = FALSE])
+
+
+    # dpObj$clusterParameters <- list(post_draws[[1]][, , 1000, drop = FALSE],
+                                    # post_draws[[2]][, , 1000, drop = FALSE])
+  } else {
+    dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution, 1)
+  }
+
+  dpObj$m <- m
+
+  return(dpObj)
+}
+
+
+InitialisePredictive <- function(dpObj) UseMethod("InitialisePredictive", dpObj)
+
+InitialisePredictive.conjugate <- function(dpObj) {
+
+  dpObj$predictiveArray <- Predictive(dpObj$mixingDistribution, dpObj$data)
+
+  return(dpObj)
+}
+
+InitialisePredictive.nonconjugate <- function(dpObj) {
+  return(dpObj)
+}
+</file>
+
 <file path="R/mixing_distribution_penalised_likelihood.R">
 #' Calculate the parameters that maximise the penalised likelihood.
 #'
@@ -2123,41 +2181,6 @@ MhParameterProposal.weibull <- function(mdObj, old_params) {
 
   return(new_params)
 }
-</file>
-
-<file path="test_log.txt">
-[ FAIL 0 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 0 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 1 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 2 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 3 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 4 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 5 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 6 | WARN 0 | SKIP 0 | PASS 0 ]
-[ FAIL 7 | WARN 0 | SKIP 0 | PASS 0 ]
-
-── Error ('test-mvnormal-cpp.R:14:3'): MVNormal PriorDraw C++ matches R implementation ──
-Error in `MvnormalCreate(priorParams)`: could not find function "MvnormalCreate"
-
-── Error ('test-mvnormal-cpp.R:46:3'): MVNormal PosteriorDraw C++ matches R implementation ──
-Error in `MvnormalCreate(priorParams)`: could not find function "MvnormalCreate"
-
-── Error ('test-mvnormal-cpp.R:82:3'): MVNormal Likelihood C++ matches R implementation ──
-Error in `mvnormal_likelihood_cpp(x, mu, sigma)`: could not find function "mvnormal_likelihood_cpp"
-
-── Error ('test-mvnormal-cpp.R:98:3'): MVNormal Predictive C++ matches R implementation ──
-Error in `MvnormalCreate(priorParams)`: could not find function "MvnormalCreate"
-
-── Error ('test-mvnormal-cpp.R:116:3'): MVNormal ClusterComponentUpdate C++ works correctly ──
-Error in `DirichletProcessMvnormal(y)`: could not find function "DirichletProcessMvnormal"
-
-── Error ('test-mvnormal-cpp.R:159:3'): MVNormal ClusterParameterUpdate C++ works correctly ──
-Error in `DirichletProcessMvnormal(y)`: could not find function "DirichletProcessMvnormal"
-
-── Error ('test-mvnormal-cpp.R:206:3'): End-to-end MVNormal C++ sampler test ──
-Error in `DirichletProcessMvnormal(y)`: could not find function "DirichletProcessMvnormal"
-
-[ FAIL 7 | WARN 0 | SKIP 0 | PASS 0 ]
 </file>
 
 <file path="tests/testthat.R">
@@ -25574,61 +25597,6 @@ public:
 #endif
 </file>
 
-<file path="inst/include/WeibullDistribution.h">
-// inst/include/WeibullDistribution.h
-#ifndef WEIBULL_DISTRIBUTION_H
-#define WEIBULL_DISTRIBUTION_H
-
-#include "DirichletProcess.h"
-
-namespace dp {
-
-class WeibullMixingDistribution : public MixingDistribution {
-public:
-  WeibullMixingDistribution(const Rcpp::NumericVector& priorParams, const Rcpp::NumericVector& mhStepSize,
-                            const Rcpp::NumericVector& hyperPriorParams = Rcpp::NumericVector::create());
-  virtual ~WeibullMixingDistribution();
-
-  // Implement required virtual methods
-  Rcpp::NumericVector likelihood(const arma::vec& x, const Rcpp::List& theta) const override;
-  Rcpp::List priorDraw(int n) const override;
-  Rcpp::List posteriorDraw(const arma::mat& x, int n = 1) const override;
-
-  // Weibull specific methods
-  Rcpp::NumericVector priorDensity(const Rcpp::List& theta) const;
-  Rcpp::List mhParameterProposal(const Rcpp::List& oldParams) const;
-  void updatePriorParameters(const Rcpp::List& clusterParameters, int n = 1);
-};
-
-class NonConjugateWeibullDP : public DirichletProcess {
-public:
-  NonConjugateWeibullDP();
-  virtual ~NonConjugateWeibullDP();
-
-  WeibullMixingDistribution* mixingDistribution;
-
-  // Cluster information
-  arma::uvec clusterLabels;
-  arma::uvec pointsPerCluster;
-  int numberClusters;
-  Rcpp::List clusterParameters;
-  int m; // Number of auxiliary parameters
-
-  // Implementation of core MCMC methods
-  void clusterComponentUpdate() override;
-  void clusterParameterUpdate() override;
-  void updateAlpha() override;
-
-  // Additional methods
-  Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux);
-  Rcpp::List metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws);
-};
-
-} // namespace dp
-
-#endif
-</file>
-
 <file path="man/benchmark_r_cpp.Rd">
 % Generated by roxygen2: do not edit by hand
 % Please edit documentation in R/testHelpers.R
@@ -29265,6 +29233,866 @@ MixingDistribution* createMDFromR(const Rcpp::List& rObj) {
 } // namespace dp
 </file>
 
+<file path="src/WeibullDistribution.cpp">
+// src/WeibullDistribution.cpp
+#include "../inst/include/WeibullDistribution.h"
+#include "../inst/include/RcppConversions.h"
+#include <cmath>
+#include <limits>
+
+namespace dp {
+
+// WeibullMixingDistribution implementation
+WeibullMixingDistribution::WeibullMixingDistribution(const Rcpp::NumericVector& priorParams,
+                                                     const Rcpp::NumericVector& mhStepSize,
+                                                     const Rcpp::NumericVector& hyperPriorParams) {
+  distribution = "weibull";
+  conjugate = false;
+  priorParameters = priorParams;
+  this->mhStepSize = mhStepSize;
+
+  if (hyperPriorParams.size() > 0) {
+    hyperPriorParameters = hyperPriorParams;
+  } else {
+    hyperPriorParameters = Rcpp::NumericVector::create(6.0, 2.0, 1.0, 0.5);
+  }
+}
+
+WeibullMixingDistribution::~WeibullMixingDistribution() {
+  // Destructor
+}
+
+Rcpp::NumericVector WeibullMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
+  Rcpp::NumericVector alpha_array = theta[0];
+  Rcpp::NumericVector lambda_array = theta[1];
+
+  int n_data = x.n_elem;
+  Rcpp::NumericVector result(n_data);
+
+  double alpha = alpha_array[0];
+  double lambda = lambda_array[0];
+
+  for (int i = 0; i < n_data; i++) {
+    if (x[i] >= 0 && lambda > 0 && alpha > 0 && !std::isinf(lambda)) {
+      double y = std::pow(lambda, -1.0) * alpha * std::pow(x[i], alpha - 1.0) *
+        std::exp(-std::pow(lambda, -1.0) * std::pow(x[i], alpha));
+      result[i] = (y > 0 && std::isfinite(y)) ? y : 1e-300;
+    } else {
+      result[i] = (x[i] < 0) ? 0.0 : 1e-300;
+    }
+  }
+
+  return result;
+}
+
+Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
+  Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+
+  Rcpp::NumericVector alpha_values(n);
+  Rcpp::NumericVector lambda_values(n);
+
+  for (int i = 0; i < n; i++) {
+    alpha_values[i] = R::runif(0.0, priorParams[0]);
+    double gamma_draw = R::rgamma(priorParams[1], 1.0 / priorParams[2]);
+    lambda_values[i] = 1.0 / gamma_draw;
+  }
+
+  // Convert to 3D arrays
+  Rcpp::NumericVector alpha_arr(n);
+  Rcpp::NumericVector lambda_arr(n);
+  alpha_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+  lambda_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+
+  for (int i = 0; i < n; i++) {
+    alpha_arr[i] = alpha_values[i];
+    lambda_arr[i] = lambda_values[i];
+  }
+
+  return Rcpp::List::create(
+    Rcpp::Named("alpha") = alpha_arr,
+    Rcpp::Named("lambda") = lambda_arr
+  );
+}
+
+Rcpp::NumericVector WeibullMixingDistribution::priorDensity(const Rcpp::List& theta) const {
+  Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+  Rcpp::NumericVector alpha_array = theta[0];
+
+  double alpha = alpha_array[0];
+  double density = 0.0;
+
+  if (alpha > 0 && alpha < priorParams[0]) {
+    density = 1.0 / priorParams[0];
+  } else {
+    density = 1e-10;
+  }
+
+  return Rcpp::NumericVector::create(density);
+}
+
+Rcpp::List WeibullMixingDistribution::mhParameterProposal(const Rcpp::List& oldParams) const {
+  Rcpp::NumericVector mhStep = Rcpp::as<Rcpp::NumericVector>(mhStepSize);
+  Rcpp::NumericVector old_alpha = oldParams[0];
+  Rcpp::NumericVector old_lambda = oldParams[1];
+
+  double alpha_old = old_alpha[0];
+  double new_alpha = std::abs(alpha_old + mhStep[0] * R::rnorm(0.0, 1.0));
+
+  // Create return arrays
+  Rcpp::NumericVector alpha_arr(1);
+  Rcpp::NumericVector lambda_arr(1);
+  alpha_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  lambda_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+
+  alpha_arr[0] = new_alpha;
+  lambda_arr[0] = old_lambda[0]; // Lambda will be updated analytically later
+
+  return Rcpp::List::create(
+    Rcpp::Named("alpha") = alpha_arr,
+    Rcpp::Named("lambda") = lambda_arr
+  );
+}
+
+Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+  // Use the special Weibull Metropolis-Hastings with analytical lambda update
+  Rcpp::List start_pos = priorDraw(1);
+
+  int mhDraws = 100; // Default number of MH iterations
+  if (priorParameters.hasAttribute("mhDraws")) {
+    mhDraws = Rcpp::as<int>(priorParameters.attr("mhDraws"));
+  }
+
+  // Perform Metropolis-Hastings sampling
+  Rcpp::NumericVector alpha_samples(mhDraws);
+  Rcpp::NumericVector lambda_samples(mhDraws);
+
+  Rcpp::NumericVector current_alpha = start_pos[0];
+  double alpha_current = current_alpha[0];
+
+  // Initialize with analytical lambda update
+  Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+  double sum_x_alpha = 0.0;
+  for (int j = 0; j < x.n_rows; j++) {
+    sum_x_alpha += std::pow(x(j, 0), alpha_current);
+  }
+  double lambda_current = 1.0 / R::rgamma(x.n_rows + priorParams[1],
+                                          1.0 / (sum_x_alpha + priorParams[2]));
+
+  alpha_samples[0] = alpha_current;
+  lambda_samples[0] = lambda_current;
+
+  // Current likelihood and prior
+  Rcpp::NumericVector current_params_alpha(1);
+  Rcpp::NumericVector current_params_lambda(1);
+  current_params_alpha.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  current_params_lambda.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  current_params_alpha[0] = alpha_current;
+  current_params_lambda[0] = lambda_current;
+  Rcpp::List current_params = Rcpp::List::create(current_params_alpha, current_params_lambda);
+
+  double current_log_lik = 0.0;
+  Rcpp::NumericVector lik_vals = likelihood(arma::vectorise(x), current_params);
+  for (int k = 0; k < lik_vals.size(); k++) {
+    if (lik_vals[k] > 1e-300) {
+      current_log_lik += std::log(lik_vals[k]);
+    } else {
+      current_log_lik = -std::numeric_limits<double>::infinity();
+      break;
+    }
+  }
+
+  double current_log_prior = std::log(priorDensity(current_params)[0]);
+
+  int accept_count = 0;
+
+  // Metropolis-Hastings loop
+  for (int iter = 1; iter < mhDraws; iter++) {
+    // Propose new alpha
+    Rcpp::List proposed_params = mhParameterProposal(current_params);
+    Rcpp::NumericVector prop_alpha = proposed_params[0];
+    double alpha_prop = prop_alpha[0];
+
+    // Analytically update lambda given proposed alpha
+    sum_x_alpha = 0.0;
+    for (int j = 0; j < x.n_rows; j++) {
+      sum_x_alpha += std::pow(x(j, 0), alpha_prop);
+    }
+    double lambda_prop = 1.0 / R::rgamma(x.n_rows + priorParams[1],
+                                         1.0 / (sum_x_alpha + priorParams[2]));
+
+    // Update proposed params with new lambda
+    Rcpp::NumericVector prop_lambda(1);
+    prop_lambda.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+    prop_lambda[0] = lambda_prop;
+    proposed_params[1] = prop_lambda;
+
+    // Calculate proposed likelihood
+    double proposed_log_lik = 0.0;
+    Rcpp::NumericVector prop_lik_vals = likelihood(arma::vectorise(x), proposed_params);
+    for (int k = 0; k < prop_lik_vals.size(); k++) {
+      if (prop_lik_vals[k] > 1e-300) {
+        proposed_log_lik += std::log(prop_lik_vals[k]);
+      } else {
+        proposed_log_lik = -std::numeric_limits<double>::infinity();
+        break;
+      }
+    }
+
+    double proposed_log_prior = std::log(priorDensity(proposed_params)[0]);
+
+    // Accept/reject
+    double log_ratio = (proposed_log_lik + proposed_log_prior) -
+      (current_log_lik + current_log_prior);
+
+    double accept_prob = std::min(1.0, std::exp(log_ratio));
+    if (!std::isfinite(accept_prob)) {
+      accept_prob = 0.0;
+    }
+
+    if (R::runif(0, 1) < accept_prob) {
+      current_params = proposed_params;
+      alpha_current = alpha_prop;
+      lambda_current = lambda_prop;
+      current_log_lik = proposed_log_lik;
+      current_log_prior = proposed_log_prior;
+      accept_count++;
+    }
+
+    alpha_samples[iter] = alpha_current;
+    lambda_samples[iter] = lambda_current;
+  }
+
+  // Return the last n samples
+  Rcpp::NumericVector alpha_final(n);
+  Rcpp::NumericVector lambda_final(n);
+
+  for (int i = 0; i < n; i++) {
+    int idx = mhDraws - n + i;
+    if (idx >= 0) {
+      alpha_final[i] = alpha_samples[idx];
+      lambda_final[i] = lambda_samples[idx];
+    } else {
+      alpha_final[i] = alpha_samples[mhDraws - 1];
+      lambda_final[i] = lambda_samples[mhDraws - 1];
+    }
+  }
+
+  alpha_final.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+  lambda_final.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+
+  return Rcpp::List::create(
+    Rcpp::Named("alpha") = alpha_final,
+    Rcpp::Named("lambda") = lambda_final
+  );
+}
+
+void WeibullMixingDistribution::updatePriorParameters(const Rcpp::List& clusterParameters, int n) {
+  Rcpp::NumericVector hyperPrior = Rcpp::as<Rcpp::NumericVector>(hyperPriorParameters);
+  Rcpp::NumericVector currentPriorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
+  Rcpp::NumericVector alpha_params = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
+  Rcpp::NumericVector lambda_params = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
+
+  int numClusters = alpha_params.size();
+
+  // Find max alpha
+  double max_alpha = 0.0;
+  for (int i = 0; i < numClusters; i++) {
+    if (alpha_params[i] > max_alpha) {
+      max_alpha = alpha_params[i];
+    }
+  }
+
+  // Update phi using Pareto distribution
+  double xm = std::max(max_alpha, hyperPrior[0]);
+  double newPhi = qpareto(R::runif(0, 1), xm, hyperPrior[1] + numClusters);
+
+  // Update gamma parameters
+  double sum_inv_lambda = 0.0;
+  for (int i = 0; i < numClusters; i++) {
+    if (lambda_params[i] > 0) {
+      sum_inv_lambda += 1.0 / lambda_params[i];
+    }
+  }
+
+  double newGamma = R::rgamma(hyperPrior[2] + 2 * numClusters,
+                              1.0 / (hyperPrior[3] + sum_inv_lambda));
+
+  Rcpp::NumericMatrix newPriorParams(1, 3);
+  newPriorParams(0, 0) = newPhi;
+  newPriorParams(0, 1) = currentPriorParams[1];
+  newPriorParams(0, 2) = newGamma;
+
+  priorParameters = newPriorParams;
+}
+
+// Helper function for Pareto quantile
+double WeibullMixingDistribution::qpareto(double p, double xm, double alpha) const {
+  if (p < 0 || p > 1) return R_NaN;
+  return xm * std::pow(1 - p, -1.0 / alpha);
+}
+
+// NonConjugateWeibullDP implementation
+NonConjugateWeibullDP::NonConjugateWeibullDP() : mixingDistribution(nullptr), numberClusters(0), m(3) {
+  // Constructor
+}
+
+NonConjugateWeibullDP::~NonConjugateWeibullDP() {
+  if (mixingDistribution) {
+    delete mixingDistribution;
+  }
+}
+
+void NonConjugateWeibullDP::clusterComponentUpdate() {
+  // Implementation similar to Beta non-conjugate case
+  int n = data.n_rows;
+
+  for (int i = 0; i < n; i++) {
+    int currentLabel = clusterLabels[i];
+
+    // Remove point from current cluster
+    pointsPerCluster[currentLabel]--;
+
+    // Generate auxiliary parameters
+    Rcpp::List aux;
+    if (pointsPerCluster[currentLabel] == 0) {
+      // If cluster is now empty, we need m-1 auxiliary parameters
+      aux = mixingDistribution->priorDraw(m - 1);
+
+      // Include the current cluster's parameters as one of the auxiliary
+      Rcpp::NumericVector alpha_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
+      Rcpp::NumericVector lambda_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
+
+      Rcpp::NumericVector alpha_aux = aux[0];
+      Rcpp::NumericVector lambda_aux = aux[1];
+
+      // Create new arrays including current cluster params
+      Rcpp::NumericVector alpha_combined(m);
+      Rcpp::NumericVector lambda_combined(m);
+      alpha_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
+      lambda_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
+
+      alpha_combined[0] = alpha_vec[currentLabel];
+      lambda_combined[0] = lambda_vec[currentLabel];
+
+      for (int j = 0; j < m-1; j++) {
+        alpha_combined[j+1] = alpha_aux[j];
+        lambda_combined[j+1] = lambda_aux[j];
+      }
+
+      aux = Rcpp::List::create(alpha_combined, lambda_combined);
+    } else {
+      // Generate m auxiliary parameters
+      aux = mixingDistribution->priorDraw(m);
+    }
+
+    // Calculate probabilities
+    int totalLabels = numberClusters + m;
+    Rcpp::NumericVector probs(totalLabels);
+
+    // Existing clusters
+    for (int j = 0; j < numberClusters; j++) {
+      if (pointsPerCluster[j] > 0) {
+        // Extract parameters for cluster j
+        Rcpp::NumericVector alpha_vec = clusterParameters[0];
+        Rcpp::NumericVector lambda_vec = clusterParameters[1];
+
+        // Create properly formatted parameter arrays
+        Rcpp::NumericVector alpha_j(1);
+        Rcpp::NumericVector lambda_j(1);
+        alpha_j[0] = alpha_vec[j];
+        lambda_j[0] = lambda_vec[j];
+
+        // Add dimension attributes
+        alpha_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        lambda_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+
+        Rcpp::List clusterParam = Rcpp::List::create(
+          Rcpp::Named("alpha") = alpha_j,
+          Rcpp::Named("lambda") = lambda_j
+        );
+
+        Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
+        probs[j] = pointsPerCluster[j] * lik[0];
+      } else {
+        probs[j] = 0.0;
+      }
+    }
+
+    // Auxiliary clusters
+    for (int j = 0; j < m; j++) {
+      Rcpp::NumericVector alpha_aux = aux[0];
+      Rcpp::NumericVector lambda_aux = aux[1];
+
+      Rcpp::NumericVector alpha_j(1);
+      Rcpp::NumericVector lambda_j(1);
+      alpha_j[0] = alpha_aux[j];
+      lambda_j[0] = lambda_aux[j];
+
+      alpha_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+      lambda_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+
+      Rcpp::List auxParam = Rcpp::List::create(
+        Rcpp::Named("alpha") = alpha_j,
+        Rcpp::Named("lambda") = lambda_j
+      );
+
+      Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), auxParam);
+      probs[numberClusters + j] = (alpha / m) * lik[0];
+    }
+
+    // Handle edge cases
+    if (Rcpp::is_true(Rcpp::any(Rcpp::is_nan(probs)))) {
+      for (int j = 0; j < probs.size(); j++) {
+        if (std::isnan(probs[j])) probs[j] = 0.0;
+      }
+    }
+
+    if (Rcpp::is_true(Rcpp::all(probs == 0))) {
+      probs.fill(1.0 / probs.size());
+    }
+
+    // Normalize
+    double probSum = Rcpp::sum(probs);
+    probs = probs / probSum;
+
+    // Sample new label
+    int newLabel = 0;
+    double u = R::runif(0, 1);
+    double cumProb = 0.0;
+    for (int j = 0; j < probs.size(); j++) {
+      cumProb += probs[j];
+      if (u <= cumProb) {
+        newLabel = j;
+        break;
+      }
+    }
+
+    // Update cluster assignment
+    Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel, aux);
+
+    // Update state from result
+    clusterLabels = Rcpp::as<arma::uvec>(updateResult["clusterLabels"]);
+    pointsPerCluster = Rcpp::as<arma::uvec>(updateResult["pointsPerCluster"]);
+    clusterParameters = updateResult["clusterParameters"];
+    numberClusters = updateResult["numberClusters"];
+  }
+}
+
+void NonConjugateWeibullDP::clusterParameterUpdate() {
+  for (int k = 0; k < numberClusters; k++) {
+    arma::uvec clusterIndices = arma::find(clusterLabels == k);
+    if (clusterIndices.n_elem > 0) {
+      arma::mat clusterData = data.rows(clusterIndices);
+
+      // Extract current parameters
+      Rcpp::NumericVector alpha_params = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
+      Rcpp::NumericVector lambda_params = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
+
+      Rcpp::NumericVector alpha_start(1);
+      Rcpp::NumericVector lambda_start(1);
+      alpha_start[0] = alpha_params[k];
+      lambda_start[0] = lambda_params[k];
+      alpha_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+      lambda_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+
+      Rcpp::List start_pos = Rcpp::List::create(
+        Rcpp::Named("alpha") = alpha_start,
+        Rcpp::Named("lambda") = lambda_start
+      );
+
+      // Draw from posterior
+      Rcpp::List postDraw = mixingDistribution->posteriorDraw(clusterData, 1);
+
+      Rcpp::NumericVector new_alpha = postDraw[0];
+      Rcpp::NumericVector new_lambda = postDraw[1];
+
+      alpha_params[k] = new_alpha[0];
+      lambda_params[k] = new_lambda[0];
+
+      clusterParameters[0] = alpha_params;
+      clusterParameters[1] = lambda_params;
+    }
+  }
+}
+
+void NonConjugateWeibullDP::updateAlpha() {
+  // Same implementation as Beta/Normal
+  double x = R::rbeta(alpha + 1.0, n);
+  Rcpp::NumericVector currentAlphaPrior = Rcpp::as<Rcpp::NumericVector>(alphaPriorParameters);
+
+  double log_x = std::log(x);
+  double pi1 = currentAlphaPrior[0] + numberClusters - 1.0;
+  double pi2 = n * (currentAlphaPrior[1] - log_x);
+
+  double pi_val = pi1 / (pi1 + pi2);
+  if (!std::isfinite(pi_val)) {
+    pi_val = 0.5;
+  }
+
+  double postShape;
+  if (R::runif(0, 1) < pi_val) {
+    postShape = currentAlphaPrior[0] + numberClusters;
+  } else {
+    postShape = currentAlphaPrior[0] + numberClusters - 1.0;
+  }
+
+  double postRate = currentAlphaPrior[1] - log_x;
+  if (postRate <= 0) postRate = 1e-6;
+
+  alpha = R::rgamma(postShape, 1.0 / postRate);
+  if (alpha <= 0) alpha = 1e-6;
+}
+
+Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int currentLabel,
+                                                     const Rcpp::List& aux) {
+  if (newLabel == currentLabel) {
+    return Rcpp::List::create(
+      Rcpp::Named("clusterLabels") = clusterLabels,
+      Rcpp::Named("pointsPerCluster") = pointsPerCluster,
+      Rcpp::Named("clusterParameters") = clusterParameters,
+      Rcpp::Named("numberClusters") = numberClusters
+    );
+  }
+
+  // Extract current parameters
+  Rcpp::NumericVector alpha_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
+  Rcpp::NumericVector lambda_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]));
+
+  // 1. Remove point from old cluster
+  pointsPerCluster[currentLabel]--;
+
+  // 2. Assign to new cluster
+  if (newLabel < numberClusters) {
+    // Existing cluster
+    pointsPerCluster[newLabel]++;
+    clusterLabels[i] = newLabel;
+
+    // If old cluster is now empty, remove it
+    if (pointsPerCluster[currentLabel] == 0) {
+      numberClusters--;
+      pointsPerCluster.shed_row(currentLabel);
+
+      alpha_vec.erase(currentLabel);
+      lambda_vec.erase(currentLabel);
+
+      // Update labels
+      for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
+        if (clusterLabels[j] > (unsigned int)currentLabel) {
+          clusterLabels[j]--;
+        }
+      }
+    }
+  } else {
+    // New cluster from auxiliary parameters
+    int auxIndex = newLabel - numberClusters;
+
+    if (pointsPerCluster[currentLabel] == 0) {
+      // Replace empty cluster with auxiliary
+      Rcpp::NumericVector aux_alpha = aux[0];
+      Rcpp::NumericVector aux_lambda = aux[1];
+
+      alpha_vec[currentLabel] = aux_alpha[auxIndex];
+      lambda_vec[currentLabel] = aux_lambda[auxIndex];
+
+      pointsPerCluster[currentLabel] = 1;
+      clusterLabels[i] = currentLabel;
+    } else {
+      // Create new cluster
+      Rcpp::NumericVector aux_alpha = aux[0];
+      Rcpp::NumericVector aux_lambda = aux[1];
+
+      alpha_vec.push_back(aux_alpha[auxIndex]);
+      lambda_vec.push_back(aux_lambda[auxIndex]);
+
+      clusterLabels[i] = numberClusters;
+      pointsPerCluster.resize(numberClusters + 1);
+      pointsPerCluster[numberClusters] = 1;
+      numberClusters++;
+    }
+  }
+
+  // Update cluster parameters
+  clusterParameters[0] = alpha_vec;
+  clusterParameters[1] = lambda_vec;
+
+  return Rcpp::List::create(
+    Rcpp::Named("clusterLabels") = clusterLabels,
+    Rcpp::Named("pointsPerCluster") = pointsPerCluster,
+    Rcpp::Named("clusterParameters") = clusterParameters,
+    Rcpp::Named("numberClusters") = numberClusters
+  );
+}
+
+Rcpp::List NonConjugateWeibullDP::metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws) {
+  return mixingDistribution->posteriorDraw(x, noDraws);
+}
+
+} // namespace dp
+</file>
+
+<file path="src/WeibullExports.cpp">
+// src/WeibullExports.cpp
+#include <RcppArmadillo.h>
+#include "../inst/include/WeibullDistribution.h"
+#include "../inst/include/RcppConversions.h"
+
+// [[Rcpp::export]]
+Rcpp::List weibull_prior_draw_cpp(const Rcpp::NumericVector& priorParams, int n = 1) {
+  dp::WeibullMixingDistribution md(priorParams, Rcpp::NumericVector::create(1.0, 1.0));
+  return md.priorDraw(n);
+}
+
+// [[Rcpp::export]]
+Rcpp::NumericVector weibull_likelihood_cpp(const Rcpp::NumericVector& x, double alpha, double lambda) {
+  arma::vec x_arma = Rcpp::as<arma::vec>(x);
+
+  Rcpp::NumericVector alpha_arr(1);
+  Rcpp::NumericVector lambda_arr(1);
+  alpha_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  lambda_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  alpha_arr[0] = alpha;
+  lambda_arr[0] = lambda;
+
+  Rcpp::List theta = Rcpp::List::create(alpha_arr, lambda_arr);
+
+  dp::WeibullMixingDistribution md(Rcpp::NumericVector::create(10.0, 2.0, 4.0),
+                                   Rcpp::NumericVector::create(1.0, 1.0));
+  return md.likelihood(x_arma, theta);
+}
+
+// [[Rcpp::export]]
+double weibull_prior_density_cpp(double alpha, const Rcpp::NumericVector& priorParams) {
+  dp::WeibullMixingDistribution md(priorParams, Rcpp::NumericVector::create(1.0, 1.0));
+
+  Rcpp::NumericVector alpha_arr(1);
+  Rcpp::NumericVector lambda_arr(1);
+  alpha_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  lambda_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  alpha_arr[0] = alpha;
+  lambda_arr[0] = 1.0; // Lambda doesn't affect uniform prior on alpha
+
+  Rcpp::List theta = Rcpp::List::create(alpha_arr, lambda_arr);
+  return md.priorDensity(theta)[0];
+}
+
+// [[Rcpp::export]]
+Rcpp::List weibull_posterior_draw_cpp(const Rcpp::NumericVector& priorParams,
+                                      const Rcpp::NumericVector& mhStepSize,
+                                      const Rcpp::NumericMatrix& x,
+                                      int n = 1) {
+  arma::mat x_arma = Rcpp::as<arma::mat>(x);
+  dp::WeibullMixingDistribution md(priorParams, mhStepSize);
+  return md.posteriorDraw(x_arma, n);
+}
+
+// [[Rcpp::export]]
+Rcpp::NumericMatrix weibull_prior_parameters_update_cpp(const Rcpp::NumericVector& priorParams,
+                                                        const Rcpp::NumericVector& hyperPriorParams,
+                                                        const Rcpp::List& clusterParameters,
+                                                        int n = 1) {
+  dp::WeibullMixingDistribution md(priorParams, Rcpp::NumericVector::create(1.0, 1.0), hyperPriorParams);
+  md.updatePriorParameters(clusterParameters, n);
+  return Rcpp::as<Rcpp::NumericMatrix>(md.priorParameters);
+}
+
+// [[Rcpp::export]]
+Rcpp::List nonconjugate_weibull_cluster_parameter_update_cpp(Rcpp::List dp_list) {
+  // Extract necessary components
+  arma::mat data = Rcpp::as<arma::mat>(dp_list["data"]);
+  arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dp_list["clusterLabels"]);
+  int numberClusters = dp_list["numberClusters"];
+  Rcpp::List mixingDistribution = dp_list["mixingDistribution"];
+  Rcpp::NumericVector priorParams = mixingDistribution["priorParameters"];
+  Rcpp::NumericVector mhStepSize = mixingDistribution["mhStepSize"];
+  Rcpp::List clusterParameters = dp_list["clusterParameters"];
+
+  // Create C++ DP object
+  dp::NonConjugateWeibullDP* dp_cpp = new dp::NonConjugateWeibullDP();
+  dp_cpp->data = data;
+  dp_cpp->n = data.n_rows;
+  dp_cpp->clusterLabels = clusterLabels;
+  dp_cpp->numberClusters = numberClusters;
+  dp_cpp->clusterParameters = clusterParameters;
+
+  Rcpp::NumericVector hyperPriorParams;
+  if (mixingDistribution.containsElementNamed("hyperPriorParameters")) {
+    hyperPriorParams = Rcpp::as<Rcpp::NumericVector>(mixingDistribution["hyperPriorParameters"]);
+  }
+
+  dp_cpp->mixingDistribution = new dp::WeibullMixingDistribution(priorParams, mhStepSize, hyperPriorParams);
+
+  // Perform cluster parameter update
+  dp_cpp->clusterParameterUpdate();
+
+  // Extract results
+  Rcpp::List result = dp_cpp->clusterParameters;
+
+  // Clean up
+  delete dp_cpp;
+
+  return result;
+}
+
+// [[Rcpp::export]]
+Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list) {
+  // Extract necessary components
+  arma::mat data = Rcpp::as<arma::mat>(dp_list["data"]);
+  arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dp_list["clusterLabels"]);
+  arma::uvec pointsPerCluster = Rcpp::as<arma::uvec>(dp_list["pointsPerCluster"]);
+  int numberClusters = dp_list["numberClusters"];
+  double alpha = dp_list["alpha"];
+  Rcpp::List mixingDistribution = dp_list["mixingDistribution"];
+  Rcpp::NumericVector priorParams = mixingDistribution["priorParameters"];
+  Rcpp::NumericVector mhStepSize = mixingDistribution["mhStepSize"];
+  Rcpp::List clusterParameters = dp_list["clusterParameters"];
+  Rcpp::NumericVector alphaPriorParameters = dp_list["alphaPriorParameters"];
+  int m = dp_list["m"];
+
+  // Create C++ DP object
+  dp::NonConjugateWeibullDP* dp_cpp = new dp::NonConjugateWeibullDP();
+  dp_cpp->data = data;
+  dp_cpp->n = data.n_rows;
+  dp_cpp->alpha = alpha;
+  dp_cpp->clusterLabels = clusterLabels;
+  dp_cpp->pointsPerCluster = pointsPerCluster;
+  dp_cpp->numberClusters = numberClusters;
+  dp_cpp->clusterParameters = clusterParameters;
+  dp_cpp->alphaPriorParameters = alphaPriorParameters;
+  dp_cpp->m = m;
+
+  Rcpp::NumericVector hyperPriorParams;
+  if (mixingDistribution.containsElementNamed("hyperPriorParameters")) {
+    hyperPriorParams = Rcpp::as<Rcpp::NumericVector>(mixingDistribution["hyperPriorParameters"]);
+  }
+
+  dp_cpp->mixingDistribution = new dp::WeibullMixingDistribution(priorParams, mhStepSize, hyperPriorParams);
+
+  // Perform cluster component update
+  dp_cpp->clusterComponentUpdate();
+
+  // Extract results
+  Rcpp::List result = Rcpp::List::create(
+    Rcpp::Named("clusterLabels") = dp_cpp->clusterLabels,
+    Rcpp::Named("pointsPerCluster") = dp_cpp->pointsPerCluster,
+    Rcpp::Named("numberClusters") = dp_cpp->numberClusters,
+    Rcpp::Named("clusterParameters") = dp_cpp->clusterParameters
+  );
+
+  // Clean up
+  delete dp_cpp;
+
+  return result;
+}
+</file>
+
+<file path="test_log_test-mvnormal-cpp.txt">
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 0 ]
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 1 ]
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 2 ]
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 3 ]
+[ FAIL 1 | WARN 0 | SKIP 0 | PASS 3 ]
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 3 ]
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 4 ]
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 5 ]
+[ FAIL 2 | WARN 0 | SKIP 0 | PASS 6 ]
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 6 ]
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 7 ]
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 8 ]
+[ FAIL 3 | WARN 0 | SKIP 0 | PASS 9 ]
+[ FAIL 4 | WARN 0 | SKIP 0 | PASS 9 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 9 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 10 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 11 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 12 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 13 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 14 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 15 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 16 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 17 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 18 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 19 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 20 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 21 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 22 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 23 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 24 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 25 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 26 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 27 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 28 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 29 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 30 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 31 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 32 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 33 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 34 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 35 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 36 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 37 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 38 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 39 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 40 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 41 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 42 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 43 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 44 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 45 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 46 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 47 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 48 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 49 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 50 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 51 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 52 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 53 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 54 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 55 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 56 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 57 ]
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 58 ]
+End-to-end MVNormal test summary:
+Initial clusters: 1 
+Final clusters: 3 
+Cluster sizes: 20 19 21 
+
+
+── Failure ('test-mvnormal-cpp.R:30:3'): MVNormal PriorDraw C++ matches R implementation ──
+mean(cpp_result$mu) not equal to mean(r_result$mu).
+1/1 mismatches
+[1] -0.244 - 0.731 == -0.974
+
+── Failure ('test-mvnormal-cpp.R:31:3'): MVNormal PriorDraw C++ matches R implementation ──
+mean(cpp_result$sig) not equal to mean(r_result$sig).
+1/1 mismatches
+[1] 1.05 - 2.27 == -1.22
+
+── Failure ('test-mvnormal-cpp.R:65:3'): MVNormal PosteriorDraw C++ matches R implementation ──
+cpp_post_params$mu_n not equal to r_post_params$mu_n.
+Attributes: < Modes: list, NULL >
+Attributes: < Lengths: 1, 0 >
+Attributes: < names for target but not for current >
+Attributes: < current is not list-like >
+
+── Failure ('test-mvnormal-cpp.R:84:3'): MVNormal Likelihood C++ matches R implementation ──
+`cpp_lik` not equal to `r_lik`.
+Attributes: < Modes: list, NULL >
+Attributes: < Lengths: 1, 0 >
+Attributes: < names for target but not for current >
+Attributes: < current is not list-like >
+
+── Failure ('test-mvnormal-cpp.R:106:3'): MVNormal Predictive C++ matches R implementation ──
+`cpp_pred` not equal to `r_pred`.
+5/5 mismatches (average diff: 0.0477)
+[1] 0.1699 - 0.1132 == 0.0566
+[2] 0.0325 - 0.0217 == 0.0108
+[3] 0.2333 - 0.1555 == 0.0778
+[4] 0.1264 - 0.0843 == 0.0421
+[5] 0.1541 - 0.1027 == 0.0514
+
+[ FAIL 5 | WARN 0 | SKIP 0 | PASS 58 ]
+</file>
+
 <file path="tests/testthat/test_beta_uniform_gamma.R">
 context("Beta Mixing Distribution Tests")
 
@@ -30549,6 +31377,239 @@ test_that("End-to-end MVNormal C++ sampler test", {
 })
 </file>
 
+<file path="tests/testthat/test-weibull-cpp.R">
+context("Weibull Distribution C++ Implementation")
+
+test_that("Weibull PriorDraw C++ matches R implementation", {
+  set.seed(42)
+  priorParams <- c(10, 2, 4)  # phi, alpha0, beta0
+  n <- 10
+
+  # Create mixing distribution object for R implementation
+  mdObj <- WeibullMixtureCreate(priorParams, c(1, 1))
+
+  # R implementation
+  set.seed(42)
+  r_result <- PriorDraw(mdObj, n)
+
+  # C++ implementation
+  set.seed(42)
+  cpp_result <- weibull_prior_draw_cpp(priorParams, n)
+
+  # Check structure
+  expect_equal(names(cpp_result), c("alpha", "lambda"))
+  expect_equal(dim(cpp_result$alpha), c(1, 1, n))
+  expect_equal(dim(cpp_result$lambda), c(1, 1, n))
+
+  # Check that values are in valid range
+  expect_true(all(cpp_result$alpha > 0 & cpp_result$alpha < priorParams[1]))
+  expect_true(all(cpp_result$lambda > 0))
+
+  # Compare statistical properties
+  expect_equal(mean(cpp_result$alpha), mean(r_result[[1]]), tolerance = 0.5)
+  expect_equal(mean(cpp_result$lambda), mean(r_result[[2]]), tolerance = 0.5)
+})
+
+test_that("Weibull Likelihood C++ matches R implementation", {
+  priorParams <- c(10, 2, 4)
+  mdObj <- WeibullMixtureCreate(priorParams, c(1, 1))
+
+  x <- rweibull(5, shape = 2, scale = 1)
+  alpha <- 2.0
+  lambda <- 0.5
+
+  theta <- list(
+    array(alpha, dim = c(1, 1, 1)),
+    array(lambda, dim = c(1, 1, 1))
+  )
+
+  r_lik <- Likelihood(mdObj, x, theta)
+  cpp_lik <- weibull_likelihood_cpp(x, alpha, lambda)
+
+  expect_equal(cpp_lik, r_lik, tolerance = 1e-10)
+})
+
+test_that("Weibull PriorDensity C++ matches R implementation", {
+  priorParams <- c(10, 2, 4)
+  mdObj <- WeibullMixtureCreate(priorParams, c(1, 1))
+
+  test_alphas <- c(0.5, 5.0, 9.9, 10.1, -0.5)
+
+  for (alpha in test_alphas) {
+    theta <- list(
+      array(alpha, dim = c(1, 1, 1)),
+      array(1.0, dim = c(1, 1, 1))
+    )
+
+    r_density <- PriorDensity(mdObj, theta)
+    cpp_density <- weibull_prior_density_cpp(alpha, priorParams)
+
+    expect_equal(cpp_density, r_density, tolerance = 1e-10)
+  }
+})
+
+test_that("Weibull PosteriorDraw C++ produces valid samples", {
+  set.seed(123)
+  priorParams <- c(10, 2, 4)
+  mhStepSize <- c(0.1, 0.1)
+
+  # Generate data from known Weibull
+  true_shape <- 2.5
+  true_scale <- 1.5
+  x <- matrix(rweibull(30, shape = true_shape, scale = true_scale), ncol = 1)
+
+  set.seed(456)
+  cpp_result <- weibull_posterior_draw_cpp(priorParams, mhStepSize, x, n = 1)
+
+  expect_equal(names(cpp_result), c("alpha", "lambda"))
+  expect_equal(dim(cpp_result$alpha), c(1, 1, 1))
+  expect_equal(dim(cpp_result$lambda), c(1, 1, 1))
+
+  # Check values are reasonable
+  expect_true(cpp_result$alpha[1] > 0 && cpp_result$alpha[1] < priorParams[1])
+  expect_true(cpp_result$lambda[1] > 0)
+
+  # The posterior mean should be somewhat close to the true values
+  # Note: Weibull parameterization lambda = 1/scale^alpha
+  expected_lambda <- 1 / (true_scale^true_shape)
+  expect_true(abs(cpp_result$alpha[1] - true_shape) < 2.0)
+})
+
+test_that("Weibull PriorParametersUpdate C++ matches R implementation", {
+  priorParams <- matrix(c(10, 2, 4), ncol = 3)
+  hyperPriorParams <- c(6, 2, 1, 0.5)
+
+  # Create some cluster parameters
+  clusterParams <- list(
+    array(c(2.0, 3.0, 2.5), dim = c(1, 1, 3)),
+    array(c(0.5, 0.7, 0.6), dim = c(1, 1, 3))
+  )
+
+  mdObj <- WeibullMixtureCreate(priorParams, c(1, 1), hyperPriorParams)
+
+  set.seed(789)
+  r_updated <- PriorParametersUpdate(mdObj, clusterParams, 1)
+
+  set.seed(789)
+  cpp_updated <- weibull_prior_parameters_update_cpp(priorParams, hyperPriorParams, clusterParams, 1)
+
+  # Check that phi was updated and is greater than max alpha
+  expect_true(cpp_updated[1, 1] >= max(clusterParams[[1]]))
+
+  # Check dimensions
+  expect_equal(dim(cpp_updated), c(1, 3))
+})
+
+test_that("NonconjugateWeibullClusterParameterUpdate C++ works correctly", {
+  set.seed(999)
+  # Create test data
+  y1 <- rweibull(15, shape = 1.5, scale = 1.0)
+  y2 <- rweibull(15, shape = 3.0, scale = 2.0)
+  y <- c(y1, y2)
+
+  dp <- DirichletProcessWeibull(y, c(10, 2, 4), verbose = FALSE)
+
+  # Manually set up clusters
+  dp$clusterLabels <- c(rep(1, 15), rep(2, 15))
+  dp$numberClusters <- 2
+  dp$pointsPerCluster <- c(15, 15)
+  dp$clusterParameters <- list(
+    array(c(2.0, 2.0), dim = c(1, 1, 2)),    # Initial alpha values
+    array(c(0.5, 0.5), dim = c(1, 1, 2))    # Initial lambda values
+  )
+
+  # Convert to 0-indexed for C++
+  dp_cpp <- dp
+  dp_cpp$clusterLabels <- dp$clusterLabels - 1
+
+  # Run parameter update
+  cpp_params <- nonconjugate_weibull_cluster_parameter_update_cpp(dp_cpp)
+
+  # Check that parameters were updated
+  expect_true(all(cpp_params[[1]] > 0))  # Alpha values should be positive
+  expect_true(all(cpp_params[[2]] > 0))  # Lambda values should be positive
+
+  # Parameters should have moved from initial values
+  expect_false(all(cpp_params[[1]] == 2.0))
+  expect_false(all(cpp_params[[2]] == 0.5))
+})
+
+test_that("NonconjugateWeibullClusterComponentUpdate C++ works correctly", {
+  set.seed(1234)
+  # Create test data with potential for clustering
+  y <- c(rweibull(20, shape = 1.5, scale = 1.0),
+         rweibull(20, shape = 3.0, scale = 2.0))
+
+  dp <- DirichletProcessWeibull(y, c(10, 2, 4), verbose = FALSE)
+
+  # Convert to 0-indexed for C++
+  dp_cpp <- dp
+  dp_cpp$clusterLabels <- dp$clusterLabels - 1
+
+  # Store initial state
+  initial_clusters <- dp_cpp$numberClusters
+
+  # Run component update
+  cpp_result <- nonconjugate_weibull_cluster_component_update_cpp(dp_cpp)
+
+  # Basic checks
+  expect_equal(length(cpp_result$clusterLabels), length(y))
+  expect_equal(sum(cpp_result$pointsPerCluster), length(y))
+  expect_true(cpp_result$numberClusters >= 1)
+  expect_true(cpp_result$numberClusters <= length(y))
+
+  # Check all labels are valid (0-indexed)
+  expect_true(all(cpp_result$clusterLabels >= 0))
+  expect_true(all(cpp_result$clusterLabels < cpp_result$numberClusters))
+})
+
+test_that("End-to-end Weibull C++ sampler test", {
+  set.seed(2025)
+  # Generate data with clear clusters
+  y <- c(rweibull(25, shape = 1.0, scale = 1.0),
+         rweibull(25, shape = 2.5, scale = 2.0),
+         rweibull(25, shape = 4.0, scale = 0.5))
+
+  # Shuffle the data
+  y <- sample(y)
+
+  # Initialize DP
+  dp <- DirichletProcessWeibull(y, c(10, 2, 4), verbose = FALSE, mhDraws = 50)
+
+  # Convert to 0-indexed for C++
+  dp$clusterLabels <- dp$clusterLabels - 1
+
+  # Run several iterations
+  for (iter in 1:5) {
+    # Update cluster assignments
+    update_result <- nonconjugate_weibull_cluster_component_update_cpp(dp)
+
+    dp$clusterLabels <- update_result$clusterLabels
+    dp$pointsPerCluster <- update_result$pointsPerCluster
+    dp$numberClusters <- update_result$numberClusters
+    dp$clusterParameters <- update_result$clusterParameters
+
+    # Update cluster parameters
+    dp$clusterParameters <- nonconjugate_weibull_cluster_parameter_update_cpp(dp)
+
+    # Check consistency
+    expect_equal(length(dp$clusterLabels), length(y))
+    expect_equal(sum(dp$pointsPerCluster), length(y))
+    expect_true(all(dp$clusterParameters[[1]] > 0))
+    expect_true(all(dp$clusterParameters[[2]] > 0))
+  }
+
+  # Should find 2-4 clusters for this data
+  expect_true(dp$numberClusters >= 2 && dp$numberClusters <= 5)
+
+  cat("\nWeibull C++ sampler test:\n")
+  cat("Final clusters:", dp$numberClusters, "\n")
+  cat("Cluster sizes:", as.numeric(dp$pointsPerCluster), "\n")
+  cat("Alpha values:", round(as.numeric(dp$clusterParameters[[1]]), 2), "\n")
+  cat("Lambda values:", round(as.numeric(dp$clusterParameters[[2]]), 3), "\n")
+})
+</file>
+
 <file path="_pkgdown.yml">
 destination: docs
 
@@ -31438,6 +32499,32 @@ sink()
 message("Benchmark complete. Log saved to: ", log_file)
 </file>
 
+<file path="inst/dev/save_tests_log.R">
+# Load the testthat library
+library(testthat)
+
+# Open a file connection to write the logs
+log_connection <- file("test_log_test-mvnormal-cpp.txt", open = "wt")
+
+# Redirect both standard output and messages to the file
+sink(log_connection)
+sink(log_connection, type = "message")
+
+# Run the tests for the specified file.
+# Make sure your working directory is the root of your package.
+tryCatch({
+  test_file("tests/testthat/test-mvnormal-cpp.R")
+}, finally = {
+  # Stop redirecting output and close the file connection
+  # This ensures that the connection is closed even if there's an error
+  sink(type = "message")
+  sink()
+  close(log_connection)
+})
+
+# The output is now saved in "test_log.txt" in your working directory.
+</file>
+
 <file path="inst/include/Benchmarking.h">
 #ifndef BENCHMARKING_H
 #define BENCHMARKING_H
@@ -31787,6 +32874,63 @@ std::string getDistributionType(const Rcpp::List& dpObj);
 // Factory functions to create appropriate C++ objects from R objects
 DirichletProcess* createDPFromR(const Rcpp::List& rObj);
 MixingDistribution* createMDFromR(const Rcpp::List& rObj);
+
+} // namespace dp
+
+#endif
+</file>
+
+<file path="inst/include/WeibullDistribution.h">
+// inst/include/WeibullDistribution.h
+#ifndef WEIBULL_DISTRIBUTION_H
+#define WEIBULL_DISTRIBUTION_H
+
+#include "DirichletProcess.h"
+
+namespace dp {
+
+class WeibullMixingDistribution : public MixingDistribution {
+public:
+  WeibullMixingDistribution(const Rcpp::NumericVector& priorParams, const Rcpp::NumericVector& mhStepSize,
+                            const Rcpp::NumericVector& hyperPriorParams = Rcpp::NumericVector::create());
+  virtual ~WeibullMixingDistribution();
+
+  // Implement required virtual methods
+  Rcpp::NumericVector likelihood(const arma::vec& x, const Rcpp::List& theta) const override;
+  Rcpp::List priorDraw(int n) const override;
+  Rcpp::List posteriorDraw(const arma::mat& x, int n = 1) const override;
+
+  // Weibull specific methods
+  Rcpp::NumericVector priorDensity(const Rcpp::List& theta) const;
+  Rcpp::List mhParameterProposal(const Rcpp::List& oldParams) const;
+  void updatePriorParameters(const Rcpp::List& clusterParameters, int n = 1);
+private:
+  double qpareto(double p, double xm, double alpha) const;
+};
+
+class NonConjugateWeibullDP : public DirichletProcess {
+public:
+  NonConjugateWeibullDP();
+  virtual ~NonConjugateWeibullDP();
+
+  WeibullMixingDistribution* mixingDistribution;
+
+  // Cluster information
+  arma::uvec clusterLabels;
+  arma::uvec pointsPerCluster;
+  int numberClusters;
+  Rcpp::List clusterParameters;
+  int m; // Number of auxiliary parameters
+
+  // Implementation of core MCMC methods
+  void clusterComponentUpdate() override;
+  void clusterParameterUpdate() override;
+  void updateAlpha() override;
+
+  // Additional methods
+  Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux);
+  Rcpp::List metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws);
+};
 
 } // namespace dp
 
@@ -32273,87 +33417,6 @@ HierarchicalMvnormal2Create <- function(n, priorParameters,
 }
 </file>
 
-<file path="R/initialise.R">
-#' Initialise a Dirichlet process object
-#'
-#' Initialise a Dirichlet process object by assigning all the data points to a single cluster with a posterior or prior draw for parameters.
-#'
-#' @param dpObj A Dirichlet process object.
-#' @param posterior TRUE/FALSE value for whether the cluster parameters should be from the posterior. If false then the values are from the prior.
-#' @param m Number of auxiliary variables to use for a non-conjugate mixing distribution. Defaults to m=3. See \code{\link{ClusterComponentUpdate}} for more details on m.
-#' @param verbose Logical flag indicating whether to output the acceptance ratio for non-conjugate mixtures.
-#' @param numInitialClusters Number of clusters to initialise with.
-#' @return A Dirichlet process object that has initial cluster allocations.
-#' @export
-Initialise <- function(dpObj, posterior = TRUE, m=3, verbose=TRUE, numInitialClusters = 1){
-  UseMethod("Initialise", dpObj)
-}
-
-#' @export
-Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, numInitialClusters = 1) {
-
-  dpObj$clusterLabels <- rep_len(seq_len(numInitialClusters), length.out = dpObj$n)
-  dpObj$numberClusters <- numInitialClusters
-  dpObj$pointsPerCluster <- vapply(seq_len(numInitialClusters), function(x) sum(dpObj$clusterLabels == x), numeric(1))
-
-  if (posterior && numInitialClusters == 1) {
-    dpObj$clusterParameters <- PosteriorDraw(dpObj$mixingDistribution, dpObj$data, 1)
-  } else {
-    dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution, numInitialClusters)
-  }
-
-  dpObj <- InitialisePredictive(dpObj)
-
-  return(dpObj)
-}
-
-#'@export
-Initialise.nonconjugate <- function(dpObj, posterior = TRUE, m = 3, verbose = TRUE, numInitialClusters=1) {
-
-  # dpObj$clusterLabels <- 1:dpObj$n dpObj$numberClusters <- dpObj$n
-  # dpObj$pointsPerCluster <- rep(1, dpObj$n) dpObj$clusterParameters <-
-  # PosteriorDraw(dpObj$MixingDistribution, dpObj$data, dpObj$n)
-  dpObj$clusterLabels <- rep(1, dpObj$n)
-  dpObj$numberClusters <- 1
-  dpObj$pointsPerCluster <- dpObj$n
-
-  if (posterior) {
-    post_draws <- PosteriorDraw(dpObj$mixingDistribution, dpObj$data, 1000)
-
-    if (verbose)
-      cat(paste("Accept Ratio: ",
-                length(unique(c(post_draws[[1]])))/1000,
-                "\n"))
-
-    dpObj$clusterParameters <- lapply(post_draws, function(x) x[, , 1000, drop = FALSE])
-
-
-    # dpObj$clusterParameters <- list(post_draws[[1]][, , 1000, drop = FALSE],
-                                    # post_draws[[2]][, , 1000, drop = FALSE])
-  } else {
-    dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution, 1)
-  }
-
-  dpObj$m <- m
-
-  return(dpObj)
-}
-
-
-InitialisePredictive <- function(dpObj) UseMethod("InitialisePredictive", dpObj)
-
-InitialisePredictive.conjugate <- function(dpObj) {
-
-  dpObj$predictiveArray <- Predictive(dpObj$mixingDistribution, dpObj$data)
-
-  return(dpObj)
-}
-
-InitialisePredictive.nonconjugate <- function(dpObj) {
-  return(dpObj)
-}
-</file>
-
 <file path="R/mixing_distribution_prior_draw.R">
 #' Draw from the prior distribution
 #'
@@ -32734,95 +33797,6 @@ Rcpp::NumericVector likelihood_normal_cpp(
   for (int i = 0; i < n; i++) {
     double z = (x[i] - mu) / sigma;
     result[i] = std::exp(log_const - 0.5 * z * z);
-  }
-
-  return result;
-}
-</file>
-
-<file path="src/likelihood.cpp">
-#include <RcppArmadillo.h>
-// [[Rcpp::depends(RcppArmadillo)]]
-
-// Normal distribution likelihood calculation
-// [[Rcpp::export]]
-Rcpp::NumericVector normal_likelihood_cpp(const Rcpp::NumericVector& x,
-                                          double mu,
-                                          double sigma) {
-  int n = x.size();
-  Rcpp::NumericVector result(n);
-
-  double log_const = -0.5 * std::log(2.0 * M_PI) - std::log(sigma);
-
-  for (int i = 0; i < n; i++) {
-    double z = (x[i] - mu) / sigma;
-    result[i] = std::exp(log_const - 0.5 * z * z);
-  }
-
-  return result;
-}
-
-// Generic likelihood dispatcher
-// [[Rcpp::export]]
-Rcpp::NumericVector likelihood_cpp(const Rcpp::List& mdObj,
-                                   const Rcpp::NumericVector& x,
-                                   const Rcpp::List& theta) {
-  // Extract distribution type from mdObj
-  if (!mdObj.containsElementNamed("distribution")) {
-    Rcpp::stop("mdObj must contain 'distribution' field");
-  }
-
-  std::string dist_type = Rcpp::as<std::string>(mdObj["distribution"]);
-
-  if (dist_type == "normal") {
-    // Extract parameters - handle the array structure properly
-    if (theta.size() < 2) {
-      Rcpp::stop("theta must contain at least 2 elements for normal distribution");
-    }
-
-    // Extract the parameter arrays
-    Rcpp::NumericVector mu_array = theta[0];
-    Rcpp::NumericVector sigma_array = theta[1];
-
-    if (mu_array.size() == 0 || sigma_array.size() == 0) {
-      Rcpp::stop("Parameter arrays cannot be empty");
-    }
-
-    // Extract the first element from each array
-    double mu = mu_array[0];
-    double sigma = sigma_array[0];
-
-    if (sigma <= 0) {
-      Rcpp::stop("sigma must be positive");
-    }
-
-    return normal_likelihood_cpp(x, mu, sigma);
-  } else {
-    Rcpp::stop("Distribution type not implemented in C++: " + dist_type);
-  }
-}
-
-// Multivariate normal distribution likelihood calculation
-// [[Rcpp::export]]
-arma::vec mvnormal_likelihood_cpp(const arma::mat& x,
-                                  const arma::rowvec& mu,
-                                  const arma::mat& sigma) {
-  int n = x.n_rows;
-  arma::vec result(n);
-
-  // Calculate determinant and inverse once
-  double log_det;
-  double sign;
-  arma::log_det(log_det, sign, sigma);
-  arma::mat sigma_inv = arma::inv_sympd(sigma);
-
-  double d = x.n_cols;
-  double log_const = -0.5 * d * std::log(2.0 * M_PI) - 0.5 * log_det;
-
-  for (int i = 0; i < n; i++) {
-    arma::rowvec x_centered = x.row(i) - mu;
-    double quad_form = arma::as_scalar(x_centered * sigma_inv * x_centered.t());
-    result(i) = std::exp(log_const - 0.5 * quad_form);
   }
 
   return result;
@@ -35462,6 +36436,94 @@ MarkovDP* MarkovDP::fromR(const Rcpp::List& rObj) { return new MarkovDP(); }
 } // namespace dp
 </file>
 
+<file path="src/likelihood.cpp">
+#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppArmadillo)]]
+
+// Normal distribution likelihood calculation
+// [[Rcpp::export]]
+Rcpp::NumericVector normal_likelihood_cpp(const Rcpp::NumericVector& x,
+                                          double mu,
+                                          double sigma) {
+  int n = x.size();
+  Rcpp::NumericVector result(n);
+
+  double log_const = -0.5 * std::log(2.0 * M_PI) - std::log(sigma);
+
+  for (int i = 0; i < n; i++) {
+    double z = (x[i] - mu) / sigma;
+    result[i] = std::exp(log_const - 0.5 * z * z);
+  }
+
+  return result;
+}
+
+// Generic likelihood dispatcher
+// [[Rcpp::export]]
+Rcpp::NumericVector likelihood_cpp(const Rcpp::List& mdObj,
+                                   const Rcpp::NumericVector& x,
+                                   const Rcpp::List& theta) {
+  // Extract distribution type from mdObj
+  if (!mdObj.containsElementNamed("distribution")) {
+    Rcpp::stop("mdObj must contain 'distribution' field");
+  }
+
+  std::string dist_type = Rcpp::as<std::string>(mdObj["distribution"]);
+
+  if (dist_type == "normal") {
+    // Extract parameters - handle the array structure properly
+    if (theta.size() < 2) {
+      Rcpp::stop("theta must contain at least 2 elements for normal distribution");
+    }
+
+    // Extract the parameter arrays
+    Rcpp::NumericVector mu_array = theta[0];
+    Rcpp::NumericVector sigma_array = theta[1];
+
+    if (mu_array.size() == 0 || sigma_array.size() == 0) {
+      Rcpp::stop("Parameter arrays cannot be empty");
+    }
+
+    // Extract the first element from each array
+    double mu = mu_array[0];
+    double sigma = sigma_array[0];
+
+    if (sigma <= 0) {
+      Rcpp::stop("sigma must be positive");
+    }
+
+    return normal_likelihood_cpp(x, mu, sigma);
+  } else {
+    Rcpp::stop("Distribution type not implemented in C++: " + dist_type);
+  }
+}
+
+// Multivariate normal distribution likelihood calculation
+arma::vec mvnormal_likelihood_cpp(const arma::mat& x,
+                                  const arma::rowvec& mu,
+                                  const arma::mat& sigma) {
+  int n = x.n_rows;
+  arma::vec result(n);
+
+  // Calculate determinant and inverse once
+  double log_det;
+  double sign;
+  arma::log_det(log_det, sign, sigma);
+  arma::mat sigma_inv = arma::inv_sympd(sigma);
+
+  double d = x.n_cols;
+  double log_const = -0.5 * d * std::log(2.0 * M_PI) - 0.5 * log_det;
+
+  for (int i = 0; i < n; i++) {
+    arma::rowvec x_centered = x.row(i) - mu;
+    double quad_form = arma::as_scalar(x_centered * sigma_inv * x_centered.t());
+    result(i) = std::exp(log_const - 0.5 * quad_form);
+  }
+
+  return result;
+}
+</file>
+
 <file path="tests/testthat/test-cpp-sampler-demo.R">
 context("C++ Sampler End-to-End Demonstration")
 
@@ -37672,6 +38734,203 @@ relabel_states <- function(dp_states){
 }
 </file>
 
+<file path="README.md">
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# dirichletprocess
+
+[![R build
+status](https://github.com/dm13450/dirichletprocess/workflows/R-CMD-check/badge.svg)](https://github.com/dm13450/dirichletprocess/actions)
+[![AppVeyor Build
+Status](https://ci.appveyor.com/api/projects/status/github/dm13450/dirichletprocess?branch=master&svg=true)](https://ci.appveyor.com/project/dm13450/dirichletprocess)
+[![Coverage
+Status](https://codecov.io/gh/dm13450/dirichletprocess/branch/master/graph/badge.svg)](https://app.codecov.io/gh/dm13450/dirichletprocess)
+
+The dirichletprocess package provides tools for you to build custom
+Dirichlet process mixture models. You can use the pre-built
+Normal/Weibull/Beta distributions or create your own following the
+instructions in the vignette. In as little as four lines of code you can
+be modelling your data nonparametrically.
+
+## Installation
+
+You can install the stable release of dirichletprocess from CRAN:
+
+``` r
+install.packages("dirichletprocess")
+```
+
+You can also install the development build of dirichletprocess from
+github with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("dm13450/dirichletprocess")
+```
+
+For a full guide to the package and its capabilities please consult the
+vignette:
+
+``` r
+browseVignettes(package = "dirichletprocess")
+```
+
+## Examples
+
+### Density Estimation
+
+Dirichlet processes can be used for nonparametric density estimation.
+
+``` r
+faithfulTransformed <- faithful$waiting - mean(faithful$waiting)
+faithfulTransformed <- faithfulTransformed/sd(faithful$waiting)
+dp <- DirichletProcessGaussian(faithfulTransformed)
+dp <- Fit(dp, 100, progressBar = FALSE)
+plot(dp)
+```
+
+<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/density-1.png width=50% />
+
+### Clustering
+
+Dirichlet processes can also be used to cluster data based on their
+common distribution parameters.
+
+``` r
+faithfulTrans <- scale(faithful)
+dpCluster <-  DirichletProcessMvnormal(faithfulTrans)
+dpCluster <- Fit(dpCluster, 2000, progressBar = FALSE)
+plot(dpCluster)
+```
+
+<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/clustering-1.png width=50% />
+
+For more detailed explanations and examples see the vignette.
+
+### Tutorials
+
+I’ve written a number of tutorials:
+
+-   [Non parametric
+    priors](https://dm13450.github.io/2019/02/22/Nonparametric-Prior.html)
+-   [Calculating cluster
+    probabilities](https://dm13450.github.io/2018/11/21/Cluster-Probabilities.html)
+-   [Clustering](https://dm13450.github.io/2018/05/30/Clustering.html)
+-   [Point
+    processes](https://dm13450.github.io/2018/03/08/dirichletprocess-pointprocess.html)
+-   [Custom
+    mixtures](https://dm13450.github.io/2018/02/21/Custom-Distributions-Conjugate.html)
+-   [Density
+    estimation](https://dm13450.github.io/2018/02/01/Dirichlet-Density.html)
+-   [Checking
+    convergence](https://dm13450.github.io/2020/01/11/Dirichlet-Convergence.html)
+
+and some case studies:
+
+-   [State of the Market - Infinite State Hidden Markov
+    Models](https://dm13450.github.io/2020/06/03/State-of-the-Market.html)
+-   [Palmer Penguins and an Introduction to Dirichlet
+    Processes](https://dm13450.github.io/2020/09/28/PriorToPosterior.html)
+</file>
+
+<file path="README.Rmd">
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r echo=FALSE, message=FALSE}
+set.seed(2020)
+require(dirichletprocess)
+require(ggplot2)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "vignettes/img/"
+)
+```
+
+# dirichletprocess
+
+[![R build status](https://github.com/dm13450/dirichletprocess/workflows/R-CMD-check/badge.svg)](https://github.com/dm13450/dirichletprocess/actions)
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/dm13450/dirichletprocess?branch=master&svg=true)](https://ci.appveyor.com/project/dm13450/dirichletprocess)
+[![Coverage Status](https://codecov.io/gh/dm13450/dirichletprocess/branch/master/graph/badge.svg)](https://app.codecov.io/gh/dm13450/dirichletprocess)
+
+
+The dirichletprocess package provides tools for you to build custom Dirichlet process mixture models. You can use the pre-built Normal/Weibull/Beta distributions or create your own following the instructions in the vignette. In as little as four lines of code you can be modelling your data nonparametrically.
+
+## Installation
+
+You can install the stable release of dirichletprocess from CRAN:
+
+```{r, eval=FALSE}
+install.packages("dirichletprocess")
+```
+
+You can also install the development build of dirichletprocess from github with:
+
+```{r gh-installation, eval = FALSE}
+# install.packages("devtools")
+devtools::install_github("dm13450/dirichletprocess")
+```
+
+For a full guide to the package and its capabilities please consult the vignette:
+
+```{r vignette, eval=FALSE}
+browseVignettes(package = "dirichletprocess")
+```
+
+## Examples
+
+### Density Estimation
+
+Dirichlet processes can be used for nonparametric density estimation. 
+
+```{r density, eval=FALSE}
+faithfulTransformed <- faithful$waiting - mean(faithful$waiting)
+faithfulTransformed <- faithfulTransformed/sd(faithful$waiting)
+dp <- DirichletProcessGaussian(faithfulTransformed)
+dp <- Fit(dp, 100, progressBar = FALSE)
+plot(dp)
+```
+
+<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/density-1.png width=50% />
+
+
+### Clustering
+
+Dirichlet processes can also be used to cluster data based on their common distribution parameters. 
+
+```{r clustering, eval=FALSE}
+faithfulTrans <- scale(faithful)
+dpCluster <-  DirichletProcessMvnormal(faithfulTrans)
+dpCluster <- Fit(dpCluster, 2000, progressBar = FALSE)
+plot(dpCluster)
+```
+
+<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/clustering-1.png width=50% />
+
+For more detailed explanations and examples see the vignette.
+
+### Tutorials
+
+I've written a number of tutorials: 
+
+* [Non parametric priors](https://dm13450.github.io/2019/02/22/Nonparametric-Prior.html)
+* [Calculating cluster probabilities](https://dm13450.github.io/2018/11/21/Cluster-Probabilities.html)
+* [Clustering](https://dm13450.github.io/2018/05/30/Clustering.html)
+* [Point processes](https://dm13450.github.io/2018/03/08/dirichletprocess-pointprocess.html)
+* [Custom mixtures](https://dm13450.github.io/2018/02/21/Custom-Distributions-Conjugate.html)
+* [Density estimation](https://dm13450.github.io/2018/02/01/Dirichlet-Density.html)
+* [Checking convergence](https://dm13450.github.io/2020/01/11/Dirichlet-Convergence.html)
+
+and some case studies: 
+
+* [State of the Market - Infinite State Hidden Markov Models](https://dm13450.github.io/2020/06/03/State-of-the-Market.html)
+* [Palmer Penguins and an Introduction to Dirichlet Processes](https://dm13450.github.io/2020/09/28/PriorToPosterior.html)
+</file>
+
 <file path="src/BetaDistribution.cpp">
 // src/BetaDistribution.cpp
 #include "../inst/include/BetaDistribution.h"
@@ -38083,22 +39342,6 @@ void NonConjugateBetaDP::updateAlpha() {
 } // namespace dp
 </file>
 
-<file path="src/Makevars">
-CXX_STD = CXX11
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
-PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
-
-SOURCES = likelihood_functions.cpp likelihood.cpp \
-          DirichletProcess.cpp RcppConversions.cpp \
-          NormalDistribution.cpp NormalExports.cpp \
-          BetaDistribution.cpp BetaExports.cpp BetaDP.cpp \
-          MVNormalDistribution.cpp MVNExports.cpp \
-          DistributionStubs.cpp Benchmarking.cpp MemoryProfiling.cpp \
-          RcppExports.cpp
-
-OBJECTS = $(SOURCES:.cpp=.o)
-</file>
-
 <file path=".Rbuildignore">
 ^CRAN-RELEASE$
 ^Meta$
@@ -38297,203 +39540,6 @@ ClusterLabelChange.default <- function(dpObj, i, newLabel, currentLabel, aux=0) 
 }
 </file>
 
-<file path="README.md">
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
-# dirichletprocess
-
-[![R build
-status](https://github.com/dm13450/dirichletprocess/workflows/R-CMD-check/badge.svg)](https://github.com/dm13450/dirichletprocess/actions)
-[![AppVeyor Build
-Status](https://ci.appveyor.com/api/projects/status/github/dm13450/dirichletprocess?branch=master&svg=true)](https://ci.appveyor.com/project/dm13450/dirichletprocess)
-[![Coverage
-Status](https://codecov.io/gh/dm13450/dirichletprocess/branch/master/graph/badge.svg)](https://app.codecov.io/gh/dm13450/dirichletprocess)
-
-The dirichletprocess package provides tools for you to build custom
-Dirichlet process mixture models. You can use the pre-built
-Normal/Weibull/Beta distributions or create your own following the
-instructions in the vignette. In as little as four lines of code you can
-be modelling your data nonparametrically.
-
-## Installation
-
-You can install the stable release of dirichletprocess from CRAN:
-
-``` r
-install.packages("dirichletprocess")
-```
-
-You can also install the development build of dirichletprocess from
-github with:
-
-``` r
-# install.packages("devtools")
-devtools::install_github("dm13450/dirichletprocess")
-```
-
-For a full guide to the package and its capabilities please consult the
-vignette:
-
-``` r
-browseVignettes(package = "dirichletprocess")
-```
-
-## Examples
-
-### Density Estimation
-
-Dirichlet processes can be used for nonparametric density estimation.
-
-``` r
-faithfulTransformed <- faithful$waiting - mean(faithful$waiting)
-faithfulTransformed <- faithfulTransformed/sd(faithful$waiting)
-dp <- DirichletProcessGaussian(faithfulTransformed)
-dp <- Fit(dp, 100, progressBar = FALSE)
-plot(dp)
-```
-
-<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/density-1.png width=50% />
-
-### Clustering
-
-Dirichlet processes can also be used to cluster data based on their
-common distribution parameters.
-
-``` r
-faithfulTrans <- scale(faithful)
-dpCluster <-  DirichletProcessMvnormal(faithfulTrans)
-dpCluster <- Fit(dpCluster, 2000, progressBar = FALSE)
-plot(dpCluster)
-```
-
-<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/clustering-1.png width=50% />
-
-For more detailed explanations and examples see the vignette.
-
-### Tutorials
-
-I’ve written a number of tutorials:
-
--   [Non parametric
-    priors](https://dm13450.github.io/2019/02/22/Nonparametric-Prior.html)
--   [Calculating cluster
-    probabilities](https://dm13450.github.io/2018/11/21/Cluster-Probabilities.html)
--   [Clustering](https://dm13450.github.io/2018/05/30/Clustering.html)
--   [Point
-    processes](https://dm13450.github.io/2018/03/08/dirichletprocess-pointprocess.html)
--   [Custom
-    mixtures](https://dm13450.github.io/2018/02/21/Custom-Distributions-Conjugate.html)
--   [Density
-    estimation](https://dm13450.github.io/2018/02/01/Dirichlet-Density.html)
--   [Checking
-    convergence](https://dm13450.github.io/2020/01/11/Dirichlet-Convergence.html)
-
-and some case studies:
-
--   [State of the Market - Infinite State Hidden Markov
-    Models](https://dm13450.github.io/2020/06/03/State-of-the-Market.html)
--   [Palmer Penguins and an Introduction to Dirichlet
-    Processes](https://dm13450.github.io/2020/09/28/PriorToPosterior.html)
-</file>
-
-<file path="README.Rmd">
----
-output: github_document
----
-
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
-```{r echo=FALSE, message=FALSE}
-set.seed(2020)
-require(dirichletprocess)
-require(ggplot2)
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "vignettes/img/"
-)
-```
-
-# dirichletprocess
-
-[![R build status](https://github.com/dm13450/dirichletprocess/workflows/R-CMD-check/badge.svg)](https://github.com/dm13450/dirichletprocess/actions)
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/dm13450/dirichletprocess?branch=master&svg=true)](https://ci.appveyor.com/project/dm13450/dirichletprocess)
-[![Coverage Status](https://codecov.io/gh/dm13450/dirichletprocess/branch/master/graph/badge.svg)](https://app.codecov.io/gh/dm13450/dirichletprocess)
-
-
-The dirichletprocess package provides tools for you to build custom Dirichlet process mixture models. You can use the pre-built Normal/Weibull/Beta distributions or create your own following the instructions in the vignette. In as little as four lines of code you can be modelling your data nonparametrically.
-
-## Installation
-
-You can install the stable release of dirichletprocess from CRAN:
-
-```{r, eval=FALSE}
-install.packages("dirichletprocess")
-```
-
-You can also install the development build of dirichletprocess from github with:
-
-```{r gh-installation, eval = FALSE}
-# install.packages("devtools")
-devtools::install_github("dm13450/dirichletprocess")
-```
-
-For a full guide to the package and its capabilities please consult the vignette:
-
-```{r vignette, eval=FALSE}
-browseVignettes(package = "dirichletprocess")
-```
-
-## Examples
-
-### Density Estimation
-
-Dirichlet processes can be used for nonparametric density estimation. 
-
-```{r density, eval=FALSE}
-faithfulTransformed <- faithful$waiting - mean(faithful$waiting)
-faithfulTransformed <- faithfulTransformed/sd(faithful$waiting)
-dp <- DirichletProcessGaussian(faithfulTransformed)
-dp <- Fit(dp, 100, progressBar = FALSE)
-plot(dp)
-```
-
-<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/density-1.png width=50% />
-
-
-### Clustering
-
-Dirichlet processes can also be used to cluster data based on their common distribution parameters. 
-
-```{r clustering, eval=FALSE}
-faithfulTrans <- scale(faithful)
-dpCluster <-  DirichletProcessMvnormal(faithfulTrans)
-dpCluster <- Fit(dpCluster, 2000, progressBar = FALSE)
-plot(dpCluster)
-```
-
-<img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/clustering-1.png width=50% />
-
-For more detailed explanations and examples see the vignette.
-
-### Tutorials
-
-I've written a number of tutorials: 
-
-* [Non parametric priors](https://dm13450.github.io/2019/02/22/Nonparametric-Prior.html)
-* [Calculating cluster probabilities](https://dm13450.github.io/2018/11/21/Cluster-Probabilities.html)
-* [Clustering](https://dm13450.github.io/2018/05/30/Clustering.html)
-* [Point processes](https://dm13450.github.io/2018/03/08/dirichletprocess-pointprocess.html)
-* [Custom mixtures](https://dm13450.github.io/2018/02/21/Custom-Distributions-Conjugate.html)
-* [Density estimation](https://dm13450.github.io/2018/02/01/Dirichlet-Density.html)
-* [Checking convergence](https://dm13450.github.io/2020/01/11/Dirichlet-Convergence.html)
-
-and some case studies: 
-
-* [State of the Market - Infinite State Hidden Markov Models](https://dm13450.github.io/2020/06/03/State-of-the-Market.html)
-* [Palmer Penguins and an Introduction to Dirichlet Processes](https://dm13450.github.io/2020/09/28/PriorToPosterior.html)
-</file>
-
 <file path="src/BetaExports.cpp">
 // src/BetaExports.cpp
 
@@ -38569,6 +39615,18 @@ SEXP nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list) {
   Rcpp::warning("C++ function 'nonconjugate_beta_cluster_component_update_cpp' is a STUB...");
   return Rcpp::List::create(Rcpp::Named("stub_result") = true);
 }
+</file>
+
+<file path="src/Makevars">
+# In src/Makevars
+SOURCES = likelihood_functions.cpp likelihood.cpp \
+          DirichletProcess.cpp RcppConversions.cpp \
+          NormalDistribution.cpp NormalExports.cpp \
+          BetaDistribution.cpp BetaExports.cpp BetaDP.cpp \
+          MVNormalDistribution.cpp MVNExports.cpp \
+          WeibullDistribution.cpp WeibullExports.cpp \
+          DistributionStubs.cpp Benchmarking.cpp MemoryProfiling.cpp \
+          RcppExports.cpp
 </file>
 
 <file path="vignettes/dirichletprocess.tex">
@@ -40932,6 +41990,52 @@ ClusterComponentUpdate.hierarchical <- function(dpObj){
 }
 </file>
 
+<file path="DESCRIPTION">
+Package: dirichletprocess
+Type: Package
+Title: Build Dirichlet Process Objects for Bayesian Modelling
+Version: 0.4.2
+Authors@R: c(
+            person("Gordon", "J. Ross", email="gordon@gordonjross.co.uk", role=c("aut")),
+            person("Dean", "Markwick", email="dean.markwick@talk21.com", role=c("aut", "cre")),
+            person("Kees", "Mulder", email="keestimmulder@gmail.com", role=c("ctb"), 
+            comment = c(ORCID = "0000-0002-5387-3812")),
+            person("Giovanni", "Sighinolfi", email ="giovanni.sighinolfi2@studio.unibo.it", role=c("ctb")),
+            person("Filippo Fiocchi", email="filippofiocchi1@gmail.com", role=c("ctb"))
+          )
+Maintainer: Dean Markwick <dean.markwick@talk21.com>
+Description: Perform nonparametric Bayesian analysis using Dirichlet 
+    processes without the need to program the inference algorithms. 
+    Utilise included pre-built models or specify custom 
+    models and allow the 'dirichletprocess' package to handle the 
+    Markov chain Monte Carlo sampling. 
+    Our Dirichlet process objects can act as building blocks for a variety 
+    of statistical models including and not limited to: density estimation, 
+    clustering and prior distributions in hierarchical models.
+    See Teh, Y. W. (2011) 
+    <https://www.stats.ox.ac.uk/~teh/research/npbayes/Teh2010a.pdf>, 
+    among many other sources.
+Depends: R (>= 2.10)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Suggests: testthat,
+    knitr,
+    rmarkdown,
+    tidyr,
+    dplyr
+Imports: gtools,
+         ggplot2,
+         mvtnorm,
+         Rcpp (>= 1.0.11),
+         RcppArmadillo
+LinkingTo: Rcpp, RcppArmadillo
+SystemRequirements: C++11
+URL: https://github.com/dm13450/dirichletprocess, https://dm13450.github.io/dirichletprocess/
+BugReports: https://github.com/dm13450/dirichletprocess/issues
+RoxygenNote: 7.3.2
+</file>
+
 <file path="R/RcppExports.R">
 # Generated by using Rcpp::compileAttributes() -> do not edit by hand
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
@@ -41068,16 +42172,40 @@ normal_posterior_parameters_cpp <- function(priorParams, x) {
     .Call(`_dirichletprocess_normal_posterior_parameters_cpp`, priorParams, x)
 }
 
+weibull_prior_draw_cpp <- function(priorParams, n = 1L) {
+    .Call(`_dirichletprocess_weibull_prior_draw_cpp`, priorParams, n)
+}
+
+weibull_likelihood_cpp <- function(x, alpha, lambda) {
+    .Call(`_dirichletprocess_weibull_likelihood_cpp`, x, alpha, lambda)
+}
+
+weibull_prior_density_cpp <- function(alpha, priorParams) {
+    .Call(`_dirichletprocess_weibull_prior_density_cpp`, alpha, priorParams)
+}
+
+weibull_posterior_draw_cpp <- function(priorParams, mhStepSize, x, n = 1L) {
+    .Call(`_dirichletprocess_weibull_posterior_draw_cpp`, priorParams, mhStepSize, x, n)
+}
+
+weibull_prior_parameters_update_cpp <- function(priorParams, hyperPriorParams, clusterParameters, n = 1L) {
+    .Call(`_dirichletprocess_weibull_prior_parameters_update_cpp`, priorParams, hyperPriorParams, clusterParameters, n)
+}
+
+nonconjugate_weibull_cluster_parameter_update_cpp <- function(dp_list) {
+    .Call(`_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp`, dp_list)
+}
+
+nonconjugate_weibull_cluster_component_update_cpp <- function(dp_list) {
+    .Call(`_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp`, dp_list)
+}
+
 normal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_normal_likelihood_cpp`, x, mu, sigma)
 }
 
 likelihood_cpp <- function(mdObj, x, theta) {
     .Call(`_dirichletprocess_likelihood_cpp`, mdObj, x, theta)
-}
-
-mvnormal_likelihood_cpp <- function(x, mu, sigma) {
-    .Call(`_dirichletprocess_mvnormal_likelihood_cpp`, x, mu, sigma)
 }
 
 likelihood_normal_cpp <- function(mdObj, x, theta) {
@@ -41394,6 +42522,93 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// weibull_prior_draw_cpp
+Rcpp::List weibull_prior_draw_cpp(const Rcpp::NumericVector& priorParams, int n);
+RcppExport SEXP _dirichletprocess_weibull_prior_draw_cpp(SEXP priorParamsSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_prior_draw_cpp(priorParams, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_likelihood_cpp
+Rcpp::NumericVector weibull_likelihood_cpp(const Rcpp::NumericVector& x, double alpha, double lambda);
+RcppExport SEXP _dirichletprocess_weibull_likelihood_cpp(SEXP xSEXP, SEXP alphaSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_likelihood_cpp(x, alpha, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_prior_density_cpp
+double weibull_prior_density_cpp(double alpha, const Rcpp::NumericVector& priorParams);
+RcppExport SEXP _dirichletprocess_weibull_prior_density_cpp(SEXP alphaSEXP, SEXP priorParamsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_prior_density_cpp(alpha, priorParams));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_posterior_draw_cpp
+Rcpp::List weibull_posterior_draw_cpp(const Rcpp::NumericVector& priorParams, const Rcpp::NumericVector& mhStepSize, const Rcpp::NumericMatrix& x, int n);
+RcppExport SEXP _dirichletprocess_weibull_posterior_draw_cpp(SEXP priorParamsSEXP, SEXP mhStepSizeSEXP, SEXP xSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type mhStepSize(mhStepSizeSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_posterior_draw_cpp(priorParams, mhStepSize, x, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// weibull_prior_parameters_update_cpp
+Rcpp::NumericMatrix weibull_prior_parameters_update_cpp(const Rcpp::NumericVector& priorParams, const Rcpp::NumericVector& hyperPriorParams, const Rcpp::List& clusterParameters, int n);
+RcppExport SEXP _dirichletprocess_weibull_prior_parameters_update_cpp(SEXP priorParamsSEXP, SEXP hyperPriorParamsSEXP, SEXP clusterParametersSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type priorParams(priorParamsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type hyperPriorParams(hyperPriorParamsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type clusterParameters(clusterParametersSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(weibull_prior_parameters_update_cpp(priorParams, hyperPriorParams, clusterParameters, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_weibull_cluster_parameter_update_cpp
+Rcpp::List nonconjugate_weibull_cluster_parameter_update_cpp(Rcpp::List dp_list);
+RcppExport SEXP _dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp(SEXP dp_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dp_list(dp_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_weibull_cluster_parameter_update_cpp(dp_list));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_weibull_cluster_component_update_cpp
+Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list);
+RcppExport SEXP _dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp(SEXP dp_listSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dp_list(dp_listSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_weibull_cluster_component_update_cpp(dp_list));
+    return rcpp_result_gen;
+END_RCPP
+}
 // normal_likelihood_cpp
 Rcpp::NumericVector normal_likelihood_cpp(const Rcpp::NumericVector& x, double mu, double sigma);
 RcppExport SEXP _dirichletprocess_normal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
@@ -41417,19 +42632,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type theta(thetaSEXP);
     rcpp_result_gen = Rcpp::wrap(likelihood_cpp(mdObj, x, theta));
-    return rcpp_result_gen;
-END_RCPP
-}
-// mvnormal_likelihood_cpp
-arma::vec mvnormal_likelihood_cpp(const arma::mat& x, const arma::rowvec& mu, const arma::mat& sigma);
-RcppExport SEXP _dirichletprocess_mvnormal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type x(xSEXP);
-    Rcpp::traits::input_parameter< const arma::rowvec& >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type sigma(sigmaSEXP);
-    rcpp_result_gen = Rcpp::wrap(mvnormal_likelihood_cpp(x, mu, sigma));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -41472,9 +42674,15 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_conjugate_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_cluster_component_update_cpp, 1},
     {"_dirichletprocess_conjugate_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_normal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_normal_posterior_parameters_cpp, 2},
+    {"_dirichletprocess_weibull_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_draw_cpp, 2},
+    {"_dirichletprocess_weibull_likelihood_cpp", (DL_FUNC) &_dirichletprocess_weibull_likelihood_cpp, 3},
+    {"_dirichletprocess_weibull_prior_density_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_density_cpp, 2},
+    {"_dirichletprocess_weibull_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_weibull_posterior_draw_cpp, 4},
+    {"_dirichletprocess_weibull_prior_parameters_update_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_parameters_update_cpp, 4},
+    {"_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp, 1},
+    {"_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp, 1},
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
-    {"_dirichletprocess_mvnormal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
     {NULL, NULL, 0}
 };
@@ -41483,52 +42691,6 @@ RcppExport void R_init_dirichletprocess(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
-</file>
-
-<file path="DESCRIPTION">
-Package: dirichletprocess
-Type: Package
-Title: Build Dirichlet Process Objects for Bayesian Modelling
-Version: 0.4.2
-Authors@R: c(
-            person("Gordon", "J. Ross", email="gordon@gordonjross.co.uk", role=c("aut")),
-            person("Dean", "Markwick", email="dean.markwick@talk21.com", role=c("aut", "cre")),
-            person("Kees", "Mulder", email="keestimmulder@gmail.com", role=c("ctb"), 
-            comment = c(ORCID = "0000-0002-5387-3812")),
-            person("Giovanni", "Sighinolfi", email ="giovanni.sighinolfi2@studio.unibo.it", role=c("ctb")),
-            person("Filippo Fiocchi", email="filippofiocchi1@gmail.com", role=c("ctb"))
-          )
-Maintainer: Dean Markwick <dean.markwick@talk21.com>
-Description: Perform nonparametric Bayesian analysis using Dirichlet 
-    processes without the need to program the inference algorithms. 
-    Utilise included pre-built models or specify custom 
-    models and allow the 'dirichletprocess' package to handle the 
-    Markov chain Monte Carlo sampling. 
-    Our Dirichlet process objects can act as building blocks for a variety 
-    of statistical models including and not limited to: density estimation, 
-    clustering and prior distributions in hierarchical models.
-    See Teh, Y. W. (2011) 
-    <https://www.stats.ox.ac.uk/~teh/research/npbayes/Teh2010a.pdf>, 
-    among many other sources.
-Depends: R (>= 2.10)
-License: GPL-3
-Encoding: UTF-8
-LazyData: true
-Suggests: testthat,
-    knitr,
-    rmarkdown,
-    tidyr,
-    dplyr
-Imports: gtools,
-         ggplot2,
-         mvtnorm,
-         Rcpp (>= 1.0.11),
-         RcppArmadillo
-LinkingTo: Rcpp, RcppArmadillo
-SystemRequirements: C++11
-URL: https://github.com/dm13450/dirichletprocess, https://dm13450.github.io/dirichletprocess/
-BugReports: https://github.com/dm13450/dirichletprocess/issues
-RoxygenNote: 7.3.2
 </file>
 
 <file path=".github/workflows/R-CMD-check.yaml">

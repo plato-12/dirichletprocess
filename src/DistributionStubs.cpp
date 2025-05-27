@@ -118,47 +118,48 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
   return Rcpp::List();
 }
 
-// WeibullMixingDistribution stubs
-WeibullMixingDistribution::WeibullMixingDistribution(const Rcpp::NumericVector& priorParams,
-                                                     const Rcpp::NumericVector& mhStepSize,
-                                                     const Rcpp::NumericVector& hyperPriorParams) {
-  distribution = "weibull";
-  conjugate = false;
-  priorParameters = priorParams;
-  this->mhStepSize = mhStepSize;
-  hyperPriorParameters = hyperPriorParams;
-}
+/* WeibullMixingDistribution stubs - COMMENTED OUT as implemented in WeibullDistribution.cpp
+ WeibullMixingDistribution::WeibullMixingDistribution(const Rcpp::NumericVector& priorParams,
+ const Rcpp::NumericVector& mhStepSize,
+ const Rcpp::NumericVector& hyperPriorParams) {
+ distribution = "weibull";
+ conjugate = false;
+ priorParameters = priorParams;
+ this->mhStepSize = mhStepSize;
+ hyperPriorParameters = hyperPriorParams;
+ }
 
-WeibullMixingDistribution::~WeibullMixingDistribution() {}
+ WeibullMixingDistribution::~WeibullMixingDistribution() {}
 
-Rcpp::NumericVector WeibullMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
-  Rcpp::stop("WeibullMixingDistribution::likelihood not implemented");
-  return Rcpp::NumericVector();
-}
+ Rcpp::NumericVector WeibullMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
+ Rcpp::stop("WeibullMixingDistribution::likelihood not implemented");
+ return Rcpp::NumericVector();
+ }
 
-Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
-  Rcpp::stop("WeibullMixingDistribution::priorDraw not implemented");
-  return Rcpp::List();
-}
+ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
+ Rcpp::stop("WeibullMixingDistribution::priorDraw not implemented");
+ return Rcpp::List();
+ }
 
-Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
-  Rcpp::stop("WeibullMixingDistribution::posteriorDraw not implemented");
-  return Rcpp::List();
-}
+ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+ Rcpp::stop("WeibullMixingDistribution::posteriorDraw not implemented");
+ return Rcpp::List();
+ }
 
-Rcpp::NumericVector WeibullMixingDistribution::priorDensity(const Rcpp::List& theta) const {
-  Rcpp::stop("WeibullMixingDistribution::priorDensity not implemented");
-  return Rcpp::NumericVector();
-}
+ Rcpp::NumericVector WeibullMixingDistribution::priorDensity(const Rcpp::List& theta) const {
+ Rcpp::stop("WeibullMixingDistribution::priorDensity not implemented");
+ return Rcpp::NumericVector();
+ }
 
-Rcpp::List WeibullMixingDistribution::mhParameterProposal(const Rcpp::List& oldParams) const {
-  Rcpp::stop("WeibullMixingDistribution::mhParameterProposal not implemented");
-  return Rcpp::List();
-}
+ Rcpp::List WeibullMixingDistribution::mhParameterProposal(const Rcpp::List& oldParams) const {
+ Rcpp::stop("WeibullMixingDistribution::mhParameterProposal not implemented");
+ return Rcpp::List();
+ }
 
-void WeibullMixingDistribution::updatePriorParameters(const Rcpp::List& clusterParameters, int n) {
-  Rcpp::stop("WeibullMixingDistribution::updatePriorParameters not implemented");
-}
+ void WeibullMixingDistribution::updatePriorParameters(const Rcpp::List& clusterParameters, int n) {
+ Rcpp::stop("WeibullMixingDistribution::updatePriorParameters not implemented");
+ }
+ */
 
 // ExponentialMixingDistribution stubs
 ExponentialMixingDistribution::ExponentialMixingDistribution(const Rcpp::NumericVector& priorParams) {
@@ -196,8 +197,8 @@ Rcpp::NumericVector ExponentialMixingDistribution::predictive(const arma::vec& x
 // void ConjugateBetaDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
 // void ConjugateBetaDP::updateAlpha() { Rcpp::stop("Not implemented"); }
 // Rcpp::List ConjugateBetaDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
-//   Rcpp::stop("Not implemented");
-//   return Rcpp::List();
+//    Rcpp::stop("Not implemented");
+//    return Rcpp::List();
 // }
 //
 // NonConjugateBetaDP::NonConjugateBetaDP() : mixingDistribution(nullptr), numberClusters(0), m(3) {}
@@ -206,12 +207,12 @@ Rcpp::NumericVector ExponentialMixingDistribution::predictive(const arma::vec& x
 // void NonConjugateBetaDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
 // void NonConjugateBetaDP::updateAlpha() { Rcpp::stop("Not implemented"); }
 // Rcpp::List NonConjugateBetaDP::clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux) {
-//   Rcpp::stop("Not implemented");
-//   return Rcpp::List();
+//    Rcpp::stop("Not implemented");
+//    return Rcpp::List();
 // }
 // Rcpp::List NonConjugateBetaDP::metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws) {
-//   Rcpp::stop("Not implemented");
-//   return Rcpp::List();
+//    Rcpp::stop("Not implemented");
+//    return Rcpp::List();
 // }
 // */
 
@@ -237,19 +238,21 @@ Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int 
   return Rcpp::List();
 }
 
-NonConjugateWeibullDP::NonConjugateWeibullDP() : mixingDistribution(nullptr), numberClusters(0), m(3) {}
-NonConjugateWeibullDP::~NonConjugateWeibullDP() { if (mixingDistribution) delete mixingDistribution; }
-void NonConjugateWeibullDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
-void NonConjugateWeibullDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
-void NonConjugateWeibullDP::updateAlpha() { Rcpp::stop("Not implemented"); }
-Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux) {
-  Rcpp::stop("Not implemented");
-  return Rcpp::List();
-}
-Rcpp::List NonConjugateWeibullDP::metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws) {
-  Rcpp::stop("Not implemented");
-  return Rcpp::List();
-}
+/* NonConjugateWeibullDP stubs - COMMENTED OUT as implemented in WeibullDistribution.cpp
+ NonConjugateWeibullDP::NonConjugateWeibullDP() : mixingDistribution(nullptr), numberClusters(0), m(3) {}
+ NonConjugateWeibullDP::~NonConjugateWeibullDP() { if (mixingDistribution) delete mixingDistribution; }
+ void NonConjugateWeibullDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
+ void NonConjugateWeibullDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
+ void NonConjugateWeibullDP::updateAlpha() { Rcpp::stop("Not implemented"); }
+ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux) {
+ Rcpp::stop("Not implemented");
+ return Rcpp::List();
+ }
+ Rcpp::List NonConjugateWeibullDP::metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws) {
+ Rcpp::stop("Not implemented");
+ return Rcpp::List();
+ }
+ */
 
 ConjugateExponentialDP::ConjugateExponentialDP() : mixingDistribution(nullptr), numberClusters(0) {}
 ConjugateExponentialDP::~ConjugateExponentialDP() { if (mixingDistribution) delete mixingDistribution; }
