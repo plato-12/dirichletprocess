@@ -2,13 +2,23 @@
 % Please edit documentation in R/mvnormal_normal_wishart.R
 \name{MvnormalCreate}
 \alias{MvnormalCreate}
-\title{Create a multivariate normal mixing distribution}
+\title{Create a Multivariate Normal mixing distribution with conjugate prior}
 \usage{
 MvnormalCreate(priorParameters)
 }
 \arguments{
-\item{priorParameters}{The prior parameters for the Multivariate Normal.}
+\item{priorParameters}{A list containing prior parameters:
+\describe{
+  \item{mu0}{Prior mean vector}
+  \item{kappa0}{Prior precision parameter for the mean}
+  \item{nu}{Prior degrees of freedom for the covariance}
+  \item{Lambda}{Prior scale matrix for the covariance}
+}}
+}
+\value{
+A mixing distribution object
 }
 \description{
-Create a multivariate normal mixing distribution
+Creates a multivariate normal mixing distribution with Normal-Wishart conjugate prior.
+The base measure is G_0(μ, Σ | μ_0, κ_0, ν, Λ) = N(μ | μ_0, Σ/κ_0) * IW(Σ | ν, Λ)
 }

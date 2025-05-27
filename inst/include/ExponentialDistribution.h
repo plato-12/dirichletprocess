@@ -18,6 +18,7 @@ public:
 
   // Exponential specific methods
   Rcpp::NumericVector predictive(const arma::vec& x) const;
+  Rcpp::NumericMatrix posteriorParameters(const arma::mat& x) const;
 };
 
 class ConjugateExponentialDP : public DirichletProcess {
