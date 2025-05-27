@@ -68,7 +68,6 @@ Rcpp::List ExponentialMixingDistribution::priorDraw(int n) const {
   return Rcpp::List::create(Rcpp::Named("lambda") = lambda_arr);
 }
 
-// Fixed: Added the missing scope resolution operator
 Rcpp::NumericMatrix ExponentialMixingDistribution::posteriorParameters(const arma::mat& x) const {
   Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
 
@@ -137,9 +136,22 @@ Rcpp::NumericVector ExponentialMixingDistribution::predictive(const arma::vec& x
 }
 
 // ConjugateExponentialDP implementation
-ConjugateExponentialDP::ConjugateExponentialDP() : mixingDistribution(nullptr), numberClusters(0) {
-  // Constructor
+ConjugateExponentialDP::ConjugateExponentialDP(Rcpp::List dpObj) {
+  // Initialize from the R list object
+  data = Rcpp::as<arma::mat>(dpObj["data"]);
+  n = data.n_rows;
+  alpha = dpObj["alpha"];
+  clusterLabels = Rcpp::as<arma::uvec>(dpObj["clusterLabels"]);
+  pointsPerCluster = Rcpp::as<arma::uvec>(dpObj["pointsPerCluster"]);
+  numberClusters = dpObj["numberClusters"];
+  clusterParameters = dpObj["clusterParameters"];
+  predictiveArray = Rcpp::as<arma::vec>(dpObj["predictiveArray"]);
+
+  Rcpp::List mixingDistributionList = dpObj["mixingDistribution"];
+  Rcpp::NumericVector priorParams = mixingDistributionList["priorParameters"];
+  mixingDistribution = new ExponentialMixingDistribution(priorParams);
 }
+
 
 ConjugateExponentialDP::~ConjugateExponentialDP() {
   if (mixingDistribution) {

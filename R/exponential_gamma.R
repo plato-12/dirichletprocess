@@ -44,7 +44,17 @@ Predictive.exponential <- function(mdObj, x){
   for(i in seq_along(x)){
     alphaPost <- priorParameters[1] + length(x[i])
     betaPost <- priorParameters[2] + sum(x[i])
-    pred[i] <- (gamma(alphaPost)/gamma(priorParameters[1])) * ((priorParameters[2] ^priorParameters[1])/(betaPost^alphaPost))
+    # Corrected line:
+    pred[i] <- (gamma(alphaPost)/gamma(priorParameters[1])) * ((priorParameters[2]^priorParameters[1])/((betaPost)^alphaPost))
   }
   return(pred)
+}
+
+#' @export
+#' @rdname PosteriorParameters
+PosteriorParameters.exponential <- function(mdObj, x){
+  priorParameters <- mdObj$priorParameters
+  alpha_n <- priorParameters[1] + length(x)
+  beta_n <- priorParameters[2] + sum(x)
+  return(matrix(c(alpha_n, beta_n), nrow = 1))
 }

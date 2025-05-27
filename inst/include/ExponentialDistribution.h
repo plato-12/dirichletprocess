@@ -23,7 +23,7 @@ public:
 
 class ConjugateExponentialDP : public DirichletProcess {
 public:
-  ConjugateExponentialDP();
+  ConjugateExponentialDP(Rcpp::List dpObj); // Updated constructor
   virtual ~ConjugateExponentialDP();
 
   ExponentialMixingDistribution* mixingDistribution;

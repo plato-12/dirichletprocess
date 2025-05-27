@@ -88,28 +88,8 @@
  //' @export
  // [[Rcpp::export]]
  Rcpp::List conjugate_exponential_cluster_component_update_cpp(Rcpp::List dpObj) {
-   // Extract necessary components from dpObj
-   arma::mat data = Rcpp::as<arma::mat>(dpObj["data"]);
-   arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dpObj["clusterLabels"]);
-   arma::uvec pointsPerCluster = Rcpp::as<arma::uvec>(dpObj["pointsPerCluster"]);
-   int numberClusters = dpObj["numberClusters"];
-   double alpha = dpObj["alpha"];
-   Rcpp::List mixingDistribution = dpObj["mixingDistribution"];
-   Rcpp::NumericVector priorParams = mixingDistribution["priorParameters"];
-   Rcpp::List clusterParameters = dpObj["clusterParameters"];
-   Rcpp::NumericVector predictiveArray = dpObj["predictiveArray"];
-
-   // Create C++ DP object
-   dp::ConjugateExponentialDP* dp_cpp = new dp::ConjugateExponentialDP();
-   dp_cpp->data = data;
-   dp_cpp->n = data.n_rows;
-   dp_cpp->alpha = alpha;
-   dp_cpp->clusterLabels = clusterLabels;
-   dp_cpp->pointsPerCluster = pointsPerCluster;
-   dp_cpp->numberClusters = numberClusters;
-   dp_cpp->clusterParameters = clusterParameters;
-   dp_cpp->predictiveArray = Rcpp::as<arma::vec>(predictiveArray);
-   dp_cpp->mixingDistribution = new dp::ExponentialMixingDistribution(priorParams);
+   // Create C++ DP object using the new constructor
+   dp::ConjugateExponentialDP* dp_cpp = new dp::ConjugateExponentialDP(dpObj);
 
    // Perform cluster component update
    dp_cpp->clusterComponentUpdate();
@@ -135,22 +115,8 @@
  //' @export
  // [[Rcpp::export]]
  Rcpp::List conjugate_exponential_cluster_parameter_update_cpp(Rcpp::List dpObj) {
-   // Extract necessary components from dpObj
-   arma::mat data = Rcpp::as<arma::mat>(dpObj["data"]);
-   arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dpObj["clusterLabels"]);
-   int numberClusters = dpObj["numberClusters"];
-   Rcpp::List mixingDistribution = dpObj["mixingDistribution"];
-   Rcpp::NumericVector priorParams = mixingDistribution["priorParameters"];
-   Rcpp::List clusterParameters = dpObj["clusterParameters"];
-
-   // Create C++ DP object
-   dp::ConjugateExponentialDP* dp_cpp = new dp::ConjugateExponentialDP();
-   dp_cpp->data = data;
-   dp_cpp->n = data.n_rows;
-   dp_cpp->clusterLabels = clusterLabels;
-   dp_cpp->numberClusters = numberClusters;
-   dp_cpp->clusterParameters = clusterParameters;
-   dp_cpp->mixingDistribution = new dp::ExponentialMixingDistribution(priorParams);
+   // Create C++ DP object using the new constructor
+   dp::ConjugateExponentialDP* dp_cpp = new dp::ConjugateExponentialDP(dpObj);
 
    // Perform cluster parameter update
    dp_cpp->clusterParameterUpdate();
