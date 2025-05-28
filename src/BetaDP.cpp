@@ -4,6 +4,18 @@
 
 namespace dp {
 
+// NonConjugateBetaDP constructor and destructor
+NonConjugateBetaDP::NonConjugateBetaDP() : mixingDistribution(nullptr), numberClusters(0), m(3) {
+  // Constructor
+}
+
+NonConjugateBetaDP::~NonConjugateBetaDP() {
+  if (mixingDistribution) {
+    delete mixingDistribution;
+    mixingDistribution = nullptr;
+  }
+}
+
 void NonConjugateBetaDP::clusterComponentUpdate() {
   // Implementation of Algorithm 8 from Neal (2000) for non-conjugate case
   int n = data.n_rows;

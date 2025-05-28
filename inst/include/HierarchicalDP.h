@@ -40,6 +40,9 @@ public:
   HierarchicalBetaDP();
   virtual ~HierarchicalBetaDP();
 
+  // Unhide base class fit method
+  using DirichletProcess::fit;
+
   // Additional methods specific to Beta hierarchical DP
   void fit(int iterations, bool updatePrior = false, bool progressBar = true);
   static HierarchicalBetaDP* fromR(const Rcpp::List& rObj);
