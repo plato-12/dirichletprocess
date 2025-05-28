@@ -16,7 +16,7 @@ MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& prior
   if (priorParams.containsElementNamed("mu0")) {
     Rcpp::NumericMatrix mu0_mat = Rcpp::as<Rcpp::NumericMatrix>(priorParams["mu0"]);
     if (mu0_mat.nrow() == 1) {
-      mu0 = mu0_mat.row(0).t();
+      mu0 = Rcpp::as<arma::vec>(Rcpp::transpose(mu0_mat));
     } else {
       mu0 = arma::vec(mu0_mat.begin(), mu0_mat.size());
     }
@@ -113,7 +113,7 @@ Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
 
   for (int i = 0; i < n; i++) {
     // Draw Sigma from Inverse-Wishart
-    arma::mat sig_draw = arma::iwishrnd(solve(phi0), nu0);
+    arma::mat sig_draw = arma::iwishrnd(arma::inv_sympd(phi0), nu0);
 
     // Draw mu from Multivariate Normal given Sigma
     arma::vec mu_draw = arma::mvnrnd(mu0, sigma0);
@@ -165,7 +165,7 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
     }
 
     // Draw new Sigma
-    arma::mat sig_samp = arma::iwishrnd(solve(phi_n), nu_n);
+    arma::mat sig_samp = arma::iwishrnd(arma::inv_sympd(phi_n), nu_n);
 
     // Update mu given new Sigma
     arma::mat sig_n = arma::inv_sympd(arma::inv_sympd(sigma0) + x.n_rows * arma::inv_sympd(sig_samp));

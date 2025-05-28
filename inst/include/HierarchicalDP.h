@@ -54,7 +54,14 @@ public:
   HierarchicalMVNormal2DP();
   virtual ~HierarchicalMVNormal2DP();
 
+  // Unhide base class fit method
+  using DirichletProcess::fit;
+
   // Additional methods specific to MVNormal2 hierarchical DP
+  void fit(int iterations, bool updatePrior = false, bool progressBar = true);
+  void globalParameterUpdate() override;
+  void updateG0() override;
+  static HierarchicalMVNormal2DP* fromR(const Rcpp::List& rObj);
 };
 
 } // namespace dp
