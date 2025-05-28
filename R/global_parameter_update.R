@@ -9,19 +9,24 @@ GlobalParameterUpdate <- function(dpobjlist){
 
 #'@export
 GlobalParameterUpdate.hierarchical <- function(dpobjlist) {
+  # Use C++ implementation if enabled and available
+  if (using_cpp_hierarchical_samplers() && all(sapply(dpobjlist$indDP, function(x) inherits(x, "beta")))) {
+    return(GlobalParameterUpdate.hierarchical.cpp(dpobjlist))
+  }
 
+  # Original R implementation
   theta_k <- dpobjlist$globalParameters
 
   global_labels <- unique(unlist(lapply(seq_along(dpobjlist$indDP),
                                         function(x) match(
                                           unlist(dpobjlist$indDP[[x]]$clusterParameters[[1]]),
                                           theta_k[[1]])
-                                        )
-                                 )
-                          )
+  )
+  )
+  )
 
   global_labels <- true_cluster_labels(global_labels, dpobjlist)
-  
+
   for (i in seq_along(global_labels)) {
 
     param <- theta_k[[1]][, , global_labels[i]]
@@ -43,7 +48,7 @@ GlobalParameterUpdate.hierarchical <- function(dpobjlist) {
 
     #start_pos <- vector("list", length(theta_k))
     #for (k in seq_along(start_pos)) {
-      #start_pos[[k]] <- theta_k[[k]][, , global_labels[i], drop = FALSE]
+    #start_pos[[k]] <- theta_k[[k]][, , global_labels[i], drop = FALSE]
     #}
 
     new_param <- PosteriorDraw(dpobjlist$indDP[[1]]$mixingDistribution,

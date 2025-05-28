@@ -210,7 +210,12 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 #' @export
 #' @rdname ClusterComponentUpdate
 ClusterComponentUpdate.hierarchical <- function(dpObj){
+  # Use C++ implementation if enabled and available
+  if (using_cpp_hierarchical_samplers() && all(sapply(dpObj$indDP, function(x) inherits(x, "beta")))) {
+    return(ClusterComponentUpdate.hierarchical.cpp(dpObj))
+  }
 
+  # Original R implementation
   for(i in seq_along(dpObj$indDP)){
     dpObj$indDP[[i]] <- ClusterComponentUpdate(dpObj$indDP[[i]])
     dpObj$indDP[[i]] <- DuplicateClusterRemove(dpObj$indDP[[i]])

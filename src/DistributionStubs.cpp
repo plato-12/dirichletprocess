@@ -268,24 +268,24 @@ Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int 
 // }
 
 // Additional stub classes
-HierarchicalDP::HierarchicalDP() : gamma(1.0) {}
-HierarchicalDP::~HierarchicalDP() {
-  // Clean up individual DPs
-  for (DirichletProcess* dp : indDP) {
-    if (dp) delete dp;
-  }
-}
-void HierarchicalDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
-void HierarchicalDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
-void HierarchicalDP::updateAlpha() { Rcpp::stop("Not implemented"); }
-void HierarchicalDP::globalParameterUpdate() { Rcpp::stop("Not implemented"); }
-void HierarchicalDP::updateG0() { Rcpp::stop("Not implemented"); }
-void HierarchicalDP::updateGamma() { Rcpp::stop("Not implemented"); }
-Rcpp::List HierarchicalDP::toR() const { return Rcpp::List(); }
-HierarchicalDP* HierarchicalDP::fromR(const Rcpp::List& rObj) { return new HierarchicalDP(); }
-
-HierarchicalBetaDP::HierarchicalBetaDP() {}
-HierarchicalBetaDP::~HierarchicalBetaDP() {}
+// HierarchicalDP::HierarchicalDP() : gamma(1.0) {}
+// HierarchicalDP::~HierarchicalDP() {
+//   // Clean up individual DPs
+//   for (DirichletProcess* dp : indDP) {
+//     if (dp) delete dp;
+//   }
+// }
+// void HierarchicalDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
+// void HierarchicalDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
+// void HierarchicalDP::updateAlpha() { Rcpp::stop("Not implemented"); }
+// void HierarchicalDP::globalParameterUpdate() { Rcpp::stop("Not implemented"); }
+// void HierarchicalDP::updateG0() { Rcpp::stop("Not implemented"); }
+// void HierarchicalDP::updateGamma() { Rcpp::stop("Not implemented"); }
+// Rcpp::List HierarchicalDP::toR() const { return Rcpp::List(); }
+// HierarchicalDP* HierarchicalDP::fromR(const Rcpp::List& rObj) { return new HierarchicalDP(); }
+//
+// HierarchicalBetaDP::HierarchicalBetaDP() {}
+// HierarchicalBetaDP::~HierarchicalBetaDP() {}
 
 HierarchicalMVNormal2DP::HierarchicalMVNormal2DP() {}
 HierarchicalMVNormal2DP::~HierarchicalMVNormal2DP() {}

@@ -58,6 +58,9 @@ public:
 
   // Additional methods specific to non-conjugate Beta
   Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux);
+
+  // Override getMixingDistribution
+  MixingDistribution* getMixingDistribution() override { return mixingDistribution; }
 };
 
 } // namespace dp

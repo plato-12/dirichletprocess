@@ -14,8 +14,16 @@ HierarchicalBetaCreate <- function(n, priorParameters, hyperPriorParameters,
                                    alphaPrior, maxT, gammaPrior,
                                    mhStepSize, num_sticks) {
 
+  # Use C++ implementation if enabled
+  if (using_cpp_hierarchical_samplers()) {
+    return(HierarchicalBetaCreate.cpp(n, priorParameters, hyperPriorParameters,
+                                      alphaPrior, maxT, gammaPrior,
+                                      mhStepSize, num_sticks))
+  }
+
+  # Original R implementation
   mdobj_beta <- BetaMixtureCreate(priorParameters, mhStepSize = mhStepSize,
-    maxT = maxT, hyperPriorParameters = hyperPriorParameters)
+                                  maxT = maxT, hyperPriorParameters = hyperPriorParameters)
 
   class(mdobj_beta) <- c("hierarchical", "beta", "nonconjugate")
 

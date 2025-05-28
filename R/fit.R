@@ -69,6 +69,12 @@ Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interacti
 
 #'@export
 Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()){
+  # Use C++ implementation if enabled and available
+  if (using_cpp_hierarchical_samplers() && all(sapply(dpObj$indDP, function(x) inherits(x, "beta")))) {
+    return(Fit.hierarchical.cpp(dpObj, its, updatePrior, progressBar))
+  }
+
+  # Original R implementation
   if (progressBar) {
     pb <- txtProgressBar(min=0, max=its, width=50, char="-", style=3)
   }
@@ -109,4 +115,3 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
   }
   return(dpObj)
 }
-

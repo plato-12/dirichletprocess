@@ -2,7 +2,7 @@
 #ifndef HIERARCHICAL_DP_H
 #define HIERARCHICAL_DP_H
 
-#include "DirichletProcess.h"
+#include "DirichletProcessBase.h"
 #include <vector>
 
 namespace dp {
@@ -25,9 +25,9 @@ public:
   void updateAlpha() override;
 
   // Hierarchical specific methods
-  void globalParameterUpdate();
-  void updateG0();
-  void updateGamma();
+  virtual void globalParameterUpdate();
+  virtual void updateG0();
+  virtual void updateGamma();
 
   // Conversion methods
   Rcpp::List toR() const override;
@@ -41,6 +41,8 @@ public:
   virtual ~HierarchicalBetaDP();
 
   // Additional methods specific to Beta hierarchical DP
+  void fit(int iterations, bool updatePrior = false, bool progressBar = true);
+  static HierarchicalBetaDP* fromR(const Rcpp::List& rObj);
 };
 
 class HierarchicalMVNormal2DP : public HierarchicalDP {
