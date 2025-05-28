@@ -1,4 +1,3 @@
-# inst/dev/implementation_tracker.R
 library(knitr)
 
 # Create a data frame to track implementation status
@@ -42,56 +41,57 @@ create_implementation_tracker <- function() {
     ),
 
     Priority = c(
-      "High", "High", "High", "High", "High", "Medium", "Medium", "Medium", "Low",
+      "High", "High", "High", "High", "High", "Medium", "Medium", "Highest", "Low",
       "Highest", "Highest", "High", "Highest", "Highest", "Medium", "High",
       "High", "High", "Medium", "High",
-      "Medium", "High",
+      "Medium", "Highest",
       "Medium", "Medium", "High"
     ),
 
     Status = c(
       # Core Data Structures
-      "In Progress", "In Progress", "Completed", "Completed", "In Progress",
-      "In Progress", "In Progress", "Not Started", "Not Started",
+      "Completed", "Completed", "Completed", "Completed", "In Progress",
+      "In Progress", "In Progress", "In Progress", "Not Started",
       # Core MCMC
-      "Completed", "Completed", "In Progress", "Completed", "In Progress",
+      "Completed", "Completed", "In Progress", "Completed", "Completed",
       "Completed", "Completed",
       # Utilities
-      "In Progress", "In Progress", "In Progress", "Completed",
+      "Completed", "Completed", "In Progress", "Completed",
       # Integration
-      "Completed", "Completed",
+      "Completed", "In Progress",
       # Testing
       "In Progress", "In Progress", "Completed"
     ),
 
     Progress = c(
       # Core Data Structures
-      90, 90, 100, 100, 80, 50, 80, 0, 0,
+      100, 100, 100, 100, 90, 25, 95, 10, 0,
       # Core MCMC
-      100, 100, 50, 100, 75, 100, 100,
+      100, 100, 50, 100, 100, 100, 100,
       # Utilities
-      75, 75, 50, 100,
+      100, 100, 50, 100,
       # Integration
-      100, 100,
+      100, 75,
       # Testing
-      75, 50, 100
+      85, 60, 100
     ),
 
     Notes = c(
       # Core Data Structures
       "Full fit cycle implemented.",
       "Base C++ class with toR conversion implemented.",
-      "Full C++ implementation for conjugate Normal model complete and validated.",
-      "Full C++ implementation for non-conjugate Beta model complete and validated.",
-      "MVNormal Likelihood function implemented and validated. Some integration tests are failing.",
-      "C++ implementation started, but has a number of failing tests.",
-      "C++ implementation is nearly complete, but has a few failing tests.",
-      "", "",
+      "Complete. All 80 tests passing.",
+      "Complete. All 35 tests passing.",
+      "Mostly complete. 5 tests failing.",
+      "Needs significant work. 12 tests failing.",
+      "Nearly complete. 2 tests failing.",
+      "CRITICAL: Implementation causes fatal R session crash. Suspected issue with missing virtual function definition.",
+      "",
       # Core MCMC
-      "Normal and MVNormal likelihoods implemented in C++ and validated against R.",
-      "C++ implementation for conjugate Normal model is complete and validated by tests.",
-      "Partially implemented for Beta distribution.",
-      "C++ implementation for conjugate Normal model is complete and validated by tests.",
+      "Implemented and validated for major distributions.",
+      "C++ implementation for conjugate Normal model is complete and validated.",
+      "Partially implemented for Beta. May be missing NonConjugateBetaDP::clusterComponentUpdate definition.",
+      "C++ implementation for conjugate Normal model is complete and validated.",
       "Implemented for Beta distribution, uses Metropolis-Hastings.",
       "Implemented for both conjugate (Normal) and non-conjugate (Beta) cases.",
       "Generic Metropolis-Hastings step implemented and used for Beta distribution.",
@@ -102,10 +102,10 @@ create_implementation_tracker <- function() {
       "Implemented and tested for the conjugate case.",
       # Integration
       "Rcpp exports and S3 dispatch for C++ samplers are working correctly.",
-      "Basic memory tracking and benchmarking tools are functional.",
+      "Memory leak fixed, but fatal crash points to remaining memory corruption issues.",
       # Testing
-      "Expanded test suite for all models. Failures exist for MVN, Weibull, and Exponential distributions.",
-      "R/C++ integration tests for Normal and Beta models are passing. Full C++ sampler demo is failing. Failures present in MVN, Weibull, and Exponential integration tests.",
+      "Expanded test suite for all models. Failures exist for MVN, Weibull, and Exponential.",
+      "Hierarchical model tests fail with fatal error. Failures present in MVN, Weibull, and Exponential integration tests.",
       "Benchmark script is fully operational and confirms C++ speedup for the complete Normal sampler."
     )
   )

@@ -50,12 +50,10 @@ void HierarchicalDP::globalParameterUpdate() {
     NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
     if (!betaDP) continue;
 
-    // Match cluster parameters to global parameters
-    Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
-    Rcpp::NumericVector mu_global = globalParameters[0];
+    Rcpp::NumericVector mu_params = Rcpp::as<Rcpp::List>(betaDP->clusterParameters)[0];
+    Rcpp::NumericVector mu_global = Rcpp::as<Rcpp::List>(globalParameters)[0];
 
     for (int j = 0; j < betaDP->numberClusters; j++) {
-      // Find which global parameter this cluster corresponds to
       for (int k = 0; k < mu_global.size(); k++) {
         if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
           all_global_labels.push_back(k);
@@ -65,14 +63,10 @@ void HierarchicalDP::globalParameterUpdate() {
     }
   }
 
-  // Get unique labels
   std::sort(all_global_labels.begin(), all_global_labels.end());
-  all_global_labels.erase(std::unique(all_global_labels.begin(), all_global_labels.end()),
-                          all_global_labels.end());
+  all_global_labels.erase(std::unique(all_global_labels.begin(), all_global_labels.end()), all_global_labels.end());
 
-  // Update each global parameter
   for (int global_idx : all_global_labels) {
-    // Collect all data points assigned to this global parameter
     arma::mat combined_data;
     int total_points = 0;
 
@@ -80,13 +74,11 @@ void HierarchicalDP::globalParameterUpdate() {
       NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[dp_idx]);
       if (!betaDP) continue;
 
-      Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
-      Rcpp::NumericVector mu_global = globalParameters[0];
+      Rcpp::NumericVector mu_params = Rcpp::as<Rcpp::List>(betaDP->clusterParameters)[0];
+      Rcpp::NumericVector mu_global = Rcpp::as<Rcpp::List>(globalParameters)[0];
 
-      // Find clusters in this DP that use this global parameter
       for (int j = 0; j < betaDP->numberClusters; j++) {
         if (std::abs(mu_params[j] - mu_global[global_idx]) < 1e-10) {
-          // Get data points for this cluster
           arma::uvec cluster_indices = arma::find(betaDP->clusterLabels == j);
           if (cluster_indices.n_elem > 0) {
             if (total_points == 0) {
@@ -101,24 +93,26 @@ void HierarchicalDP::globalParameterUpdate() {
     }
 
     if (total_points > 0) {
-      // Draw new parameters from posterior using combined data
-      BetaMixingDistribution* mixDist = dynamic_cast<BetaMixingDistribution*>(
-        indDP[0]->getMixingDistribution());
-
+      BetaMixingDistribution* mixDist = dynamic_cast<BetaMixingDistribution*>(indDP[0]->getMixingDistribution());
       if (mixDist) {
         Rcpp::List new_params = mixDist->posteriorDraw(combined_data, 1);
         Rcpp::NumericVector new_mu = new_params[0];
         Rcpp::NumericVector new_nu = new_params[1];
 
-        // Update global parameters
-        Rcpp::NumericVector mu_global = globalParameters[0];
-        Rcpp::NumericVector nu_global = globalParameters[1];
-        mu_global[global_idx] = new_mu[0];
-        nu_global[global_idx] = new_nu[0];
-        globalParameters[0] = mu_global;
-        globalParameters[1] = nu_global;
+        // *** START OF CRITICAL FIX ***
+        // Store the old global parameter value before updating
+        Rcpp::NumericVector mu_global_old = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(globalParameters[0]));
+        double old_mu_val = mu_global_old[global_idx];
 
-        // Update individual DP parameters
+        // Update global parameters
+        Rcpp::NumericVector mu_global_new = Rcpp::as<Rcpp::NumericVector>(globalParameters[0]);
+        Rcpp::NumericVector nu_global_new = Rcpp::as<Rcpp::NumericVector>(globalParameters[1]);
+        mu_global_new[global_idx] = new_mu[0];
+        nu_global_new[global_idx] = new_nu[0];
+        globalParameters[0] = mu_global_new;
+        globalParameters[1] = nu_global_new;
+
+        // Update individual DP parameters that were using the old global parameter
         for (size_t dp_idx = 0; dp_idx < indDP.size(); dp_idx++) {
           NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[dp_idx]);
           if (!betaDP) continue;
@@ -127,7 +121,8 @@ void HierarchicalDP::globalParameterUpdate() {
           Rcpp::NumericVector nu_params = betaDP->clusterParameters[1];
 
           for (int j = 0; j < betaDP->numberClusters; j++) {
-            if (std::abs(mu_params[j] - mu_global[global_idx]) < 1e-10) {
+            // Use the stored old value for comparison
+            if (std::abs(mu_params[j] - old_mu_val) < 1e-10) {
               mu_params[j] = new_mu[0];
               nu_params[j] = new_nu[0];
             }
@@ -136,6 +131,7 @@ void HierarchicalDP::globalParameterUpdate() {
           betaDP->clusterParameters[0] = mu_params;
           betaDP->clusterParameters[1] = nu_params;
         }
+        // *** END OF CRITICAL FIX ***
       }
     }
   }
@@ -298,6 +294,7 @@ Rcpp::List HierarchicalDP::toR() const {
   result["globalStick"] = Rcpp::wrap(globalStick);
   result["gamma"] = gamma;
   result["gammaPriors"] = gammaPriors;
+  result["gammaValues"] = this->gammaChain;
 
   result.attr("class") = Rcpp::CharacterVector::create("list", "dirichletprocess", "hierarchical");
 
@@ -385,8 +382,8 @@ void HierarchicalBetaDP::fit(int iterations, bool updatePrior, bool progressBar)
     Rcpp::Rcout << "Starting Hierarchical Beta DP fitting..." << std::endl;
   }
 
-  // Store chain values
-  Rcpp::NumericVector gammaValues(iterations);
+  // Store chain values by resizing the gammaChain member
+  this->gammaChain = Rcpp::NumericVector(iterations);
 
   for (int iter = 0; iter < iterations; iter++) {
     // Update components
@@ -397,7 +394,7 @@ void HierarchicalBetaDP::fit(int iterations, bool updatePrior, bool progressBar)
     updateGamma();
 
     // Store gamma value
-    gammaValues[iter] = gamma;
+    this->gammaChain[iter] = gamma;
 
     // Update prior if requested
     if (updatePrior && indDP.size() > 0) {

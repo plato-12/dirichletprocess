@@ -3,6 +3,8 @@ SOURCES = likelihood_functions.cpp likelihood.cpp \
           NormalDistribution.cpp NormalExports.cpp \
           BetaDistribution.cpp BetaExports.cpp BetaDP.cpp \
           MVNormalDistribution.cpp MVNExports.cpp \
+          MVNormal2Distribution.cpp MVNormal2Exports.cpp \
+          HierarchicalMVNormal2DP.cpp \
           WeibullDistribution.cpp WeibullExports.cpp \
           ExponentialDistribution.cpp ExponentialExports.cpp \
           HierarchicalBetaDP.cpp HierarchicalBetaExports.cpp \

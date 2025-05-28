@@ -202,6 +202,55 @@ conjugate_mvnormal_cluster_parameter_update_cpp <- function(dpObj) {
     .Call(`_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp`, dpObj)
 }
 
+#' @title Draw from a Multivariate Normal semi-conjugate prior (C++)
+NULL
+
+#' @title Draw from a Multivariate Normal semi-conjugate posterior (C++)
+NULL
+
+#' @title Calculate MVNormal2 likelihood (C++)
+NULL
+
+#' @title Update cluster components for MVNormal2 (C++ non-conjugate)
+NULL
+
+#' @title Update cluster parameters for MVNormal2 (C++ non-conjugate)
+NULL
+
+#' @title Fit Hierarchical MVNormal2 DP (C++)
+NULL
+
+#' @title Create Hierarchical MVNormal2 mixing distributions (C++)
+NULL
+
+mvnormal2_prior_draw_cpp <- function(priorParams, n = 1L) {
+    .Call(`_dirichletprocess_mvnormal2_prior_draw_cpp`, priorParams, n)
+}
+
+mvnormal2_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
+    .Call(`_dirichletprocess_mvnormal2_posterior_draw_cpp`, priorParams, x, n)
+}
+
+mvnormal2_likelihood_cpp <- function(x, theta) {
+    .Call(`_dirichletprocess_mvnormal2_likelihood_cpp`, x, theta)
+}
+
+nonconjugate_mvnormal2_cluster_component_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_nonconjugate_mvnormal2_cluster_component_update_cpp`, dpObj)
+}
+
+nonconjugate_mvnormal2_cluster_parameter_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp`, dpObj)
+}
+
+hierarchical_mvnormal2_fit_cpp <- function(dpList, iterations, updatePrior = FALSE, progressBar = TRUE) {
+    .Call(`_dirichletprocess_hierarchical_mvnormal2_fit_cpp`, dpList, iterations, updatePrior, progressBar)
+}
+
+hierarchical_mvnormal2_mixing_create_cpp <- function(n, priorParameters, alphaPrior, gammaPrior, num_sticks) {
+    .Call(`_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp`, n, priorParameters, alphaPrior, gammaPrior, num_sticks)
+}
+
 get_memory_tracking <- function() {
     .Call(`_dirichletprocess_get_memory_tracking`)
 }

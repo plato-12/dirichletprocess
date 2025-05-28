@@ -18,6 +18,7 @@ public:
   arma::vec globalStick;                 // Global stick-breaking weights
   double gamma;                          // Concentration parameter for the top level DP
   Rcpp::NumericVector gammaPriors;       // Prior parameters for gamma
+  Rcpp::NumericVector gammaChain;
 
   // Implementation of core MCMC methods for hierarchical case
   void clusterComponentUpdate() override;

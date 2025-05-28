@@ -96,27 +96,27 @@ namespace dp {
  */
 
 // MVNormal2MixingDistribution stubs
-MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& priorParams) : nu0(2.0) {
-  distribution = "mvnormal2";
-  conjugate = false;
-}
-
-MVNormal2MixingDistribution::~MVNormal2MixingDistribution() {}
-
-Rcpp::NumericVector MVNormal2MixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
-  Rcpp::stop("MVNormal2MixingDistribution::likelihood not implemented");
-  return Rcpp::NumericVector();
-}
-
-Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
-  Rcpp::stop("MVNormal2MixingDistribution::priorDraw not implemented");
-  return Rcpp::List();
-}
-
-Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
-  Rcpp::stop("MVNormal2MixingDistribution::posteriorDraw not implemented");
-  return Rcpp::List();
-}
+// MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& priorParams) : nu0(2.0) {
+//   distribution = "mvnormal2";
+//   conjugate = false;
+// }
+//
+// MVNormal2MixingDistribution::~MVNormal2MixingDistribution() {}
+//
+// Rcpp::NumericVector MVNormal2MixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
+//   Rcpp::stop("MVNormal2MixingDistribution::likelihood not implemented");
+//   return Rcpp::NumericVector();
+// }
+//
+// Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
+//   Rcpp::stop("MVNormal2MixingDistribution::priorDraw not implemented");
+//   return Rcpp::List();
+// }
+//
+// Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+//   Rcpp::stop("MVNormal2MixingDistribution::posteriorDraw not implemented");
+//   return Rcpp::List();
+// }
 
 /* WeibullMixingDistribution stubs - COMMENTED OUT as implemented in WeibullDistribution.cpp
  WeibullMixingDistribution::WeibullMixingDistribution(const Rcpp::NumericVector& priorParams,
@@ -228,15 +228,15 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
  }
  */
 
-NonConjugateMVNormal2DP::NonConjugateMVNormal2DP() : mixingDistribution(nullptr), numberClusters(0), m(3) {}
-NonConjugateMVNormal2DP::~NonConjugateMVNormal2DP() { if (mixingDistribution) delete mixingDistribution; }
-void NonConjugateMVNormal2DP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
-void NonConjugateMVNormal2DP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
-void NonConjugateMVNormal2DP::updateAlpha() { Rcpp::stop("Not implemented"); }
-Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux) {
-  Rcpp::stop("Not implemented");
-  return Rcpp::List();
-}
+// NonConjugateMVNormal2DP::NonConjugateMVNormal2DP() : mixingDistribution(nullptr), numberClusters(0), m(3) {}
+// NonConjugateMVNormal2DP::~NonConjugateMVNormal2DP() { if (mixingDistribution) delete mixingDistribution; }
+// void NonConjugateMVNormal2DP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
+// void NonConjugateMVNormal2DP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
+// void NonConjugateMVNormal2DP::updateAlpha() { Rcpp::stop("Not implemented"); }
+// Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux) {
+//   Rcpp::stop("Not implemented");
+//   return Rcpp::List();
+// }
 
 /* NonConjugateWeibullDP stubs - COMMENTED OUT as implemented in WeibullDistribution.cpp
  NonConjugateWeibullDP::NonConjugateWeibullDP() : mixingDistribution(nullptr), numberClusters(0), m(3) {}
@@ -287,8 +287,8 @@ Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int 
 // HierarchicalBetaDP::HierarchicalBetaDP() {}
 // HierarchicalBetaDP::~HierarchicalBetaDP() {}
 
-HierarchicalMVNormal2DP::HierarchicalMVNormal2DP() {}
-HierarchicalMVNormal2DP::~HierarchicalMVNormal2DP() {}
+// HierarchicalMVNormal2DP::HierarchicalMVNormal2DP() {}
+// HierarchicalMVNormal2DP::~HierarchicalMVNormal2DP() {}
 
 MarkovDP::MarkovDP() : beta(1.0) {}
 MarkovDP::~MarkovDP() {}

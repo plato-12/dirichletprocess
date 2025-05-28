@@ -38,9 +38,6 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
     result$indDP[[i]]$clusterLabels <- result$indDP[[i]]$clusterLabels + 1
   }
 
-  # Add chain values
-  result$gammaValues <- result$gamma  # This should be updated to store full chain
-
   return(result)
 }
 
