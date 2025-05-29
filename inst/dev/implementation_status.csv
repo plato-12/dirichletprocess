@@ -1,26 +1,26 @@
-Component,Priority,Status,Progress,Notes
-DirichletProcess Base Class,High,Completed,100,Full fit cycle implemented.
-MixingDistribution Base Class,High,Completed,100,Base C++ class with toR conversion implemented.
-Normal Distribution Classes,High,Completed,100,Complete. All 80 tests passing.
-Beta Distribution Classes,High,Completed,100,Complete. All 35 tests passing.
-MVN Distribution Classes,High,In Progress,90,Mostly complete. 5 tests failing.
-Weibull Distribution Classes,Medium,In Progress,25,Needs significant work. 12 tests failing.
-Exponential Distribution Classes,Medium,In Progress,95,Nearly complete. 2 tests failing.
-Hierarchical DP Classes,Highest,In Progress,10,CRITICAL: Implementation causes fatal R session crash. Suspected issue with missing virtual function definition.
-Markov DP Classes,Low,Not Started,0,
-Likelihood Functions,Highest,Completed,100,Implemented and validated for major distributions.
-ClusterComponentUpdate (Conjugate),Highest,Completed,100,C++ implementation for conjugate Normal model is complete and validated.
-ClusterComponentUpdate (Non-conjugate),High,In Progress,50,Partially implemented for Beta. May be missing NonConjugateBetaDP::clusterComponentUpdate definition.
-ClusterParameterUpdate (Conjugate),Highest,Completed,100,C++ implementation for conjugate Normal model is complete and validated.
-ClusterParameterUpdate (Non-conjugate),Highest,Completed,100,"Implemented for Beta distribution, uses Metropolis-Hastings."
-UpdateAlpha,Medium,Completed,100,Implemented for both conjugate (Normal) and non-conjugate (Beta) cases.
-Metropolis-Hastings,High,Completed,100,Generic Metropolis-Hastings step implemented and used for Beta distribution.
-PriorDraw Functions,High,Completed,100,PriorDraw implemented in C++ for Normal and Beta models.
-PosteriorDraw Functions,High,Completed,100,PosteriorDraw implemented in C++ for Normal (conjugate) and Beta (non-conjugate) models.
-Predictive Functions,Medium,In Progress,50,Predictive function implemented for conjugate Normal model.
-ClusterLabelChange Functions,High,Completed,100,Implemented and tested for the conjugate case.
-R/C++ Interface Functions,Medium,Completed,100,Rcpp exports and S3 dispatch for C++ samplers are working correctly.
-Memory Management,Highest,In Progress,75,"Memory leak fixed, but fatal crash points to remaining memory corruption issues."
-Unit Tests,Medium,In Progress,85,"Expanded test suite for all models. Failures exist for MVN, Weibull, and Exponential."
-Integration Tests,Medium,In Progress,60,"Hierarchical model tests fail with fatal error. Failures present in MVN, Weibull, and Exponential integration tests."
-Performance Benchmarks,High,Completed,100,Benchmark script is fully operational and confirms C++ speedup for the complete Normal sampler.
+"Component","Priority","Status","Progress","Notes"
+"DirichletProcess Base Class","High","Completed",100,"Full fit cycle implemented."
+"MixingDistribution Base Class","High","Completed",100,"Base C++ class with toR conversion implemented."
+"Normal Distribution Classes","High","Completed",100,"Complete. All 80 tests passing."
+"Beta Distribution Classes","High","Completed",100,"Complete. All 35 tests passing."
+"MVN Distribution Classes","High","In Progress",90,"Mostly complete. 5 tests failing."
+"Weibull Distribution Classes","Medium","In Progress",25,"Needs significant work. 12 tests failing."
+"Exponential Distribution Classes","Medium","In Progress",95,"Nearly complete. 2 tests failing."
+"Hierarchical DP Classes","Highest","In Progress",40,"Compilation errors and fatal crash issue resolved. C++ classes for HDP Beta and HDP MVNormal2 are now built. `test-hierarchical-beta-cpp.R` still causes R session to fail during testing. Unit tests for HDP MVNormal2 are newly created and need expansion."
+"Markov DP Classes","Low","Not Started",0,""
+"Likelihood Functions","Highest","Completed",100,"Implemented and validated for major distributions."
+"ClusterComponentUpdate (Conjugate)","Highest","Completed",100,"C++ implementation for conjugate Normal model is complete and validated."
+"ClusterComponentUpdate (Non-conjugate)","High","In Progress",50,"Partially implemented for Beta. May be missing NonConjugateBetaDP::clusterComponentUpdate definition."
+"ClusterParameterUpdate (Conjugate)","Highest","Completed",100,"C++ implementation for conjugate Normal model is complete and validated."
+"ClusterParameterUpdate (Non-conjugate)","Highest","Completed",100,"Implemented for Beta distribution, uses Metropolis-Hastings."
+"UpdateAlpha","Medium","Completed",100,"Implemented for both conjugate (Normal) and non-conjugate (Beta) cases."
+"Metropolis-Hastings","High","Completed",100,"Generic Metropolis-Hastings step implemented and used for Beta distribution."
+"PriorDraw Functions","High","Completed",100,"PriorDraw implemented in C++ for Normal and Beta models."
+"PosteriorDraw Functions","High","Completed",100,"PosteriorDraw implemented in C++ for Normal (conjugate) and Beta (non-conjugate) models."
+"Predictive Functions","Medium","In Progress",50,"Predictive function implemented for conjugate Normal model."
+"ClusterLabelChange Functions","High","Completed",100,"Implemented and tested for the conjugate case."
+"R/C++ Interface Functions","Medium","Completed",100,"Rcpp exports and S3 dispatch for C++ samplers are working correctly."
+"Memory Management","Highest","In Progress",75,"Memory leak fixed, but fatal crash points to remaining memory corruption issues."
+"Unit Tests","Medium","In Progress",85,"Expanded test suite for all models. Failures exist for MVN (5), Weibull (12), and Exponential (1). A new test file for Hierarchical MVNormal2 has been created."
+"Integration Tests","Medium","In Progress",60,"Hierarchical beta model tests still fail with fatal error. Failures also present in MVN, Weibull, and Exponential integration tests."
+"Performance Benchmarks","High","Completed",100,"Benchmark script is fully operational and confirms C++ speedup for the complete Normal sampler."
