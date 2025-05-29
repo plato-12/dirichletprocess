@@ -290,15 +290,15 @@ namespace dp {
 // HierarchicalMVNormal2DP::HierarchicalMVNormal2DP() {}
 // HierarchicalMVNormal2DP::~HierarchicalMVNormal2DP() {}
 
-MarkovDP::MarkovDP() : beta(1.0) {}
-MarkovDP::~MarkovDP() {}
-void MarkovDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
-void MarkovDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
-void MarkovDP::updateAlpha() { Rcpp::stop("Not implemented"); }
-void MarkovDP::updateStates() { Rcpp::stop("Not implemented"); }
-void MarkovDP::updateAlphaBeta() { Rcpp::stop("Not implemented"); }
-void MarkovDP::paramUpdate() { Rcpp::stop("Not implemented"); }
-Rcpp::List MarkovDP::toR() const { return Rcpp::List(); }
-MarkovDP* MarkovDP::fromR(const Rcpp::List& rObj) { return new MarkovDP(); }
+// MarkovDP::MarkovDP() : beta(1.0) {}
+// MarkovDP::~MarkovDP() {}
+// void MarkovDP::clusterComponentUpdate() { Rcpp::stop("Not implemented"); }
+// void MarkovDP::clusterParameterUpdate() { Rcpp::stop("Not implemented"); }
+// void MarkovDP::updateAlpha() { Rcpp::stop("Not implemented"); }
+// void MarkovDP::updateStates() { Rcpp::stop("Not implemented"); }
+// void MarkovDP::updateAlphaBeta() { Rcpp::stop("Not implemented"); }
+// void MarkovDP::paramUpdate() { Rcpp::stop("Not implemented"); }
+// Rcpp::List MarkovDP::toR() const { return Rcpp::List(); }
+// MarkovDP* MarkovDP::fromR(const Rcpp::List& rObj) { return new MarkovDP(); }
 
 } // namespace dp

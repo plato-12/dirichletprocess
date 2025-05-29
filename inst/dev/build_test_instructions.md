@@ -37,7 +37,7 @@ Rcpp::compileAttributes()
 # In R
 devtools::load_all()  # Load for development
 devtools::install()   # Install the package
-```
+```3
 
 #### Option B: Using R CMD
 ```bash

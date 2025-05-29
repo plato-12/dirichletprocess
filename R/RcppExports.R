@@ -251,6 +251,41 @@ hierarchical_mvnormal2_mixing_create_cpp <- function(n, priorParameters, alphaPr
     .Call(`_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp`, n, priorParameters, alphaPrior, gammaPrior, num_sticks)
 }
 
+#' @title Create a Markov DP from R object (C++)
+NULL
+
+#' @title Fit Markov DP (C++)
+NULL
+
+#' @title Update states for Markov DP (C++)
+NULL
+
+#' @title Update alpha and beta for Markov DP (C++)
+NULL
+
+#' @title Update parameters for Markov DP (C++)
+NULL
+
+markov_dp_create_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_markov_dp_create_cpp`, dpObj)
+}
+
+markov_dp_fit_cpp <- function(dpObj, iterations, updatePrior = FALSE, progressBar = TRUE) {
+    .Call(`_dirichletprocess_markov_dp_fit_cpp`, dpObj, iterations, updatePrior, progressBar)
+}
+
+markov_dp_update_states_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_markov_dp_update_states_cpp`, dpObj)
+}
+
+markov_dp_update_alpha_beta_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_markov_dp_update_alpha_beta_cpp`, dpObj)
+}
+
+markov_dp_param_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_markov_dp_param_update_cpp`, dpObj)
+}
+
 get_memory_tracking <- function() {
     .Call(`_dirichletprocess_get_memory_tracking`)
 }

@@ -1,5 +1,13 @@
 UpdateStates <- function(dp){
+  # Use C++ implementation if enabled
+  if (using_cpp_markov_samplers()) {
+    cpp_result <- UpdateStates.cpp(dp)
+    dp$states <- cpp_result[[1]]
+    dp$params <- cpp_result[[2]]
+    return(dp)
+  }
 
+  # Original R implementation
   new_states <- update_states(dp$mixingDistribution,
                               dp$data,
                               dp$states,

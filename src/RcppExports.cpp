@@ -508,6 +508,64 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// markov_dp_create_cpp
+Rcpp::List markov_dp_create_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_markov_dp_create_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(markov_dp_create_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
+// markov_dp_fit_cpp
+Rcpp::List markov_dp_fit_cpp(Rcpp::List dpObj, int iterations, bool updatePrior, bool progressBar);
+RcppExport SEXP _dirichletprocess_markov_dp_fit_cpp(SEXP dpObjSEXP, SEXP iterationsSEXP, SEXP updatePriorSEXP, SEXP progressBarSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    Rcpp::traits::input_parameter< int >::type iterations(iterationsSEXP);
+    Rcpp::traits::input_parameter< bool >::type updatePrior(updatePriorSEXP);
+    Rcpp::traits::input_parameter< bool >::type progressBar(progressBarSEXP);
+    rcpp_result_gen = Rcpp::wrap(markov_dp_fit_cpp(dpObj, iterations, updatePrior, progressBar));
+    return rcpp_result_gen;
+END_RCPP
+}
+// markov_dp_update_states_cpp
+Rcpp::List markov_dp_update_states_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_markov_dp_update_states_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(markov_dp_update_states_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
+// markov_dp_update_alpha_beta_cpp
+Rcpp::List markov_dp_update_alpha_beta_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_markov_dp_update_alpha_beta_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(markov_dp_update_alpha_beta_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
+// markov_dp_param_update_cpp
+Rcpp::List markov_dp_param_update_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_markov_dp_param_update_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(markov_dp_param_update_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
 // get_memory_tracking
 Rcpp::DataFrame get_memory_tracking();
 RcppExport SEXP _dirichletprocess_get_memory_tracking() {
@@ -754,6 +812,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_hierarchical_mvnormal2_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp, 5},
+    {"_dirichletprocess_markov_dp_create_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_create_cpp, 1},
+    {"_dirichletprocess_markov_dp_fit_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_fit_cpp, 4},
+    {"_dirichletprocess_markov_dp_update_states_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_update_states_cpp, 1},
+    {"_dirichletprocess_markov_dp_update_alpha_beta_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_update_alpha_beta_cpp, 1},
+    {"_dirichletprocess_markov_dp_param_update_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_param_update_cpp, 1},
     {"_dirichletprocess_get_memory_tracking", (DL_FUNC) &_dirichletprocess_get_memory_tracking, 0},
     {"_dirichletprocess_clear_memory_tracking", (DL_FUNC) &_dirichletprocess_clear_memory_tracking, 0},
     {"_dirichletprocess_normal_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_normal_prior_draw_cpp, 2},

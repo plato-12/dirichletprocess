@@ -8,5 +8,6 @@ SOURCES = likelihood_functions.cpp likelihood.cpp \
           WeibullDistribution.cpp WeibullExports.cpp \
           ExponentialDistribution.cpp ExponentialExports.cpp \
           HierarchicalBetaDP.cpp HierarchicalBetaExports.cpp \
+          MarkovDP.cpp MarkovExports.cpp \
           DistributionStubs.cpp Benchmarking.cpp MemoryProfiling.cpp \
           RcppExports.cpp
