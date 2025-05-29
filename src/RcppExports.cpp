@@ -227,17 +227,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// hierarchical_beta_create_cpp
-Rcpp::List hierarchical_beta_create_cpp(Rcpp::List dpList);
-RcppExport SEXP _dirichletprocess_hierarchical_beta_create_cpp(SEXP dpListSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type dpList(dpListSEXP);
-    rcpp_result_gen = Rcpp::wrap(hierarchical_beta_create_cpp(dpList));
-    return rcpp_result_gen;
-END_RCPP
-}
 // hierarchical_beta_fit_cpp
 Rcpp::List hierarchical_beta_fit_cpp(Rcpp::List dpList, int iterations, bool updatePrior, bool progressBar);
 RcppExport SEXP _dirichletprocess_hierarchical_beta_fit_cpp(SEXP dpListSEXP, SEXP iterationsSEXP, SEXP updatePriorSEXP, SEXP progressBarSEXP) {
@@ -260,28 +249,6 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::List >::type dpList(dpListSEXP);
     rcpp_result_gen = Rcpp::wrap(hierarchical_beta_cluster_component_update_cpp(dpList));
-    return rcpp_result_gen;
-END_RCPP
-}
-// hierarchical_beta_cluster_parameter_update_cpp
-Rcpp::List hierarchical_beta_cluster_parameter_update_cpp(Rcpp::List dpList);
-RcppExport SEXP _dirichletprocess_hierarchical_beta_cluster_parameter_update_cpp(SEXP dpListSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type dpList(dpListSEXP);
-    rcpp_result_gen = Rcpp::wrap(hierarchical_beta_cluster_parameter_update_cpp(dpList));
-    return rcpp_result_gen;
-END_RCPP
-}
-// hierarchical_beta_update_alpha_cpp
-Rcpp::List hierarchical_beta_update_alpha_cpp(Rcpp::List dpList);
-RcppExport SEXP _dirichletprocess_hierarchical_beta_update_alpha_cpp(SEXP dpListSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type dpList(dpListSEXP);
-    rcpp_result_gen = Rcpp::wrap(hierarchical_beta_update_alpha_cpp(dpList));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -789,11 +756,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_exponential_predictive_cpp", (DL_FUNC) &_dirichletprocess_exponential_predictive_cpp, 2},
     {"_dirichletprocess_conjugate_exponential_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_component_update_cpp, 1},
     {"_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp, 1},
-    {"_dirichletprocess_hierarchical_beta_create_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_create_cpp, 1},
     {"_dirichletprocess_hierarchical_beta_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_beta_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_cluster_component_update_cpp, 1},
-    {"_dirichletprocess_hierarchical_beta_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_cluster_parameter_update_cpp, 1},
-    {"_dirichletprocess_hierarchical_beta_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_update_alpha_cpp, 1},
     {"_dirichletprocess_hierarchical_beta_global_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_global_parameter_update_cpp, 1},
     {"_dirichletprocess_hierarchical_beta_update_g0_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_update_g0_cpp, 1},
     {"_dirichletprocess_hierarchical_beta_update_gamma_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_update_gamma_cpp, 1},

@@ -25,17 +25,43 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
     stop("C++ implementation currently only supports hierarchical Beta DPs")
   }
 
-  # Convert 1-indexed R labels to 0-indexed C++ labels
-  for (i in seq_along(dpObj$indDP)) {
-    dpObj$indDP[[i]]$clusterLabels <- dpObj$indDP[[i]]$clusterLabels - 1
+  # Validate inputs
+  if (its <= 0) {
+    stop("Number of iterations must be positive")
   }
 
-  # Call C++ implementation
-  result <- hierarchical_beta_fit_cpp(dpObj, its, updatePrior, progressBar)
+  # Deep copy to avoid modifying original object
+  dpObj_copy <- dpObj
+
+  # Convert 1-indexed R labels to 0-indexed C++ labels
+  # But first check if labels exist and are valid
+  for (i in seq_along(dpObj_copy$indDP)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+      labels <- dpObj_copy$indDP[[i]]$clusterLabels
+      if (length(labels) > 0) {
+        if (min(labels) < 1) {
+          stop(paste("Invalid cluster labels in DP", i, ": labels must be >= 1"))
+        }
+        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+      }
+    }
+  }
+
+  # Call C++ implementation with error handling
+  result <- tryCatch({
+    hierarchical_beta_fit_cpp(dpObj_copy, its, updatePrior, progressBar)
+  }, error = function(e) {
+    stop(paste("C++ fitting failed:", e$message))
+  })
 
   # Convert back to 1-indexed
   for (i in seq_along(result$indDP)) {
-    result$indDP[[i]]$clusterLabels <- result$indDP[[i]]$clusterLabels + 1
+    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+      labels <- result$indDP[[i]]$clusterLabels
+      if (length(labels) > 0) {
+        result$indDP[[i]]$clusterLabels <- labels + 1
+      }
+    }
   }
 
   return(result)
@@ -48,17 +74,34 @@ ClusterComponentUpdate.hierarchical.cpp <- function(dpObj) {
     stop("This C++ implementation is only for hierarchical Dirichlet processes")
   }
 
-  # Convert labels
-  for (i in seq_along(dpObj$indDP)) {
-    dpObj$indDP[[i]]$clusterLabels <- dpObj$indDP[[i]]$clusterLabels - 1
+  # Deep copy
+  dpObj_copy <- dpObj
+
+  # Convert labels with validation
+  for (i in seq_along(dpObj_copy$indDP)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+      labels <- dpObj_copy$indDP[[i]]$clusterLabels
+      if (length(labels) > 0 && min(labels) >= 1) {
+        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+      }
+    }
   }
 
   # Call C++ implementation
-  result <- hierarchical_beta_cluster_component_update_cpp(dpObj)
+  result <- tryCatch({
+    hierarchical_beta_cluster_component_update_cpp(dpObj_copy)
+  }, error = function(e) {
+    stop(paste("C++ cluster component update failed:", e$message))
+  })
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    result$indDP[[i]]$clusterLabels <- result$indDP[[i]]$clusterLabels + 1
+    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+      labels <- result$indDP[[i]]$clusterLabels
+      if (length(labels) > 0) {
+        result$indDP[[i]]$clusterLabels <- labels + 1
+      }
+    }
   }
 
   return(result)
@@ -71,17 +114,34 @@ GlobalParameterUpdate.hierarchical.cpp <- function(dpObj) {
     stop("This C++ implementation is only for hierarchical Dirichlet processes")
   }
 
+  # Deep copy
+  dpObj_copy <- dpObj
+
   # Convert labels
-  for (i in seq_along(dpObj$indDP)) {
-    dpObj$indDP[[i]]$clusterLabels <- dpObj$indDP[[i]]$clusterLabels - 1
+  for (i in seq_along(dpObj_copy$indDP)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+      labels <- dpObj_copy$indDP[[i]]$clusterLabels
+      if (length(labels) > 0 && min(labels) >= 1) {
+        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+      }
+    }
   }
 
   # Call C++ implementation
-  result <- hierarchical_beta_global_parameter_update_cpp(dpObj)
+  result <- tryCatch({
+    hierarchical_beta_global_parameter_update_cpp(dpObj_copy)
+  }, error = function(e) {
+    stop(paste("C++ global parameter update failed:", e$message))
+  })
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    result$indDP[[i]]$clusterLabels <- result$indDP[[i]]$clusterLabels + 1
+    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+      labels <- result$indDP[[i]]$clusterLabels
+      if (length(labels) > 0) {
+        result$indDP[[i]]$clusterLabels <- labels + 1
+      }
+    }
   }
 
   return(result)
@@ -94,17 +154,34 @@ UpdateG0.cpp <- function(dpObj) {
     stop("This C++ implementation is only for hierarchical Dirichlet processes")
   }
 
+  # Deep copy
+  dpObj_copy <- dpObj
+
   # Convert labels
-  for (i in seq_along(dpObj$indDP)) {
-    dpObj$indDP[[i]]$clusterLabels <- dpObj$indDP[[i]]$clusterLabels - 1
+  for (i in seq_along(dpObj_copy$indDP)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+      labels <- dpObj_copy$indDP[[i]]$clusterLabels
+      if (length(labels) > 0 && min(labels) >= 1) {
+        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+      }
+    }
   }
 
   # Call C++ implementation
-  result <- hierarchical_beta_update_g0_cpp(dpObj)
+  result <- tryCatch({
+    hierarchical_beta_update_g0_cpp(dpObj_copy)
+  }, error = function(e) {
+    stop(paste("C++ G0 update failed:", e$message))
+  })
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    result$indDP[[i]]$clusterLabels <- result$indDP[[i]]$clusterLabels + 1
+    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+      labels <- result$indDP[[i]]$clusterLabels
+      if (length(labels) > 0) {
+        result$indDP[[i]]$clusterLabels <- labels + 1
+      }
+    }
   }
 
   return(result)
@@ -117,17 +194,34 @@ UpdateGamma.cpp <- function(dpObj) {
     stop("This C++ implementation is only for hierarchical Dirichlet processes")
   }
 
+  # Deep copy
+  dpObj_copy <- dpObj
+
   # Convert labels
-  for (i in seq_along(dpObj$indDP)) {
-    dpObj$indDP[[i]]$clusterLabels <- dpObj$indDP[[i]]$clusterLabels - 1
+  for (i in seq_along(dpObj_copy$indDP)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+      labels <- dpObj_copy$indDP[[i]]$clusterLabels
+      if (length(labels) > 0 && min(labels) >= 1) {
+        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+      }
+    }
   }
 
   # Call C++ implementation
-  result <- hierarchical_beta_update_gamma_cpp(dpObj)
+  result <- tryCatch({
+    hierarchical_beta_update_gamma_cpp(dpObj_copy)
+  }, error = function(e) {
+    stop(paste("C++ gamma update failed:", e$message))
+  })
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    result$indDP[[i]]$clusterLabels <- result$indDP[[i]]$clusterLabels + 1
+    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+      labels <- result$indDP[[i]]$clusterLabels
+      if (length(labels) > 0) {
+        result$indDP[[i]]$clusterLabels <- labels + 1
+      }
+    }
   }
 
   return(result)
@@ -138,16 +232,25 @@ UpdateGamma.cpp <- function(dpObj) {
 HierarchicalBetaCreate.cpp <- function(n, priorParameters, hyperPriorParameters,
                                        alphaPrior, maxT, gammaPrior,
                                        mhStepSize, num_sticks) {
-  hierarchical_beta_mixing_create_cpp(
-    n = n,
-    priorParameters = priorParameters,
-    hyperPriorParameters = hyperPriorParameters,
-    alphaPrior = alphaPrior,
-    maxT = maxT,
-    gammaPrior = gammaPrior,
-    mhStepSize = mhStepSize,
-    num_sticks = num_sticks
-  )
+  # Validate inputs
+  if (n <= 0) stop("Number of datasets must be positive")
+  if (num_sticks <= 0) stop("Number of sticks must be positive")
+  if (maxT <= 0) stop("maxT must be positive")
+
+  tryCatch({
+    hierarchical_beta_mixing_create_cpp(
+      n = n,
+      priorParameters = priorParameters,
+      hyperPriorParameters = hyperPriorParameters,
+      alphaPrior = alphaPrior,
+      maxT = maxT,
+      gammaPrior = gammaPrior,
+      mhStepSize = mhStepSize,
+      num_sticks = num_sticks
+    )
+  }, error = function(e) {
+    stop(paste("C++ mixing distribution creation failed:", e$message))
+  })
 }
 
 #' Enable C++ implementations for hierarchical samplers

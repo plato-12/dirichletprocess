@@ -50,11 +50,21 @@ void HierarchicalDP::globalParameterUpdate() {
     NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
     if (!betaDP) continue;
 
-    Rcpp::NumericVector mu_params = Rcpp::as<Rcpp::List>(betaDP->clusterParameters)[0];
-    Rcpp::NumericVector mu_global = Rcpp::as<Rcpp::List>(globalParameters)[0];
+    Rcpp::List clusterParamsList = betaDP->clusterParameters;
+    if (clusterParamsList.size() == 0) continue;
 
-    for (int j = 0; j < betaDP->numberClusters; j++) {
-      for (int k = 0; k < mu_global.size(); k++) {
+    Rcpp::NumericVector mu_params = clusterParamsList[0];
+    Rcpp::List globalParamsList = globalParameters;
+    if (globalParamsList.size() == 0) continue;
+
+    Rcpp::NumericVector mu_global = globalParamsList[0];
+
+    // Bounds checking
+    int n_clusters = std::min(betaDP->numberClusters, mu_params.size());
+    int n_global = mu_global.size();
+
+    for (int j = 0; j < n_clusters; j++) {
+      for (int k = 0; k < n_global; k++) {
         if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
           all_global_labels.push_back(k);
           break;
@@ -63,28 +73,44 @@ void HierarchicalDP::globalParameterUpdate() {
     }
   }
 
-  std::sort(all_global_labels.begin(), all_global_labels.end());
-  all_global_labels.erase(std::unique(all_global_labels.begin(), all_global_labels.end()), all_global_labels.end());
+  if (all_global_labels.empty()) return;
 
+  std::sort(all_global_labels.begin(), all_global_labels.end());
+  all_global_labels.erase(std::unique(all_global_labels.begin(), all_global_labels.end()),
+                          all_global_labels.end());
+
+  // Process each global parameter
   for (int global_idx : all_global_labels) {
     arma::mat combined_data;
     int total_points = 0;
 
+    // Collect data points for this global parameter
     for (size_t dp_idx = 0; dp_idx < indDP.size(); dp_idx++) {
       NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[dp_idx]);
       if (!betaDP) continue;
 
-      Rcpp::NumericVector mu_params = Rcpp::as<Rcpp::List>(betaDP->clusterParameters)[0];
-      Rcpp::NumericVector mu_global = Rcpp::as<Rcpp::List>(globalParameters)[0];
+      Rcpp::List clusterParamsList = betaDP->clusterParameters;
+      if (clusterParamsList.size() == 0) continue;
 
-      for (int j = 0; j < betaDP->numberClusters; j++) {
+      Rcpp::NumericVector mu_params = clusterParamsList[0];
+      Rcpp::List globalParamsList = globalParameters;
+      Rcpp::NumericVector mu_global = globalParamsList[0];
+
+      // Bounds checking
+      if (global_idx >= mu_global.size()) continue;
+
+      int n_clusters = std::min(betaDP->numberClusters, mu_params.size());
+
+      for (int j = 0; j < n_clusters; j++) {
         if (std::abs(mu_params[j] - mu_global[global_idx]) < 1e-10) {
+          // Check cluster labels bounds
           arma::uvec cluster_indices = arma::find(betaDP->clusterLabels == j);
           if (cluster_indices.n_elem > 0) {
             if (total_points == 0) {
               combined_data = betaDP->data.rows(cluster_indices);
             } else {
-              combined_data = arma::join_vert(combined_data, betaDP->data.rows(cluster_indices));
+              combined_data = arma::join_vert(combined_data,
+                                              betaDP->data.rows(cluster_indices));
             }
             total_points += cluster_indices.n_elem;
           }
@@ -92,46 +118,65 @@ void HierarchicalDP::globalParameterUpdate() {
       }
     }
 
-    if (total_points > 0) {
-      BetaMixingDistribution* mixDist = dynamic_cast<BetaMixingDistribution*>(indDP[0]->getMixingDistribution());
-      if (mixDist) {
-        Rcpp::List new_params = mixDist->posteriorDraw(combined_data, 1);
-        Rcpp::NumericVector new_mu = new_params[0];
-        Rcpp::NumericVector new_nu = new_params[1];
+    if (total_points > 0 && indDP.size() > 0) {
+      NonConjugateBetaDP* firstDP = dynamic_cast<NonConjugateBetaDP*>(indDP[0]);
+      if (firstDP && firstDP->mixingDistribution) {
+        BetaMixingDistribution* mixDist =
+          dynamic_cast<BetaMixingDistribution*>(firstDP->getMixingDistribution());
 
-        // *** START OF CRITICAL FIX ***
-        // Store the old global parameter value before updating
-        Rcpp::NumericVector mu_global_old = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(globalParameters[0]));
-        double old_mu_val = mu_global_old[global_idx];
+        if (mixDist) {
+          Rcpp::List new_params = mixDist->posteriorDraw(combined_data, 1);
 
-        // Update global parameters
-        Rcpp::NumericVector mu_global_new = Rcpp::as<Rcpp::NumericVector>(globalParameters[0]);
-        Rcpp::NumericVector nu_global_new = Rcpp::as<Rcpp::NumericVector>(globalParameters[1]);
-        mu_global_new[global_idx] = new_mu[0];
-        nu_global_new[global_idx] = new_nu[0];
-        globalParameters[0] = mu_global_new;
-        globalParameters[1] = nu_global_new;
+          if (new_params.size() >= 2) {
+            Rcpp::NumericVector new_mu = new_params[0];
+            Rcpp::NumericVector new_nu = new_params[1];
 
-        // Update individual DP parameters that were using the old global parameter
-        for (size_t dp_idx = 0; dp_idx < indDP.size(); dp_idx++) {
-          NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[dp_idx]);
-          if (!betaDP) continue;
+            // Store old value before updating
+            Rcpp::List globalParamsList = globalParameters;
+            Rcpp::NumericVector mu_global_old = Rcpp::clone(
+              Rcpp::as<Rcpp::NumericVector>(globalParamsList[0]));
 
-          Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
-          Rcpp::NumericVector nu_params = betaDP->clusterParameters[1];
+            if (global_idx < mu_global_old.size()) {
+              double old_mu_val = mu_global_old[global_idx];
 
-          for (int j = 0; j < betaDP->numberClusters; j++) {
-            // Use the stored old value for comparison
-            if (std::abs(mu_params[j] - old_mu_val) < 1e-10) {
-              mu_params[j] = new_mu[0];
-              nu_params[j] = new_nu[0];
+              // Update global parameters
+              Rcpp::NumericVector mu_global_new =
+                Rcpp::as<Rcpp::NumericVector>(globalParamsList[0]);
+              Rcpp::NumericVector nu_global_new =
+                Rcpp::as<Rcpp::NumericVector>(globalParamsList[1]);
+
+              if (new_mu.size() > 0 && new_nu.size() > 0) {
+                mu_global_new[global_idx] = new_mu[0];
+                nu_global_new[global_idx] = new_nu[0];
+                globalParameters[0] = mu_global_new;
+                globalParameters[1] = nu_global_new;
+
+                // Update individual DP parameters
+                for (size_t dp_idx = 0; dp_idx < indDP.size(); dp_idx++) {
+                  NonConjugateBetaDP* betaDP =
+                    dynamic_cast<NonConjugateBetaDP*>(indDP[dp_idx]);
+                  if (!betaDP) continue;
+
+                  Rcpp::List dpClusterParams = betaDP->clusterParameters;
+                  if (dpClusterParams.size() >= 2) {
+                    Rcpp::NumericVector mu_params = dpClusterParams[0];
+                    Rcpp::NumericVector nu_params = dpClusterParams[1];
+
+                    for (int j = 0; j < mu_params.size() && j < betaDP->numberClusters; j++) {
+                      if (std::abs(mu_params[j] - old_mu_val) < 1e-10) {
+                        mu_params[j] = new_mu[0];
+                        nu_params[j] = new_nu[0];
+                      }
+                    }
+
+                    betaDP->clusterParameters[0] = mu_params;
+                    betaDP->clusterParameters[1] = nu_params;
+                  }
+                }
+              }
             }
           }
-
-          betaDP->clusterParameters[0] = mu_params;
-          betaDP->clusterParameters[1] = nu_params;
         }
-        // *** END OF CRITICAL FIX ***
       }
     }
   }
@@ -281,7 +326,7 @@ void HierarchicalDP::updateGamma() {
 Rcpp::List HierarchicalDP::toR() const {
   Rcpp::List result;
 
-  // Convert individual DPs
+  // Convert individual DPs with deep copy
   Rcpp::List indDP_list;
   for (auto& dp : indDP) {
     if (dp) {
@@ -290,11 +335,16 @@ Rcpp::List HierarchicalDP::toR() const {
   }
 
   result["indDP"] = indDP_list;
-  result["globalParameters"] = globalParameters;
-  result["globalStick"] = Rcpp::wrap(globalStick);
+
+  // Deep copy all global parameters
+  result["globalParameters"] = Rcpp::clone(globalParameters);
+  result["globalStick"] = Rcpp::clone(Rcpp::wrap(globalStick));
   result["gamma"] = gamma;
-  result["gammaPriors"] = gammaPriors;
-  result["gammaValues"] = this->gammaChain;
+  result["gammaPriors"] = Rcpp::clone(gammaPriors);
+
+  if (this->gammaChain.size() > 0) {
+    result["gammaValues"] = Rcpp::clone(this->gammaChain);
+  }
 
   result.attr("class") = Rcpp::CharacterVector::create("list", "dirichletprocess", "hierarchical");
 
@@ -319,62 +369,113 @@ HierarchicalBetaDP::~HierarchicalBetaDP() {
 HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
   HierarchicalBetaDP* hdp = new HierarchicalBetaDP();
 
-  if (rObj.containsElementNamed("indDP")) {
-    Rcpp::List indDP_list = rObj["indDP"];
+  try {
+    if (rObj.containsElementNamed("indDP")) {
+      Rcpp::List indDP_list = rObj["indDP"];
 
-    for (int i = 0; i < indDP_list.size(); i++) {
-      Rcpp::List dp_obj = indDP_list[i];
+      for (int i = 0; i < indDP_list.size(); i++) {
+        Rcpp::List dp_obj = indDP_list[i];
 
-      // Create NonConjugateBetaDP from R object
-      NonConjugateBetaDP* betaDP = new NonConjugateBetaDP();
+        // Create NonConjugateBetaDP from R object
+        NonConjugateBetaDP* betaDP = new NonConjugateBetaDP();
 
-      // Set common DP properties
-      betaDP->data = Rcpp::as<arma::mat>(dp_obj["data"]);
-      betaDP->n = betaDP->data.n_rows;
-      betaDP->alpha = Rcpp::as<double>(dp_obj["alpha"]);
-      betaDP->alphaPriorParameters = dp_obj["alphaPriorParameters"];
-      betaDP->mhDraws = dp_obj.containsElementNamed("mhDraws") ?
-      Rcpp::as<int>(dp_obj["mhDraws"]) : 250;
+        // Set common DP properties with validation
+        if (dp_obj.containsElementNamed("data")) {
+          betaDP->data = Rcpp::as<arma::mat>(dp_obj["data"]);
+          betaDP->n = betaDP->data.n_rows;
+        } else {
+          delete betaDP;
+          throw Rcpp::exception("Missing 'data' in DP object");
+        }
 
-      // Set cluster information
-      betaDP->clusterLabels = Rcpp::as<arma::uvec>(dp_obj["clusterLabels"]) - 1; // Convert to 0-indexed
-      betaDP->pointsPerCluster = Rcpp::as<arma::uvec>(dp_obj["pointsPerCluster"]);
-      betaDP->numberClusters = Rcpp::as<int>(dp_obj["numberClusters"]);
-      betaDP->clusterParameters = dp_obj["clusterParameters"];
-      betaDP->m = dp_obj.containsElementNamed("m") ? Rcpp::as<int>(dp_obj["m"]) : 3;
+        betaDP->alpha = dp_obj.containsElementNamed("alpha") ?
+        Rcpp::as<double>(dp_obj["alpha"]) : 1.0;
 
-      // Create mixing distribution
-      Rcpp::List mixDist = dp_obj["mixingDistribution"];
-      betaDP->mixingDistribution = new BetaMixingDistribution(
-        Rcpp::as<Rcpp::NumericVector>(mixDist["priorParameters"]));
-      betaDP->mixingDistribution->maxT = mixDist.containsElementNamed("maxT") ?
-      Rcpp::as<double>(mixDist["maxT"]) : 1.0;
+        betaDP->alphaPriorParameters = dp_obj.containsElementNamed("alphaPriorParameters") ?
+        dp_obj["alphaPriorParameters"] : Rcpp::NumericVector::create(1.0, 1.0);
 
-      if (mixDist.containsElementNamed("mhStepSize")) {
-        betaDP->mixingDistribution->mhStepSize = mixDist["mhStepSize"];
+        betaDP->mhDraws = dp_obj.containsElementNamed("mhDraws") ?
+        Rcpp::as<int>(dp_obj["mhDraws"]) : 250;
+
+        // Set cluster information with bounds checking
+        if (dp_obj.containsElementNamed("clusterLabels")) {
+          arma::uvec labels = Rcpp::as<arma::uvec>(dp_obj["clusterLabels"]);
+          // Ensure labels are valid (>= 1 in R, >= 0 in C++ after conversion)
+          if (labels.min() < 1) {
+            delete betaDP;
+            throw Rcpp::exception("Invalid cluster labels (must be >= 1)");
+          }
+          betaDP->clusterLabels = labels - 1; // Convert to 0-indexed
+        }
+
+        if (dp_obj.containsElementNamed("pointsPerCluster")) {
+          betaDP->pointsPerCluster = Rcpp::as<arma::uvec>(dp_obj["pointsPerCluster"]);
+        }
+
+        betaDP->numberClusters = dp_obj.containsElementNamed("numberClusters") ?
+        Rcpp::as<int>(dp_obj["numberClusters"]) : 1;
+
+        if (dp_obj.containsElementNamed("clusterParameters")) {
+          betaDP->clusterParameters = dp_obj["clusterParameters"];
+        }
+
+        betaDP->m = dp_obj.containsElementNamed("m") ?
+        Rcpp::as<int>(dp_obj["m"]) : 3;
+
+        // Create mixing distribution with validation
+        if (dp_obj.containsElementNamed("mixingDistribution")) {
+          Rcpp::List mixDist = dp_obj["mixingDistribution"];
+
+          if (mixDist.containsElementNamed("priorParameters")) {
+            betaDP->mixingDistribution = new BetaMixingDistribution(
+              Rcpp::as<Rcpp::NumericVector>(mixDist["priorParameters"]));
+
+            betaDP->mixingDistribution->maxT = mixDist.containsElementNamed("maxT") ?
+            Rcpp::as<double>(mixDist["maxT"]) : 1.0;
+
+            if (mixDist.containsElementNamed("mhStepSize")) {
+              betaDP->mixingDistribution->mhStepSize = mixDist["mhStepSize"];
+            }
+          } else {
+            delete betaDP;
+            throw Rcpp::exception("Missing prior parameters in mixing distribution");
+          }
+        } else {
+          delete betaDP;
+          throw Rcpp::exception("Missing mixing distribution");
+        }
+
+        hdp->indDP.push_back(betaDP);
       }
-
-      hdp->indDP.push_back(betaDP);
     }
-  }
 
-  if (rObj.containsElementNamed("globalParameters")) {
-    hdp->globalParameters = rObj["globalParameters"];
-  }
+    // Copy global parameters with validation
+    if (rObj.containsElementNamed("globalParameters")) {
+      hdp->globalParameters = Rcpp::clone(rObj["globalParameters"]);
+    }
 
-  if (rObj.containsElementNamed("globalStick")) {
-    hdp->globalStick = Rcpp::as<arma::vec>(rObj["globalStick"]);
-  }
+    if (rObj.containsElementNamed("globalStick")) {
+      hdp->globalStick = Rcpp::as<arma::vec>(rObj["globalStick"]);
+    }
 
-  if (rObj.containsElementNamed("gamma")) {
-    hdp->gamma = Rcpp::as<double>(rObj["gamma"]);
-  }
+    if (rObj.containsElementNamed("gamma")) {
+      hdp->gamma = Rcpp::as<double>(rObj["gamma"]);
+      if (hdp->gamma <= 0) {
+        throw Rcpp::exception("gamma must be positive");
+      }
+    }
 
-  if (rObj.containsElementNamed("gammaPriors")) {
-    hdp->gammaPriors = Rcpp::as<Rcpp::NumericVector>(rObj["gammaPriors"]);
-  }
+    if (rObj.containsElementNamed("gammaPriors")) {
+      hdp->gammaPriors = Rcpp::as<Rcpp::NumericVector>(rObj["gammaPriors"]);
+    }
 
-  return hdp;
+    return hdp;
+
+  } catch (std::exception& e) {
+    // Clean up on error
+    delete hdp;
+    throw;
+  }
 }
 
 void HierarchicalBetaDP::fit(int iterations, bool updatePrior, bool progressBar) {

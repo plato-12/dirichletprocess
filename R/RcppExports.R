@@ -90,19 +90,10 @@ conjugate_exponential_cluster_parameter_update_cpp <- function(dpObj) {
     .Call(`_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp`, dpObj)
 }
 
-#' @title Create a Hierarchical Beta DP from R object (C++)
-NULL
-
 #' @title Fit Hierarchical Beta DP (C++)
 NULL
 
 #' @title Update cluster components for Hierarchical Beta DP (C++)
-NULL
-
-#' @title Update cluster parameters for Hierarchical Beta DP (C++)
-NULL
-
-#' @title Update alpha for Hierarchical Beta DP (C++)
 NULL
 
 #' @title Update global parameters for Hierarchical Beta DP (C++)
@@ -117,24 +108,12 @@ NULL
 #' @title Create Hierarchical Beta mixing distributions (C++)
 NULL
 
-hierarchical_beta_create_cpp <- function(dpList) {
-    .Call(`_dirichletprocess_hierarchical_beta_create_cpp`, dpList)
-}
-
 hierarchical_beta_fit_cpp <- function(dpList, iterations, updatePrior = FALSE, progressBar = TRUE) {
     .Call(`_dirichletprocess_hierarchical_beta_fit_cpp`, dpList, iterations, updatePrior, progressBar)
 }
 
 hierarchical_beta_cluster_component_update_cpp <- function(dpList) {
     .Call(`_dirichletprocess_hierarchical_beta_cluster_component_update_cpp`, dpList)
-}
-
-hierarchical_beta_cluster_parameter_update_cpp <- function(dpList) {
-    .Call(`_dirichletprocess_hierarchical_beta_cluster_parameter_update_cpp`, dpList)
-}
-
-hierarchical_beta_update_alpha_cpp <- function(dpList) {
-    .Call(`_dirichletprocess_hierarchical_beta_update_alpha_cpp`, dpList)
 }
 
 hierarchical_beta_global_parameter_update_cpp <- function(dpList) {
