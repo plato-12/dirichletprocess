@@ -222,22 +222,30 @@
 
      // Draw pi_k using stick breaking
      arma::vec pi_k(num_sticks);
-     arma::vec beta_cumsum = arma::cumsum(beta_k);
+     arma::vec alpha_beta_params(num_sticks);
+     double current_alpha = Rcpp::as<double>(mdobj["alpha"]); // Get the individual alpha
 
-     for (int j = 0; j < num_sticks; j++) {
-       double shape2 = 1.0 - beta_cumsum[j];
-       if (shape2 < 0) shape2 = 0;
-
-       double pi_prime = R::rbeta(alpha * beta_k[j], alpha * shape2);
-
-       // Compute stick breaking weight
-       double prod = 1.0;
-       for (int k = 0; k < j; k++) {
-         prod *= (1.0 - pi_prime);
+     for(int j=0; j < num_sticks; ++j) {
+       alpha_beta_params[j] = current_alpha * beta_k[j]; // beta_k are global proportions
+       if (alpha_beta_params[j] <= 0.0) { // Ensure gamma parameters are positive
+         alpha_beta_params[j] = 1e-9; // A small positive number
        }
-       pi_k[j] = pi_prime * prod;
      }
 
+     for(int j=0; j < num_sticks; ++j) {
+       pi_k[j] = R::rgamma(alpha_beta_params[j], 1.0);
+     }
+
+     double sum_pi_k = arma::sum(pi_k);
+     if (sum_pi_k == 0.0) {
+       // This case should be rare if alpha_beta_params are positive.
+       // If all alpha_beta_params[j] are extremely small, rgamma might return 0s.
+       // Assign uniform probabilities as a fallback.
+       Rcpp::warning("Sum of components for Dirichlet draw of pi_k was zero. Assigning uniform probabilities.");
+       pi_k.fill(1.0 / num_sticks);
+     } else {
+       pi_k = pi_k / sum_pi_k; // Normalize
+     }
      mdobj["pi_k"] = Rcpp::wrap(pi_k);
 
      // Set class

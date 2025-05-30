@@ -27,10 +27,19 @@ DirichletProcessHierarchicalMvnormal2 <- function(dataList,
   if(missing(g0Priors)){
     g0Priors <- list(nu0 = 2,
                      phi0 = diag(ncol(dataList[[1]])),
-                     mu0 = numeric(ncol(dataList[[1]])),
+                     mu0 = numeric(ncol(dataList[[1]])), # mu0 is initialized as a vector
                      sigma0 = diag(ncol(dataList[[1]])))
   }
 
+  # Add this block to ensure mu0 is a matrix:
+    if (!is.matrix(g0Priors$mu0) || nrow(g0Priors$mu0) != 1) {
+      if (is.numeric(g0Priors$mu0) && (is.vector(g0Priors$mu0) || is.array(g0Priors$mu0))) {
+        g0Priors$mu0 <- matrix(g0Priors$mu0, nrow = 1)
+      } else {
+        stop("g0Priors$mu0 must be a numeric vector or a 1xN matrix.")
+      }
+    }
+  # Now g0Priors$mu0 is guaranteed to be a 1xN matrix
 
   mdobj_list <- HierarchicalMvnormal2Create(n=length(dataList), priorParameters=g0Priors,
                                             gammaPrior=gammaPriors,
