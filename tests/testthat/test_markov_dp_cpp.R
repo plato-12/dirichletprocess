@@ -1,5 +1,8 @@
 context("Markov DP C++ Implementation")
 
+# Ensure the required functions are loaded
+library(dirichletprocess)
+
 # Helper function to create test data
 create_hmm_test_data <- function(n = 150, states = c(1, 3, 5)) {
   # Generate data with clear state transitions
@@ -15,6 +18,7 @@ create_test_markov_dp <- function(data = NULL) {
     data <- create_hmm_test_data()
   }
 
+  # Use the correct function name from the package
   mdObj <- GaussianMixtureCreate()
   dp <- DirichletHMMCreate(data, mdObj, alpha = 2, beta = 3)
   return(dp)

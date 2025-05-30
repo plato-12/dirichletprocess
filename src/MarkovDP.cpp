@@ -32,6 +32,7 @@ MarkovDP::MarkovDP(const Rcpp::List& rObj) : DirichletProcess(rObj), beta(1.0), 
   if (rObj.containsElementNamed("params")) {
     Rcpp::List rParams = rObj["params"];
     params.clear();
+    params.reserve(rParams.size()); // Reserve space to avoid reallocation
     for (int i = 0; i < rParams.size(); i++) {
       params.push_back(Rcpp::as<Rcpp::List>(rParams[i]));
     }
@@ -56,6 +57,11 @@ MarkovDP::~MarkovDP() {
 void MarkovDP::updateStates() {
   int n = data.n_rows;
 
+  // Validate params vector size
+  if (params.size() != static_cast<size_t>(n)) {
+    Rcpp::stop("params vector size (%d) does not match data size (%d)", params.size(), n);
+  }
+
   for (int i = 0; i < n; i++) {
     if (i == 0) {
       // First state can only transition from itself or state 2
@@ -76,6 +82,11 @@ void MarkovDP::updateStates() {
         int candidate_states[2] = {(int)states[0], (int)states[1]};
 
         for (int k = 0; k < 2; k++) {
+          // Bounds check
+          if (candidate_states[k] < 0 || candidate_states[k] >= static_cast<int>(params.size())) {
+            Rcpp::stop("Invalid state index %d (params size: %d)", candidate_states[k], params.size());
+          }
+
           Rcpp::List state_params = params[candidate_states[k]];
 
           // Handle different distribution types
@@ -85,8 +96,11 @@ void MarkovDP::updateStates() {
               // Convert from array format to named list
               Rcpp::List formatted_params;
               if (state_params.size() >= 2) {
-                formatted_params["mu"] = state_params[0];
-                formatted_params["sigma"] = state_params[1];
+                // Extract scalar values from potentially array-formatted parameters
+                Rcpp::NumericVector mu_vec = state_params[0];
+                Rcpp::NumericVector sigma_vec = state_params[1];
+                formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
+                formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
               } else {
                 formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
                 formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
@@ -142,14 +156,21 @@ void MarkovDP::updateStates() {
         int candidate_states[2] = {(int)states[i-1], (int)states[i]};
 
         for (int k = 0; k < 2; k++) {
+          // Bounds check
+          if (candidate_states[k] < 0 || candidate_states[k] >= static_cast<int>(params.size())) {
+            Rcpp::stop("Invalid state index %d (params size: %d)", candidate_states[k], params.size());
+          }
+
           Rcpp::List state_params = params[candidate_states[k]];
 
           if (mixingDistribution->distribution == "normal") {
             if (!state_params.containsElementNamed("mu") || !state_params.containsElementNamed("sigma")) {
               Rcpp::List formatted_params;
               if (state_params.size() >= 2) {
-                formatted_params["mu"] = state_params[0];
-                formatted_params["sigma"] = state_params[1];
+                Rcpp::NumericVector mu_vec = state_params[0];
+                Rcpp::NumericVector sigma_vec = state_params[1];
+                formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
+                formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
               } else {
                 formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
                 formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
@@ -211,14 +232,21 @@ void MarkovDP::updateStates() {
         int candidate_states[2] = {(int)states[i-1], (int)states[i+1]};
 
         for (int k = 0; k < 2; k++) {
+          // Bounds check
+          if (candidate_states[k] < 0 || candidate_states[k] >= static_cast<int>(params.size())) {
+            Rcpp::stop("Invalid state index %d (params size: %d)", candidate_states[k], params.size());
+          }
+
           Rcpp::List state_params = params[candidate_states[k]];
 
           if (mixingDistribution->distribution == "normal") {
             if (!state_params.containsElementNamed("mu") || !state_params.containsElementNamed("sigma")) {
               Rcpp::List formatted_params;
               if (state_params.size() >= 2) {
-                formatted_params["mu"] = state_params[0];
-                formatted_params["sigma"] = state_params[1];
+                Rcpp::NumericVector mu_vec = state_params[0];
+                Rcpp::NumericVector sigma_vec = state_params[1];
+                formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
+                formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
               } else {
                 formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
                 formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
@@ -260,7 +288,7 @@ void MarkovDP::updateStates() {
   states = relabelStates(states);
 }
 
-// Relabel states to be contiguous (1, 2, 3, ...)
+// Relabel states to be contiguous (0, 1, 2, ...)
 arma::uvec MarkovDP::relabelStates(const arma::uvec& dpStates) {
   arma::uvec uniqueStates = arma::unique(dpStates);
   int newUniqueStates = uniqueStates.n_elem;
@@ -283,7 +311,7 @@ arma::uvec MarkovDP::relabelStates(const arma::uvec& dpStates) {
 
 // Log posterior for alpha and beta
 double MarkovDP::alphabetaLogPosterior(double alpha, double beta, const arma::vec& nii) {
-  if (alpha < 0 || beta < 0) {
+  if (alpha <= 0 || beta <= 0) {
     return -std::numeric_limits<double>::infinity();
   }
 
@@ -313,11 +341,6 @@ void MarkovDP::updateAlphaBeta() {
     }
     nii[i] = count - 1; // Don't count the first occurrence
   }
-
-  // Use optimization to find starting values
-  auto objectiveFunc = [this, &nii](double* x) -> double {
-    return -alphabetaLogPosterior(x[0], x[1], nii);
-  };
 
   // Simple grid search for starting values
   double bestAlpha = 1.0, bestBeta = 1.0;
@@ -418,6 +441,8 @@ void MarkovDP::paramUpdate() {
 
   // Update params to point to the correct unique parameters
   params.clear();
+  params.reserve(states.n_elem); // Reserve space
+
   for (size_t i = 0; i < states.n_elem; i++) {
     Rcpp::List stateParams;
 
