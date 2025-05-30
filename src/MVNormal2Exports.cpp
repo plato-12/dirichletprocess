@@ -213,7 +213,7 @@
 
      // Hierarchical properties
      mdobj["theta_k"] = theta_k;
-     mdobj["beta_k"] = Rcpp::wrap(beta_k);
+     mdobj["beta_k"] = Rcpp::NumericVector(beta_k.begin(), beta_k.end());
      mdobj["gamma"] = gamma;
 
      // Individual alpha
@@ -246,7 +246,7 @@
      } else {
        pi_k = pi_k / sum_pi_k; // Normalize
      }
-     mdobj["pi_k"] = Rcpp::wrap(pi_k);
+     mdobj["pi_k"] = Rcpp::NumericVector(pi_k.begin(), pi_k.end());
 
      // Set class
      mdobj.attr("class") = Rcpp::CharacterVector::create("hierarchical", "mvnormal2", "nonconjugate");

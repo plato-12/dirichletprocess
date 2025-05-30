@@ -218,31 +218,30 @@ void NonConjugateMVNormal2DP::clusterComponentUpdate() {
   for (int i = 0; i < n; i++) {
     int currentLabel = clusterLabels[i];
 
-    // Remove point from current cluster
+    // Temporarily remove point from current cluster
     pointsPerCluster[currentLabel]--;
 
     // Generate auxiliary parameters
     Rcpp::List aux;
-    if (pointsPerCluster[currentLabel] == 0) {
-      // If cluster is now empty, we need m-1 auxiliary parameters
+    bool currentClusterEmpty = (pointsPerCluster[currentLabel] == 0);
+
+    if (currentClusterEmpty && currentLabel < numberClusters) {
+      // If cluster is now empty, include its parameters as auxiliary
       aux = mixingDistribution->priorDraw(m - 1);
 
-      // Include the current cluster's parameters as one of the auxiliary
       Rcpp::NumericVector mu_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
       Rcpp::NumericVector sig_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
-
       Rcpp::NumericVector mu_aux = aux[0];
       Rcpp::NumericVector sig_aux = aux[1];
 
-      // Get dimensions
       Rcpp::IntegerVector mu_dim = mu_vec.attr("dim");
       int d = mu_dim[1];
 
-      // Create new arrays including current cluster params
+      // Create combined arrays
       Rcpp::NumericVector mu_combined = Rcpp::NumericVector(Rcpp::Dimension(1, d, m));
       Rcpp::NumericVector sig_combined = Rcpp::NumericVector(Rcpp::Dimension(d, d, m));
 
-      // Copy current cluster parameters
+      // First slot: current (empty) cluster's parameters
       for (int j = 0; j < d; j++) {
         mu_combined[j] = mu_vec[j + currentLabel * d];
       }
@@ -252,7 +251,7 @@ void NonConjugateMVNormal2DP::clusterComponentUpdate() {
         }
       }
 
-      // Copy auxiliary parameters
+      // Remaining slots: auxiliary parameters
       for (int idx = 1; idx < m; idx++) {
         for (int j = 0; j < d; j++) {
           mu_combined[j + idx * d] = mu_aux[j + (idx-1) * d];
@@ -266,72 +265,110 @@ void NonConjugateMVNormal2DP::clusterComponentUpdate() {
 
       aux = Rcpp::List::create(mu_combined, sig_combined);
     } else {
-      // Generate m auxiliary parameters
+      // Generate m new auxiliary parameters
       aux = mixingDistribution->priorDraw(m);
     }
 
-    // Calculate probabilities
-    int totalLabels = numberClusters + m;
-    Rcpp::NumericVector probs(totalLabels);
+    // Calculate probabilities for all possible assignments
+    int totalOptions = numberClusters + m;
+    Rcpp::NumericVector probs(totalOptions);
 
-    // Existing clusters
+    // Get data point
+    arma::vec x_i = data.row(i).t();
+
+    // Calculate probabilities for existing clusters
+    Rcpp::NumericVector mu_params = clusterParameters[0];
+    Rcpp::NumericVector sig_params = clusterParameters[1];
+    Rcpp::IntegerVector mu_dim = mu_params.attr("dim");
+    int d = mu_dim[1];
+
     for (int j = 0; j < numberClusters; j++) {
-      if (pointsPerCluster[j] > 0) {
-        // Create parameter list for cluster j
-        Rcpp::List clusterParam = Rcpp::List::create(
-          Rcpp::Named("mu") = clusterParameters[0],
-                                               Rcpp::Named("sig") = clusterParameters[1]
+      if (pointsPerCluster[j] > 0 || (j == currentLabel && currentClusterEmpty)) {
+        // Extract parameters for cluster j
+        Rcpp::NumericVector mu_j = Rcpp::NumericVector(Rcpp::Dimension(1, d, 1));
+        Rcpp::NumericVector sig_j = Rcpp::NumericVector(Rcpp::Dimension(d, d, 1));
+
+        for (int k = 0; k < d; k++) {
+          mu_j[k] = mu_params[k + j * d];
+        }
+        for (int k1 = 0; k1 < d; k1++) {
+          for (int k2 = 0; k2 < d; k2++) {
+            sig_j[k1 + k2 * d] = sig_params[k1 + k2 * d + j * d * d];
+          }
+        }
+
+        Rcpp::List theta_j = Rcpp::List::create(
+          Rcpp::Named("0") = mu_j,
+          Rcpp::Named("1") = sig_j
         );
 
-        Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
-        probs[j] = pointsPerCluster[j] * lik[j];
+        Rcpp::NumericVector lik = mixingDistribution->likelihood(x_i, theta_j);
+
+        // Weight by number of points (but if empty cluster, use special handling)
+        if (j == currentLabel && currentClusterEmpty) {
+          probs[j] = (alpha / m) * lik[0];  // Treat as auxiliary
+        } else {
+          probs[j] = pointsPerCluster[j] * lik[0];
+        }
       } else {
         probs[j] = 0.0;
       }
     }
 
-    // Auxiliary clusters
+    // Calculate probabilities for auxiliary clusters
+    Rcpp::NumericVector aux_mu = aux[0];
+    Rcpp::NumericVector aux_sig = aux[1];
+
     for (int j = 0; j < m; j++) {
-      Rcpp::List auxParam = Rcpp::List::create(
-        Rcpp::Named("mu") = aux[0],
-                               Rcpp::Named("sig") = aux[1]
+      // Extract auxiliary parameter j
+      Rcpp::NumericVector mu_j = Rcpp::NumericVector(Rcpp::Dimension(1, d, 1));
+      Rcpp::NumericVector sig_j = Rcpp::NumericVector(Rcpp::Dimension(d, d, 1));
+
+      for (int k = 0; k < d; k++) {
+        mu_j[k] = aux_mu[k + j * d];
+      }
+      for (int k1 = 0; k1 < d; k1++) {
+        for (int k2 = 0; k2 < d; k2++) {
+          sig_j[k1 + k2 * d] = aux_sig[k1 + k2 * d + j * d * d];
+        }
+      }
+
+      Rcpp::List theta_j = Rcpp::List::create(
+        Rcpp::Named("0") = mu_j,
+        Rcpp::Named("1") = sig_j
       );
 
-      Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), auxParam);
-      probs[numberClusters + j] = (alpha / m) * lik[j];
+      Rcpp::NumericVector lik = mixingDistribution->likelihood(x_i, theta_j);
+      probs[numberClusters + j] = (alpha / m) * lik[0];
     }
 
-    // Handle edge cases
-    if (Rcpp::is_true(Rcpp::any(Rcpp::is_nan(probs)))) {
-      for (int j = 0; j < probs.size(); j++) {
-        if (std::isnan(probs[j])) probs[j] = 0.0;
-      }
+    // Handle numerical issues
+    for (int j = 0; j < probs.size(); j++) {
+      if (!std::isfinite(probs[j])) probs[j] = 0.0;
     }
 
-    if (Rcpp::is_true(Rcpp::all(probs == 0))) {
+    if (Rcpp::sum(probs) == 0.0) {
       probs.fill(1.0 / probs.size());
     }
 
-    // Normalize
-    double probSum = Rcpp::sum(probs);
-    probs = probs / probSum;
-
     // Sample new label
-    int newLabel = 0;
-    double u = R::runif(0, 1);
     double cumProb = 0.0;
+    double u = R::runif(0, 1);
+    int newLabel = 0;
+    double probSum = Rcpp::sum(probs);
+
     for (int j = 0; j < probs.size(); j++) {
-      cumProb += probs[j];
+      cumProb += probs[j] / probSum;
       if (u <= cumProb) {
         newLabel = j;
         break;
       }
     }
 
-    // Update cluster assignment
+    // Now perform the actual update (pointsPerCluster[currentLabel] is already decremented)
     Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel, aux);
 
-    // Update state from result
+    // Extract updated values
     clusterLabels = Rcpp::as<arma::uvec>(updateResult["clusterLabels"]);
     pointsPerCluster = Rcpp::as<arma::uvec>(updateResult["pointsPerCluster"]);
     clusterParameters = updateResult["clusterParameters"];
@@ -537,6 +574,11 @@ Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int 
     Rcpp::Named("clusterParameters") = clusterParameters,
     Rcpp::Named("numberClusters") = numberClusters
   );
+}
+
+// Add this method implementation
+MixingDistribution* NonConjugateMVNormal2DP::getMixingDistribution() {
+  return mixingDistribution;
 }
 
 } // namespace dp
