@@ -14,11 +14,19 @@ MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& prior
 
   // Extract prior parameters
   if (priorParams.containsElementNamed("mu0")) {
-    Rcpp::NumericMatrix mu0_mat = Rcpp::as<Rcpp::NumericMatrix>(priorParams["mu0"]);
-    if (mu0_mat.nrow() == 1) {
-      mu0 = Rcpp::as<arma::vec>(Rcpp::transpose(mu0_mat));
+    // Handle both vector and matrix inputs for mu0
+    SEXP mu0_sexp = priorParams["mu0"];
+    if (Rf_isMatrix(mu0_sexp)) {
+      Rcpp::NumericMatrix mu0_mat = Rcpp::as<Rcpp::NumericMatrix>(mu0_sexp);
+      if (mu0_mat.nrow() == 1) {
+        mu0 = Rcpp::as<arma::vec>(Rcpp::transpose(mu0_mat));
+      } else {
+        mu0 = arma::vec(mu0_mat.begin(), mu0_mat.size());
+      }
     } else {
-      mu0 = arma::vec(mu0_mat.begin(), mu0_mat.size());
+      // It's a vector, convert directly
+      Rcpp::NumericVector mu0_vec = Rcpp::as<Rcpp::NumericVector>(mu0_sexp);
+      mu0 = arma::vec(mu0_vec.begin(), mu0_vec.size());
     }
   }
 
