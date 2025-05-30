@@ -16,21 +16,18 @@ MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& prior
   if (priorParams.containsElementNamed("mu0")) {
     SEXP mu0_sexp = priorParams["mu0"];
     if (Rf_isMatrix(mu0_sexp)) {
-      Rcpp::NumericMatrix mu0_mat = Rcpp::as<Rcpp::NumericMatrix>(mu0_sexp);
-      mu0 = arma::vec(mu0_mat.size());
-      if (mu0_mat.nrow() == 1) {
-        // Row matrix - copy elements from the row
-        for (int j = 0; j < mu0_mat.ncol(); j++) {
-          mu0(j) = mu0_mat(0, j);
-        }
+      arma::mat temp_mu0_mat = Rcpp::as<arma::mat>(mu0_sexp); // Convert to arma::mat
+      if (temp_mu0_mat.n_rows == 1) { // If R matrix is 1xN (already a row vector shape)
+        mu0 = temp_mu0_mat; // Assign directly (arma::mat to arma::rowvec if mat is 1xN)
+      } else if (temp_mu0_mat.n_cols == 1) { // If R matrix is Nx1 (a column vector shape)
+        mu0 = temp_mu0_mat.t(); // Transpose to 1xN and assign
       } else {
-        // Column matrix or general matrix - copy in column-major order
-        std::copy(mu0_mat.begin(), mu0_mat.end(), mu0.begin());
+        Rcpp::stop("mu0 in priorParams, if a matrix, must be a row or column vector.");
       }
-    } else {
-      // It's a vector, convert directly
-      Rcpp::NumericVector mu0_vec = Rcpp::as<Rcpp::NumericVector>(mu0_sexp);
-      mu0 = arma::vec(mu0_vec.begin(), mu0_vec.size());
+    } else { // It's an R vector (NumericVector)
+      // Rcpp::as<arma::vec> converts an R vector to an Armadillo column vector
+      arma::vec temp_mu0_col_vec = Rcpp::as<arma::vec>(mu0_sexp);
+      mu0 = temp_mu0_col_vec.t(); // Transpose the column vector to a row vector for mu0
     }
   }
 
@@ -127,7 +124,7 @@ Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
     arma::mat sig_draw = arma::iwishrnd(phi0, nu0);
 
     // Draw mu from Multivariate Normal given Sigma
-    arma::vec mu_draw = arma::mvnrnd(mu0, sigma0);
+    arma::vec mu_draw = arma::mvnrnd(mu0.t(), sigma0);
 
     // Store in arrays
     for (int j = 0; j < d; j++) {
@@ -181,7 +178,7 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
     // Update mu given new Sigma
     arma::mat sig_n = arma::inv_sympd(arma::inv_sympd(sigma0) + x.n_rows * arma::inv_sympd(sig_samp));
     arma::vec mu_n = sig_n * (x.n_rows * arma::inv_sympd(sig_samp) * arma::mean(x, 0).t() +
-      arma::inv_sympd(sigma0) * mu0);
+      arma::inv_sympd(sigma0) * mu0.t());
 
     // Draw new mu
     mu_samp = arma::mvnrnd(mu_n, sig_n);
