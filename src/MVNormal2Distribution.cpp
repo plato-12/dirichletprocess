@@ -9,19 +9,23 @@ namespace dp {
 // MVNormal2MixingDistribution implementation
 MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& priorParams) {
   distribution = "mvnormal2";
-  conjugate = false;  // This is a semi-conjugate model
+  conjugate = false;
   priorParameters = priorParams;
 
   // Extract prior parameters
   if (priorParams.containsElementNamed("mu0")) {
-    // Handle both vector and matrix inputs for mu0
     SEXP mu0_sexp = priorParams["mu0"];
     if (Rf_isMatrix(mu0_sexp)) {
       Rcpp::NumericMatrix mu0_mat = Rcpp::as<Rcpp::NumericMatrix>(mu0_sexp);
+      mu0 = arma::vec(mu0_mat.size());
       if (mu0_mat.nrow() == 1) {
-        mu0 = Rcpp::as<arma::vec>(Rcpp::transpose(mu0_mat));
+        // Row matrix - copy elements from the row
+        for (int j = 0; j < mu0_mat.ncol(); j++) {
+          mu0(j) = mu0_mat(0, j);
+        }
       } else {
-        mu0 = arma::vec(mu0_mat.begin(), mu0_mat.size());
+        // Column matrix or general matrix - copy in column-major order
+        std::copy(mu0_mat.begin(), mu0_mat.end(), mu0.begin());
       }
     } else {
       // It's a vector, convert directly
@@ -43,7 +47,7 @@ MVNormal2MixingDistribution::MVNormal2MixingDistribution(const Rcpp::List& prior
   }
 
   // Set default MH step size if not provided
-  if (!priorParameters.hasAttribute("mhStepSize")) {
+  if (!priorParameters.containsElementNamed("mhStepSize")) {
     mhStepSize = Rcpp::NumericVector::create(1.0, 1.0);
   }
 }
@@ -115,13 +119,12 @@ Rcpp::NumericVector MVNormal2MixingDistribution::likelihood(const arma::vec& x, 
 Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
   int d = mu0.n_elem;
 
-  // Arrays to store results
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
   for (int i = 0; i < n; i++) {
-    // Draw Sigma from Inverse-Wishart
-    arma::mat sig_draw = arma::iwishrnd(arma::inv_sympd(phi0), nu0);
+    // Draw Sigma from Inverse-Wishart (corrected parameterization)
+    arma::mat sig_draw = arma::iwishrnd(phi0, nu0);
 
     // Draw mu from Multivariate Normal given Sigma
     arma::vec mu_draw = arma::mvnrnd(mu0, sigma0);
