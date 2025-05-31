@@ -397,34 +397,4 @@ void HierarchicalMVNormal2DP::updateG0() {
   }
 }
 
-// Implementation for HierarchicalDP::toR
-Rcpp::List HierarchicalDP::toR() const {
-  Rcpp::List result;
-
-  // Convert individual DPs back to R format
-  Rcpp::List indDP_list(indDP.size());
-  for (size_t i = 0; i < indDP.size(); i++) {
-    if (indDP[i]) {
-      Rcpp::List dp_r = indDP[i]->toR();
-
-      // Convert 0-indexed labels back to 1-indexed for R
-      if (dp_r.containsElementNamed("clusterLabels")) {
-        arma::uvec labels = Rcpp::as<arma::uvec>(dp_r["clusterLabels"]);
-        dp_r["clusterLabels"] = labels + 1;
-      }
-
-      indDP_list[i] = dp_r;
-    }
-  }
-
-  result["indDP"] = indDP_list;
-  result["globalParameters"] = globalParameters;
-  result["globalStick"] = globalStick;
-  result["gamma"] = gamma;
-  result["gammaPriors"] = gammaPriors;
-
-  return result;
-}
-
-
 } // namespace dp
