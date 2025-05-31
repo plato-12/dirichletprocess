@@ -274,6 +274,76 @@ void HierarchicalMVNormal2DP::globalParameterUpdate() {
   }
 }
 
+
+void HierarchicalMVNormal2DP::updateGamma() {
+  // Get the number of unique global parameters
+  std::set<int> unique_global_labels;
+
+  for (size_t i = 0; i < indDP.size(); i++) {
+    NonConjugateMVNormal2DP* mvn2DP = dynamic_cast<NonConjugateMVNormal2DP*>(indDP[i]);
+    if (!mvn2DP) continue;
+
+    Rcpp::NumericVector mu_params = mvn2DP->clusterParameters[0];
+    Rcpp::NumericVector mu_global = globalParameters[0];
+
+    // Get dimensions
+    Rcpp::IntegerVector mu_dim = mu_params.attr("dim");
+    int d = mu_dim[1];
+
+    for (int j = 0; j < mvn2DP->numberClusters; j++) {
+      for (int k = 0; k < mu_global.size() / d; k++) {
+        bool match = true;
+        for (int dim = 0; dim < d; dim++) {
+          if (std::abs(mu_params[dim + j * d] - mu_global[dim + k * d]) > 1e-10) {
+            match = false;
+            break;
+          }
+        }
+        if (match) {
+          unique_global_labels.insert(k);
+          break;
+        }
+      }
+    }
+  }
+
+  int numParams = unique_global_labels.size();
+  int numTables = 0;
+
+  // Count total number of tables (clusters across all DPs)
+  for (auto& dp : indDP) {
+    NonConjugateMVNormal2DP* mvn2DP = dynamic_cast<NonConjugateMVNormal2DP*>(dp);
+    if (mvn2DP) {
+      numTables += mvn2DP->numberClusters;
+    }
+  }
+
+  // Update gamma using the same logic as in R
+  double x = R::rbeta(gamma + 1.0, numTables);
+  double log_x = std::log(x);
+
+  double pi1 = gammaPriors[0] + numParams - 1.0;
+  double pi2 = numTables * (gammaPriors[1] - log_x);
+
+  double pi_val = pi1 / (pi1 + pi2);
+  if (!std::isfinite(pi_val)) {
+    pi_val = 0.5;
+  }
+
+  double postShape;
+  if (R::runif(0, 1) < pi_val) {
+    postShape = gammaPriors[0] + numParams;
+  } else {
+    postShape = gammaPriors[0] + numParams - 1.0;
+  }
+
+  double postRate = gammaPriors[1] - log_x;
+  if (postRate <= 0) postRate = 1e-6;
+
+  gamma = R::rgamma(postShape, 1.0 / postRate);
+  if (gamma <= 0) gamma = 1e-6;
+}
+
 void HierarchicalMVNormal2DP::updateG0() {
   // Get global parameters and their frequencies
   std::map<int, int> global_param_counts;

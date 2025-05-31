@@ -387,12 +387,8 @@ test_that("MVNormal2 cluster label changes work correctly", {
     m = 3
   )
 
-  # Test moving a point to a new cluster
-  initial_n_clusters <- dpObj$numberClusters
-
-  # Remove point 0 from cluster 0
-  dpObj$pointsPerCluster[1] <- dpObj$pointsPerCluster[1] - 1
-
+  # Test cluster component update WITHOUT manual modification
+  # The function handles the complete update cycle internally
   result <- nonconjugate_mvnormal2_cluster_component_update_cpp(dpObj)
 
   # Check consistency

@@ -64,6 +64,7 @@ public:
   void clusterComponentUpdate() override; // <<< Added this line
   void globalParameterUpdate() override;
   void updateG0() override;
+  void updateGamma() override;
   static HierarchicalMVNormal2DP* fromR(const Rcpp::List& rObj);
 };
 
