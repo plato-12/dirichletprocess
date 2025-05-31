@@ -201,6 +201,14 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
   );
 }
 
+Rcpp::List MVNormal2MixingDistribution::toR() const {
+  return Rcpp::List::create(
+    Rcpp::Named("distribution") = distribution,
+    Rcpp::Named("priorParameters") = priorParameters,
+    Rcpp::Named("conjugate") = conjugate
+  );
+}
+
 // NonConjugateMVNormal2DP implementation
 NonConjugateMVNormal2DP::NonConjugateMVNormal2DP() : mixingDistribution(nullptr), numberClusters(0), m(3) {
   // Constructor
@@ -445,6 +453,10 @@ void NonConjugateMVNormal2DP::updateAlpha() {
 Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int currentLabel,
                                                        const Rcpp::List& aux) {
   if (newLabel == currentLabel) {
+    // CRITICAL FIX: The caller has already decremented pointsPerCluster[currentLabel]
+    // so we need to increment it back since the point is staying in the same cluster
+    pointsPerCluster[currentLabel]++;
+
     return Rcpp::List::create(
       Rcpp::Named("clusterLabels") = clusterLabels,
       Rcpp::Named("pointsPerCluster") = pointsPerCluster,
@@ -579,6 +591,22 @@ Rcpp::List NonConjugateMVNormal2DP::clusterLabelChange(int i, int newLabel, int 
 // Add this method implementation
 MixingDistribution* NonConjugateMVNormal2DP::getMixingDistribution() {
   return mixingDistribution;
+}
+
+Rcpp::List NonConjugateMVNormal2DP::toR() const {
+  return Rcpp::List::create(
+    Rcpp::Named("data") = data,
+    Rcpp::Named("n") = n,
+    Rcpp::Named("alpha") = alpha,
+    Rcpp::Named("alphaPriorParameters") = alphaPriorParameters,
+    Rcpp::Named("clusterLabels") = clusterLabels,  // Already 0-indexed in C++
+    Rcpp::Named("pointsPerCluster") = pointsPerCluster,
+    Rcpp::Named("numberClusters") = numberClusters,
+    Rcpp::Named("clusterParameters") = clusterParameters,
+    Rcpp::Named("mixingDistribution") = mixingDistribution->toR(),
+    Rcpp::Named("m") = m,
+    Rcpp::Named("mhDraws") = mhDraws
+  );
 }
 
 } // namespace dp

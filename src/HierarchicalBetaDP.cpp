@@ -15,15 +15,6 @@ HierarchicalDP::~HierarchicalDP() {
   // Destructor - cleanup is handled in derived classes
 }
 
-void HierarchicalDP::clusterComponentUpdate() {
-  // Update each individual DP
-  for (auto& dp : indDP) {
-    if (dp) {
-      dp->clusterComponentUpdate();
-    }
-  }
-}
-
 void HierarchicalDP::clusterParameterUpdate() {
   // Update parameters for each individual DP
   for (auto& dp : indDP) {
@@ -339,27 +330,27 @@ void HierarchicalDP::updateGamma() {
 Rcpp::List HierarchicalDP::toR() const {
   Rcpp::List result;
 
-  // Convert individual DPs with deep copy
-  Rcpp::List indDP_list;
-  for (auto& dp : indDP) {
-    if (dp) {
-      indDP_list.push_back(dp->toR());
+  // Convert individual DPs back to R format
+  Rcpp::List indDP_list(indDP.size());
+  for (size_t i = 0; i < indDP.size(); i++) {
+    if (indDP[i]) {
+      Rcpp::List dp_r = indDP[i]->toR();
+
+      // Convert 0-indexed labels back to 1-indexed for R
+      if (dp_r.containsElementNamed("clusterLabels")) {
+        arma::uvec labels = Rcpp::as<arma::uvec>(dp_r["clusterLabels"]);
+        dp_r["clusterLabels"] = labels + 1;
+      }
+
+      indDP_list[i] = dp_r;
     }
   }
 
   result["indDP"] = indDP_list;
-
-  // Deep copy all global parameters
-  result["globalParameters"] = Rcpp::clone(globalParameters);
-  result["globalStick"] = Rcpp::clone(Rcpp::wrap(globalStick));
+  result["globalParameters"] = globalParameters;
+  result["globalStick"] = globalStick;
   result["gamma"] = gamma;
-  result["gammaPriors"] = Rcpp::clone(gammaPriors);
-
-  if (this->gammaChain.size() > 0) {
-    result["gammaValues"] = Rcpp::NumericVector(this->gammaChain);
-  }
-
-  result.attr("class") = Rcpp::CharacterVector::create("list", "dirichletprocess", "hierarchical");
+  result["gammaPriors"] = gammaPriors;
 
   return result;
 }

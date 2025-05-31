@@ -3,7 +3,7 @@
 #define MVNORMAL2_DISTRIBUTION_H
 
 #include <RcppArmadillo.h>
-#include "DirichletProcess.h"
+#include "DirichletProcess.h" // Assumes MixingDistribution is also included/forward-declared via this or another header
 
 namespace dp {
 
@@ -27,7 +27,8 @@ public:
   Rcpp::NumericVector likelihood(const arma::vec& x, const Rcpp::List& theta) const override;
   Rcpp::List priorDraw(int n) const override;
   Rcpp::List posteriorDraw(const arma::mat& x, int n = 1) const override;
-};  // <-- Note the semicolon here
+  Rcpp::List toR() const override; // <<< Added declaration
+};
 
 class NonConjugateMVNormal2DP : public DirichletProcess {
 public:
@@ -50,10 +51,11 @@ public:
 
   // Add the getMixingDistribution override
   MixingDistribution* getMixingDistribution() override;
+  Rcpp::List toR() const override; // <<< Added declaration
 
   // Additional methods
   Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux);
-};  // <-- CRITICAL: Add semicolon here!
+};
 
 } // namespace dp
 
