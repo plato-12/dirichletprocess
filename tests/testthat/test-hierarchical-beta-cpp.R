@@ -2,6 +2,11 @@ test_that("Hierarchical Beta DP C++ implementation works", {
   skip_if_not_installed("gtools")
   skip_if_not_installed("mvtnorm")
 
+  # Save current state and ensure clean start
+  old_state <- using_cpp_hierarchical_samplers()
+  on.exit(enable_cpp_hierarchical_samplers(old_state), add = TRUE)
+  enable_cpp_hierarchical_samplers(FALSE)
+
   # Generate small test data
   set.seed(123)
   dataList <- list(
@@ -20,6 +25,11 @@ test_that("Hierarchical Beta DP C++ implementation works", {
 test_that("Hierarchical Beta DP C++ and R implementations produce valid results", {
   skip_if_not_installed("gtools")
   skip_if_not_installed("mvtnorm")
+
+  # Ensure clean state
+  old_state <- using_cpp_hierarchical_samplers()
+  on.exit(enable_cpp_hierarchical_samplers(old_state), add = TRUE)
+  enable_cpp_hierarchical_samplers(FALSE)
 
   set.seed(42)
   dataList <- list(
@@ -103,14 +113,15 @@ test_that("Hierarchical Beta DP C++ and R implementations produce valid results"
   } else {
     skip("C++ implementation not available")
   }
-
-  # Disable C++ implementations
-  enable_cpp_hierarchical_samplers(FALSE)
 })
 
 test_that("Individual update functions work with C++ implementation", {
   skip_if_not_installed("gtools")
   skip_if_not_installed("mvtnorm")
+
+  # Ensure clean state
+  old_state <- using_cpp_hierarchical_samplers()
+  on.exit(enable_cpp_hierarchical_samplers(old_state), add = TRUE)
 
   # Skip if C++ functions not available
   if (!exists("hierarchical_beta_cluster_component_update_cpp")) {
@@ -165,13 +176,15 @@ test_that("Individual update functions work with C++ implementation", {
   expect_s3_class(dp_updated, "hierarchical")
   expect_true(is.numeric(dp_updated$gamma))
   expect_true(dp_updated$gamma > 0)
-
-  enable_cpp_hierarchical_samplers(FALSE)
 })
 
 test_that("C++ implementation handles edge cases", {
   skip_if_not_installed("gtools")
   skip_if_not_installed("mvtnorm")
+
+  # Ensure clean state
+  old_state <- using_cpp_hierarchical_samplers()
+  on.exit(enable_cpp_hierarchical_samplers(old_state), add = TRUE)
 
   # Skip if C++ functions not available
   if (!exists("hierarchical_beta_fit_cpp")) {
@@ -217,13 +230,15 @@ test_that("C++ implementation handles edge cases", {
   )
 
   expect_error(Fit(dp_single, its = 2, progressBar = FALSE), NA)
-
-  enable_cpp_hierarchical_samplers(FALSE)
 })
 
 test_that("C++ mixing distribution creation works", {
   skip_if_not_installed("gtools")
   skip_if_not_installed("mvtnorm")
+
+  # Ensure clean state
+  old_state <- using_cpp_hierarchical_samplers()
+  on.exit(enable_cpp_hierarchical_samplers(old_state), add = TRUE)
 
   # Skip if C++ functions not available
   if (!exists("hierarchical_beta_mixing_create_cpp")) {
@@ -252,6 +267,4 @@ test_that("C++ mixing distribution creation works", {
   expect_true(all(sapply(mdobj_list, function(x) !is.null(x$theta_k))))
   expect_true(all(sapply(mdobj_list, function(x) !is.null(x$beta_k))))
   expect_true(all(sapply(mdobj_list, function(x) !is.null(x$pi_k))))
-
-  enable_cpp_hierarchical_samplers(FALSE)
 })

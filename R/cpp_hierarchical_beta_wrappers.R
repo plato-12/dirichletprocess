@@ -34,16 +34,22 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
   dpObj_copy <- dpObj
 
   # Convert 1-indexed R labels to 0-indexed C++ labels
-  # But first check if labels exist and are valid
   for (i in seq_along(dpObj_copy$indDP)) {
-    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+    # Check if labels exist and are valid
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels) &&
+        length(dpObj_copy$indDP[[i]]$clusterLabels) > 0) {
       labels <- dpObj_copy$indDP[[i]]$clusterLabels
-      if (length(labels) > 0) {
-        if (min(labels) < 1) {
-          stop(paste("Invalid cluster labels in DP", i, ": labels must be >= 1"))
-        }
-        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+
+      # Validate labels
+      if (any(is.na(labels))) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels cannot be NA"))
       }
+      if (min(labels) < 1) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels must be >= 1"))
+      }
+
+      # Convert to 0-indexed
+      dpObj_copy$indDP[[i]]$clusterLabels <- as.integer(labels - 1)
     }
   }
 
@@ -56,11 +62,10 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 
   # Convert back to 1-indexed
   for (i in seq_along(result$indDP)) {
-    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+    if (!is.null(result$indDP[[i]]$clusterLabels) &&
+        length(result$indDP[[i]]$clusterLabels) > 0) {
       labels <- result$indDP[[i]]$clusterLabels
-      if (length(labels) > 0) {
-        result$indDP[[i]]$clusterLabels <- labels + 1
-      }
+      result$indDP[[i]]$clusterLabels <- as.integer(labels + 1)
     }
   }
 
@@ -79,11 +84,20 @@ ClusterComponentUpdate.hierarchical.cpp <- function(dpObj) {
 
   # Convert labels with validation
   for (i in seq_along(dpObj_copy$indDP)) {
-    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels) &&
+        length(dpObj_copy$indDP[[i]]$clusterLabels) > 0) {
       labels <- dpObj_copy$indDP[[i]]$clusterLabels
-      if (length(labels) > 0 && min(labels) >= 1) {
-        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+
+      # Validate
+      if (any(is.na(labels))) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels cannot be NA"))
       }
+      if (min(labels) < 1) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels must be >= 1"))
+      }
+
+      # Convert to 0-indexed
+      dpObj_copy$indDP[[i]]$clusterLabels <- as.integer(labels - 1)
     }
   }
 
@@ -96,11 +110,10 @@ ClusterComponentUpdate.hierarchical.cpp <- function(dpObj) {
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+    if (!is.null(result$indDP[[i]]$clusterLabels) &&
+        length(result$indDP[[i]]$clusterLabels) > 0) {
       labels <- result$indDP[[i]]$clusterLabels
-      if (length(labels) > 0) {
-        result$indDP[[i]]$clusterLabels <- labels + 1
-      }
+      result$indDP[[i]]$clusterLabels <- as.integer(labels + 1)
     }
   }
 
@@ -119,11 +132,20 @@ GlobalParameterUpdate.hierarchical.cpp <- function(dpObj) {
 
   # Convert labels
   for (i in seq_along(dpObj_copy$indDP)) {
-    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels) &&
+        length(dpObj_copy$indDP[[i]]$clusterLabels) > 0) {
       labels <- dpObj_copy$indDP[[i]]$clusterLabels
-      if (length(labels) > 0 && min(labels) >= 1) {
-        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+
+      # Validate
+      if (any(is.na(labels))) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels cannot be NA"))
       }
+      if (min(labels) < 1) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels must be >= 1"))
+      }
+
+      # Convert to 0-indexed
+      dpObj_copy$indDP[[i]]$clusterLabels <- as.integer(labels - 1)
     }
   }
 
@@ -136,11 +158,10 @@ GlobalParameterUpdate.hierarchical.cpp <- function(dpObj) {
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+    if (!is.null(result$indDP[[i]]$clusterLabels) &&
+        length(result$indDP[[i]]$clusterLabels) > 0) {
       labels <- result$indDP[[i]]$clusterLabels
-      if (length(labels) > 0) {
-        result$indDP[[i]]$clusterLabels <- labels + 1
-      }
+      result$indDP[[i]]$clusterLabels <- as.integer(labels + 1)
     }
   }
 
@@ -159,11 +180,20 @@ UpdateG0.cpp <- function(dpObj) {
 
   # Convert labels
   for (i in seq_along(dpObj_copy$indDP)) {
-    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels) &&
+        length(dpObj_copy$indDP[[i]]$clusterLabels) > 0) {
       labels <- dpObj_copy$indDP[[i]]$clusterLabels
-      if (length(labels) > 0 && min(labels) >= 1) {
-        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+
+      # Validate
+      if (any(is.na(labels))) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels cannot be NA"))
       }
+      if (min(labels) < 1) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels must be >= 1"))
+      }
+
+      # Convert to 0-indexed
+      dpObj_copy$indDP[[i]]$clusterLabels <- as.integer(labels - 1)
     }
   }
 
@@ -176,11 +206,10 @@ UpdateG0.cpp <- function(dpObj) {
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+    if (!is.null(result$indDP[[i]]$clusterLabels) &&
+        length(result$indDP[[i]]$clusterLabels) > 0) {
       labels <- result$indDP[[i]]$clusterLabels
-      if (length(labels) > 0) {
-        result$indDP[[i]]$clusterLabels <- labels + 1
-      }
+      result$indDP[[i]]$clusterLabels <- as.integer(labels + 1)
     }
   }
 
@@ -199,11 +228,20 @@ UpdateGamma.cpp <- function(dpObj) {
 
   # Convert labels
   for (i in seq_along(dpObj_copy$indDP)) {
-    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels)) {
+    if (!is.null(dpObj_copy$indDP[[i]]$clusterLabels) &&
+        length(dpObj_copy$indDP[[i]]$clusterLabels) > 0) {
       labels <- dpObj_copy$indDP[[i]]$clusterLabels
-      if (length(labels) > 0 && min(labels) >= 1) {
-        dpObj_copy$indDP[[i]]$clusterLabels <- labels - 1
+
+      # Validate
+      if (any(is.na(labels))) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels cannot be NA"))
       }
+      if (min(labels) < 1) {
+        stop(paste("Invalid cluster labels in DP", i, ": labels must be >= 1"))
+      }
+
+      # Convert to 0-indexed
+      dpObj_copy$indDP[[i]]$clusterLabels <- as.integer(labels - 1)
     }
   }
 
@@ -216,11 +254,10 @@ UpdateGamma.cpp <- function(dpObj) {
 
   # Convert back
   for (i in seq_along(result$indDP)) {
-    if (!is.null(result$indDP[[i]]$clusterLabels)) {
+    if (!is.null(result$indDP[[i]]$clusterLabels) &&
+        length(result$indDP[[i]]$clusterLabels) > 0) {
       labels <- result$indDP[[i]]$clusterLabels
-      if (length(labels) > 0) {
-        result$indDP[[i]]$clusterLabels <- labels + 1
-      }
+      result$indDP[[i]]$clusterLabels <- as.integer(labels + 1)
     }
   }
 

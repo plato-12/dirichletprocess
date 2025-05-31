@@ -54,15 +54,28 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
 
         // Set cluster information with bounds checking
         if (dp_obj.containsElementNamed("clusterLabels")) {
-          arma::uvec labels = Rcpp::as<arma::uvec>(dp_obj["clusterLabels"]);
-          // Ensure labels are valid (>= 1 in R, >= 0 in C++ after conversion)
-          if (labels.size() > 0 && labels.min() < 1) {
-            delete betaDP;
-            throw Rcpp::exception("Invalid cluster labels (must be >= 1)");
+          SEXP labels_sexp = dp_obj["clusterLabels"];
+          if (!Rf_isNull(labels_sexp)) {
+            arma::uvec labels = Rcpp::as<arma::uvec>(labels_sexp);
+            if (labels.size() > 0) {
+              // Labels should already be 0-indexed from R wrapper
+              // Just check they're not negative
+              if (labels.min() < 0) {
+                delete betaDP;
+                throw Rcpp::exception("Invalid cluster labels (must be >= 0 after conversion)");
+              }
+              betaDP->clusterLabels = labels;  // Already 0-indexed
+            } else {
+              // Empty labels vector
+              betaDP->clusterLabels = arma::uvec();
+            }
+          } else {
+            // NULL labels - initialize as empty
+            betaDP->clusterLabels = arma::uvec();
           }
-          if (labels.size() > 0) {
-            betaDP->clusterLabels = labels - 1; // Convert to 0-indexed
-          }
+        } else {
+          // No cluster labels - initialize as empty
+          betaDP->clusterLabels = arma::uvec();
         }
 
         if (dp_obj.containsElementNamed("pointsPerCluster")) {
