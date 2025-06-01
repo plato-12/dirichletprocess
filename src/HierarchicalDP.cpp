@@ -76,6 +76,9 @@ Rcpp::List HierarchicalDP::toR() const {
         dp_r["clusterLabels"] = labels + 1;
       }
 
+      // Preserve S3 class attributes for individual DPs
+      dp_r.attr("class") = Rcpp::CharacterVector::create("dirichletprocess", "beta", "nonconjugate");
+
       indDP_list[i] = dp_r;
     }
   }
@@ -85,6 +88,14 @@ Rcpp::List HierarchicalDP::toR() const {
   result["globalStick"] = globalStick;
   result["gamma"] = gamma;
   result["gammaPriors"] = gammaPriors;
+
+  // Add gamma chain if available
+  if (gammaChain.size() > 0) {
+    result["gammaValues"] = gammaChain;
+  }
+
+  // Set S3 class for the hierarchical object
+  result.attr("class") = Rcpp::CharacterVector::create("list", "dirichletprocess", "hierarchical");
 
   return result;
 }

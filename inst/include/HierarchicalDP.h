@@ -48,6 +48,12 @@ public:
 
   // Additional methods specific to Beta hierarchical DP
   void fit(int iterations, bool updatePrior = false, bool progressBar = true);
+
+  // Add these override declarations:
+  void globalParameterUpdate() override;
+  void updateG0() override;
+  void updateGamma() override;
+
   static HierarchicalBetaDP* fromR(const Rcpp::List& rObj);
 };
 

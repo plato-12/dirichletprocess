@@ -149,6 +149,251 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
   }
 }
 
+void HierarchicalBetaDP::globalParameterUpdate() {
+  // Get unique global labels across all DPs
+  std::vector<int> all_global_labels;
+
+  for (size_t i = 0; i < indDP.size(); i++) {
+    NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
+    if (!betaDP) continue;
+
+    // Match cluster parameters to global parameters
+    Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
+    Rcpp::NumericVector mu_global = globalParameters[0];
+
+    for (int j = 0; j < betaDP->numberClusters; j++) {
+      // Find which global parameter this cluster corresponds to
+      for (int k = 0; k < mu_global.size(); k++) {
+        if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
+          all_global_labels.push_back(k);
+          break;
+        }
+      }
+    }
+  }
+
+  // Get unique labels
+  std::sort(all_global_labels.begin(), all_global_labels.end());
+  all_global_labels.erase(std::unique(all_global_labels.begin(), all_global_labels.end()),
+                          all_global_labels.end());
+
+  // Update each global parameter
+  for (int global_idx : all_global_labels) {
+    // Collect all data points assigned to this global parameter
+    std::vector<double> combined_data;
+
+    for (size_t dp_idx = 0; dp_idx < indDP.size(); dp_idx++) {
+      NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[dp_idx]);
+      if (!betaDP) continue;
+
+      Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
+      Rcpp::NumericVector mu_global = globalParameters[0];
+
+      // Find clusters in this DP that use this global parameter
+      for (int j = 0; j < betaDP->numberClusters; j++) {
+        if (std::abs(mu_params[j] - mu_global[global_idx]) < 1e-10) {
+          // Get data points for this cluster
+          for (int i = 0; i < betaDP->n; i++) {
+            if (betaDP->clusterLabels[i] == j) {
+              combined_data.push_back(betaDP->data(i, 0));
+            }
+          }
+        }
+      }
+    }
+
+    if (combined_data.size() > 0) {
+      // Draw new parameters from posterior
+      arma::mat data_mat(combined_data.size(), 1);
+      for (size_t i = 0; i < combined_data.size(); i++) {
+        data_mat(i, 0) = combined_data[i];
+      }
+
+      Rcpp::List new_params = indDP[0]->getMixingDistribution()->posteriorDraw(data_mat, 100);
+      Rcpp::NumericVector new_mu = new_params[0];
+      Rcpp::NumericVector new_nu = new_params[1];
+
+      // Update global parameters
+      Rcpp::NumericVector mu_global = globalParameters[0];
+      Rcpp::NumericVector nu_global = globalParameters[1];
+      mu_global[global_idx] = new_mu[99]; // Last sample
+      nu_global[global_idx] = new_nu[99];
+      globalParameters[0] = mu_global;
+      globalParameters[1] = nu_global;
+
+      // Update individual DP parameters
+      for (size_t dp_idx = 0; dp_idx < indDP.size(); dp_idx++) {
+        NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[dp_idx]);
+        if (!betaDP) continue;
+
+        Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
+        Rcpp::NumericVector nu_params = betaDP->clusterParameters[1];
+
+        for (int j = 0; j < betaDP->numberClusters; j++) {
+          if (std::abs(mu_params[j] - mu_global[global_idx]) < 1e-10) {
+            mu_params[j] = new_mu[99];
+            nu_params[j] = new_nu[99];
+          }
+        }
+
+        betaDP->clusterParameters[0] = mu_params;
+        betaDP->clusterParameters[1] = nu_params;
+      }
+    }
+  }
+}
+
+void HierarchicalBetaDP::updateGamma() {
+  // Get the number of unique global parameters
+  std::set<int> unique_global_labels;
+
+  for (size_t i = 0; i < indDP.size(); i++) {
+    NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
+    if (!betaDP) continue;
+
+    Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
+    Rcpp::NumericVector mu_global = globalParameters[0];
+
+    for (int j = 0; j < betaDP->numberClusters; j++) {
+      for (int k = 0; k < mu_global.size(); k++) {
+        if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
+          unique_global_labels.insert(k);
+          break;
+        }
+      }
+    }
+  }
+
+  int numParams = unique_global_labels.size();
+  int numTables = 0;
+
+  // Count total number of tables
+  for (auto& dp : indDP) {
+    NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(dp);
+    if (betaDP) {
+      numTables += betaDP->numberClusters;
+    }
+  }
+
+  // Update gamma using the same logic as in R
+  double x = R::rbeta(gamma + 1.0, numTables);
+  double log_x = std::log(x);
+
+  double pi1 = gammaPriors[0] + numParams - 1.0;
+  double pi2 = numTables * (gammaPriors[1] - log_x);
+
+  double pi_val = pi1 / (pi1 + pi2);
+  if (!std::isfinite(pi_val)) {
+    pi_val = 0.5;
+  }
+
+  double postShape;
+  if (R::runif(0, 1) < pi_val) {
+    postShape = gammaPriors[0] + numParams;
+  } else {
+    postShape = gammaPriors[0] + numParams - 1.0;
+  }
+
+  double postRate = gammaPriors[1] - log_x;
+  if (postRate <= 0) postRate = 1e-6;
+
+  gamma = R::rgamma(postShape, 1.0 / postRate);
+  if (gamma <= 0) gamma = 1e-6;
+}
+
+void HierarchicalBetaDP::updateG0() {
+  // Get global parameters and their frequencies
+  std::map<int, int> global_param_counts;
+
+  for (size_t i = 0; i < indDP.size(); i++) {
+    NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
+    if (!betaDP) continue;
+
+    Rcpp::NumericVector mu_params = betaDP->clusterParameters[0];
+    Rcpp::NumericVector mu_global = globalParameters[0];
+
+    for (int j = 0; j < betaDP->numberClusters; j++) {
+      for (int k = 0; k < mu_global.size(); k++) {
+        if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
+          global_param_counts[k]++;
+          break;
+        }
+      }
+    }
+  }
+
+  int num_tables = global_param_counts.size();
+  if (num_tables == 0) return;
+
+  // Get frequencies
+  Rcpp::NumericVector frequencies(num_tables);
+  int idx = 0;
+  for (auto& pair : global_param_counts) {
+    frequencies[idx++] = pair.second;
+  }
+
+  // Draw from Dirichlet distribution
+  Rcpp::NumericVector dirichlet_params = Rcpp::NumericVector::create();
+  for (int i = 0; i < num_tables; i++) {
+    dirichlet_params.push_back(frequencies[i]);
+  }
+  dirichlet_params.push_back(gamma);
+
+  // Use R's rdirichlet through Rcpp
+  Rcpp::Environment gtools("package:gtools");
+  Rcpp::Function rdirichlet = gtools["rdirichlet"];
+  Rcpp::NumericMatrix dirichlet_draw = rdirichlet(1, dirichlet_params);
+  Rcpp::NumericVector weights = dirichlet_draw(0, Rcpp::_);
+
+  // Update stick breaking weights
+  int num_breaks = std::ceil(gamma + num_tables) * 20 + 5;
+  globalStick.set_size(num_tables + num_breaks);
+
+  // Existing table weights
+  for (int i = 0; i < num_tables; i++) {
+    globalStick[i] = weights[i];
+  }
+
+  // New table weights from stick breaking
+  double remaining_weight = weights[num_tables];
+  for (int i = 0; i < num_breaks; i++) {
+    double beta = R::rbeta(1.0, gamma + num_tables);
+    globalStick[num_tables + i] = beta * remaining_weight;
+    remaining_weight *= (1.0 - beta);
+  }
+
+  // Draw new parameters for the additional breaks
+  BetaMixingDistribution* betaMD = dynamic_cast<BetaMixingDistribution*>(
+    dynamic_cast<NonConjugateBetaDP*>(indDP[0])->mixingDistribution);
+
+  if (betaMD) {
+    Rcpp::List new_params = betaMD->priorDraw(num_breaks);
+
+    // Expand global parameters
+    Rcpp::NumericVector mu_global = globalParameters[0];
+    Rcpp::NumericVector nu_global = globalParameters[1];
+    Rcpp::NumericVector new_mu = new_params[0];
+    Rcpp::NumericVector new_nu = new_params[1];
+
+    // Combine existing and new parameters
+    Rcpp::NumericVector expanded_mu(mu_global.size() + num_breaks);
+    Rcpp::NumericVector expanded_nu(nu_global.size() + num_breaks);
+
+    for (int i = 0; i < mu_global.size(); i++) {
+      expanded_mu[i] = mu_global[i];
+      expanded_nu[i] = nu_global[i];
+    }
+
+    for (int i = 0; i < num_breaks; i++) {
+      expanded_mu[mu_global.size() + i] = new_mu[i];
+      expanded_nu[nu_global.size() + i] = new_nu[i];
+    }
+
+    globalParameters[0] = expanded_mu;
+    globalParameters[1] = expanded_nu;
+  }
+}
+
 void HierarchicalBetaDP::fit(int iterations, bool updatePrior, bool progressBar) {
   if (progressBar) {
     Rcpp::Rcout << "Starting Hierarchical Beta DP fitting..." << std::endl;

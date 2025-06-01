@@ -362,6 +362,36 @@ void NonConjugateBetaDP::clusterParameterUpdate() {
   }
 }
 
+Rcpp::List NonConjugateBetaDP::toR() const {
+  Rcpp::List result;
+  result["data"] = data;
+  result["n"] = n;
+  result["alpha"] = alpha;
+  result["alphaPriorParameters"] = alphaPriorParameters;
+  result["mhDraws"] = mhDraws;
+
+  // Ensure cluster labels are valid
+  if (clusterLabels.n_elem == 0 && n > 0) {
+    // Initialize with all points in one cluster if empty
+    result["clusterLabels"] = arma::uvec(n, arma::fill::ones);
+    result["numberClusters"] = 1;
+    result["pointsPerCluster"] = arma::uvec({static_cast<arma::uword>(n)});
+  } else {
+    result["clusterLabels"] = clusterLabels; // Already 0-indexed
+    result["numberClusters"] = numberClusters;
+    result["pointsPerCluster"] = pointsPerCluster;
+  }
+
+  result["clusterParameters"] = clusterParameters;
+  result["m"] = m;
+
+  if (mixingDistribution) {
+    result["mixingDistribution"] = mixingDistribution->toR();
+  }
+
+  return result;
+}
+
 void NonConjugateBetaDP::updateAlpha() {
   double x_draw_val = R::rbeta(alpha + 1.0, n);
   Rcpp::NumericVector currentAlphaPrior = Rcpp::as<Rcpp::NumericVector>(alphaPriorParameters);
