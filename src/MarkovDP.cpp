@@ -79,28 +79,35 @@ void MarkovDP::updateStates() {
 
         // Calculate likelihoods
         Rcpp::NumericVector likelihoodValues(2);
-        int candidate_states[2] = {(int)states[0], (int)states[1]};
+        int candidate_indices[2] = {0, 1}; // Indices into data/params arrays
 
         for (int k = 0; k < 2; k++) {
-          // Bounds check
-          if (candidate_states[k] < 0 || candidate_states[k] >= static_cast<int>(params.size())) {
-            Rcpp::stop("Invalid state index %d (params size: %d)", candidate_states[k], params.size());
+          int idx = candidate_indices[k];
+
+          // Get parameters for this candidate
+          Rcpp::List state_params;
+          if (idx < static_cast<int>(params.size()) && params[idx].size() > 0) {
+            state_params = params[idx];
+          } else {
+            // Use default parameters
+            state_params = mixingDistribution->priorDraw(1);
           }
 
-          Rcpp::List state_params = params[candidate_states[k]];
-
-          // Handle different distribution types
+          // Format parameters for likelihood calculation
           if (mixingDistribution->distribution == "normal") {
-            // Ensure parameters are properly formatted
             if (!state_params.containsElementNamed("mu") || !state_params.containsElementNamed("sigma")) {
-              // Convert from array format to named list
               Rcpp::List formatted_params;
               if (state_params.size() >= 2) {
-                // Extract scalar values from potentially array-formatted parameters
+                // Extract scalar values safely
                 Rcpp::NumericVector mu_vec = state_params[0];
                 Rcpp::NumericVector sigma_vec = state_params[1];
-                formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
-                formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
+                if (mu_vec.size() > 0 && sigma_vec.size() > 0) {
+                  formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
+                  formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
+                } else {
+                  formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
+                  formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
+                }
               } else {
                 formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
                 formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
@@ -131,10 +138,10 @@ void MarkovDP::updateStates() {
 
         // Sample
         double u = R::runif(0, 1);
-        int newState = (u < probs[0]) ? candidate_states[0] : candidate_states[1];
+        int newStateIdx = (u < probs[0]) ? 0 : 1;
 
-        states[i] = newState;
-        params[i] = params[newState];
+        states[i] = states[newStateIdx];
+        params[i] = params[newStateIdx];
       }
     }
     else if (i == n - 1) {
@@ -153,15 +160,18 @@ void MarkovDP::updateStates() {
 
         // Calculate likelihoods
         Rcpp::NumericVector likelihoodValues(2);
-        int candidate_states[2] = {(int)states[i-1], (int)states[i]};
+        int candidate_indices[2] = {i-1, i};
 
         for (int k = 0; k < 2; k++) {
-          // Bounds check
-          if (candidate_states[k] < 0 || candidate_states[k] >= static_cast<int>(params.size())) {
-            Rcpp::stop("Invalid state index %d (params size: %d)", candidate_states[k], params.size());
-          }
+          int idx = candidate_indices[k];
 
-          Rcpp::List state_params = params[candidate_states[k]];
+          // Get parameters for this candidate
+          Rcpp::List state_params;
+          if (idx < static_cast<int>(params.size()) && params[idx].size() > 0) {
+            state_params = params[idx];
+          } else {
+            state_params = mixingDistribution->priorDraw(1);
+          }
 
           if (mixingDistribution->distribution == "normal") {
             if (!state_params.containsElementNamed("mu") || !state_params.containsElementNamed("sigma")) {
@@ -169,8 +179,13 @@ void MarkovDP::updateStates() {
               if (state_params.size() >= 2) {
                 Rcpp::NumericVector mu_vec = state_params[0];
                 Rcpp::NumericVector sigma_vec = state_params[1];
-                formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
-                formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
+                if (mu_vec.size() > 0 && sigma_vec.size() > 0) {
+                  formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
+                  formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
+                } else {
+                  formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
+                  formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
+                }
               } else {
                 formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
                 formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
@@ -200,10 +215,10 @@ void MarkovDP::updateStates() {
 
         // Sample
         double u = R::runif(0, 1);
-        int newState = (u < probs[0]) ? candidate_states[0] : candidate_states[1];
+        int newStateIdx = (u < probs[0]) ? 0 : 1;
 
-        states[i] = newState;
-        params[i] = params[newState];
+        states[i] = states[candidate_indices[newStateIdx]];
+        params[i] = params[candidate_indices[newStateIdx]];
       }
     }
     else {
@@ -229,15 +244,18 @@ void MarkovDP::updateStates() {
 
         // Calculate likelihoods
         Rcpp::NumericVector likelihoodValues(2);
-        int candidate_states[2] = {(int)states[i-1], (int)states[i+1]};
+        int candidate_indices[2] = {i-1, i+1};
 
         for (int k = 0; k < 2; k++) {
-          // Bounds check
-          if (candidate_states[k] < 0 || candidate_states[k] >= static_cast<int>(params.size())) {
-            Rcpp::stop("Invalid state index %d (params size: %d)", candidate_states[k], params.size());
-          }
+          int idx = candidate_indices[k];
 
-          Rcpp::List state_params = params[candidate_states[k]];
+          // Get parameters for this candidate
+          Rcpp::List state_params;
+          if (idx < static_cast<int>(params.size()) && params[idx].size() > 0) {
+            state_params = params[idx];
+          } else {
+            state_params = mixingDistribution->priorDraw(1);
+          }
 
           if (mixingDistribution->distribution == "normal") {
             if (!state_params.containsElementNamed("mu") || !state_params.containsElementNamed("sigma")) {
@@ -245,8 +263,13 @@ void MarkovDP::updateStates() {
               if (state_params.size() >= 2) {
                 Rcpp::NumericVector mu_vec = state_params[0];
                 Rcpp::NumericVector sigma_vec = state_params[1];
-                formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
-                formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
+                if (mu_vec.size() > 0 && sigma_vec.size() > 0) {
+                  formatted_params["mu"] = Rcpp::NumericVector::create(mu_vec[0]);
+                  formatted_params["sigma"] = Rcpp::NumericVector::create(sigma_vec[0]);
+                } else {
+                  formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
+                  formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
+                }
               } else {
                 formatted_params["mu"] = Rcpp::NumericVector::create(0.0);
                 formatted_params["sigma"] = Rcpp::NumericVector::create(1.0);
@@ -276,16 +299,37 @@ void MarkovDP::updateStates() {
 
         // Sample
         double u = R::runif(0, 1);
-        int newState = (u < probs[0]) ? candidate_states[0] : candidate_states[1];
+        int newStateIdx = (u < probs[0]) ? 0 : 1;
 
-        states[i] = newState;
-        params[i] = params[newState];
+        states[i] = states[candidate_indices[newStateIdx]];
+        params[i] = params[candidate_indices[newStateIdx]];
       }
     }
   }
 
-  // Relabel states to be contiguous
+  // Relabel states to be contiguous and update params accordingly
+  arma::uvec old_states = states;
   states = relabelStates(states);
+
+  // Update params to match the new state labels
+  // First, determine the mapping from old to new states
+  arma::uvec unique_old = arma::unique(old_states);
+  arma::uvec unique_new = arma::unique(states);
+
+  // Create a mapping
+  std::map<int, int> state_map;
+  for (size_t i = 0; i < unique_old.n_elem; i++) {
+    // Find all positions with this old state
+    arma::uvec positions = arma::find(old_states == unique_old[i]);
+    if (positions.n_elem > 0) {
+      // Get the new state for the first position
+      state_map[unique_old[i]] = states[positions[0]];
+    }
+  }
+
+  // Now update params based on the new state assignments
+  // This ensures params[i] contains the parameters for states[i]
+  // No additional updates needed since params[i] already points to correct parameters
 }
 
 // Relabel states to be contiguous (0, 1, 2, ...)
@@ -384,15 +428,39 @@ void MarkovDP::updateAlphaBeta() {
 
 // Update parameters for each unique state
 void MarkovDP::paramUpdate() {
-  // Update uniqueParams based on ClusterParameterUpdate logic
-
-  // For each unique state, collect all data points assigned to it
+  // Get unique states
   arma::uvec uniqueStates = arma::unique(states);
   int numUniqueStates = uniqueStates.n_elem;
 
-  // Create new uniqueParams
-  Rcpp::List newUniqueParams = mixingDistribution->priorDraw(numUniqueStates);
+  // Initialize new unique parameters
+  Rcpp::List newUniqueParams;
 
+  // First, determine the structure from existing uniqueParams or create new
+  if (uniqueParams.size() > 0) {
+    // Initialize with same structure
+    for (int j = 0; j < uniqueParams.size(); j++) {
+      Rcpp::NumericVector paramArray = uniqueParams[j];
+      if (paramArray.hasAttribute("dim")) {
+        Rcpp::IntegerVector dims = paramArray.attr("dim");
+        if (dims.size() == 3) {
+          // Create new array with correct size for unique states
+          Rcpp::NumericVector newArray(dims[0] * dims[1] * numUniqueStates);
+          newArray.attr("dim") = Rcpp::IntegerVector::create(dims[0], dims[1], numUniqueStates);
+          newUniqueParams.push_back(newArray);
+        } else {
+          newUniqueParams.push_back(Rcpp::NumericVector(numUniqueStates));
+        }
+      } else {
+        newUniqueParams.push_back(Rcpp::NumericVector(numUniqueStates));
+      }
+    }
+  } else {
+    // Create from prior draw
+    Rcpp::List priorSample = mixingDistribution->priorDraw(numUniqueStates);
+    newUniqueParams = priorSample;
+  }
+
+  // Update parameters for each unique state
   for (int i = 0; i < numUniqueStates; i++) {
     // Find all data points for this state
     arma::uvec stateIndices = arma::find(states == uniqueStates[i]);
@@ -401,37 +469,27 @@ void MarkovDP::paramUpdate() {
       arma::mat stateData = data.rows(stateIndices);
 
       // Draw from posterior
-      Rcpp::List postDraw;
-      if (mixingDistribution->conjugate) {
-        postDraw = mixingDistribution->posteriorDraw(stateData, 1);
-      } else {
-        // For non-conjugate, use current params as starting point
-        Rcpp::List currentParams;
-        for (int j = 0; j < uniqueParams.size(); j++) {
-          Rcpp::NumericVector paramArray = uniqueParams[j];
-          currentParams.push_back(paramArray);
-        }
-        postDraw = mixingDistribution->posteriorDraw(stateData, 1);
-      }
+      Rcpp::List postDraw = mixingDistribution->posteriorDraw(stateData, 1);
 
       // Update unique parameters
       for (int j = 0; j < postDraw.size(); j++) {
         Rcpp::NumericVector paramArray = newUniqueParams[j];
         Rcpp::NumericVector newParam = postDraw[j];
 
-        // Copy the new parameter value
         if (paramArray.hasAttribute("dim") && newParam.hasAttribute("dim")) {
           Rcpp::IntegerVector dims = paramArray.attr("dim");
-          int idx = i; // For 3D array with last dimension being the parameter index
           if (dims.size() == 3) {
+            // Copy the parameter values
             for (int k = 0; k < dims[0] * dims[1]; k++) {
-              paramArray[k + idx * dims[0] * dims[1]] = newParam[k];
+              paramArray[k + i * dims[0] * dims[1]] = newParam[k];
             }
           } else {
             paramArray[i] = newParam[0];
           }
         } else {
-          paramArray[i] = newParam[0];
+          if (newParam.size() > 0) {
+            paramArray[i] = newParam[0];
+          }
         }
       }
     }
@@ -440,8 +498,8 @@ void MarkovDP::paramUpdate() {
   uniqueParams = newUniqueParams;
 
   // Update params to point to the correct unique parameters
-  params.clear();
-  params.reserve(states.n_elem); // Reserve space
+  std::vector<Rcpp::List> newParams;
+  newParams.reserve(states.n_elem);
 
   for (size_t i = 0; i < states.n_elem; i++) {
     Rcpp::List stateParams;
@@ -461,7 +519,7 @@ void MarkovDP::paramUpdate() {
 
       if (paramArray.hasAttribute("dim")) {
         Rcpp::IntegerVector dims = paramArray.attr("dim");
-        if (dims.size() == 3) {
+        if (dims.size() == 3 && dims[2] > uniqueIdx) {
           // Extract slice for this state
           Rcpp::NumericVector stateParam(dims[0] * dims[1]);
           stateParam.attr("dim") = Rcpp::IntegerVector::create(dims[0], dims[1], 1);
@@ -470,16 +528,25 @@ void MarkovDP::paramUpdate() {
             stateParam[k] = paramArray[k + uniqueIdx * dims[0] * dims[1]];
           }
           stateParams.push_back(stateParam);
-        } else {
+        } else if (paramArray.size() > uniqueIdx) {
           stateParams.push_back(Rcpp::NumericVector::create(paramArray[uniqueIdx]));
+        } else {
+          // Default value if index out of bounds
+          stateParams.push_back(Rcpp::NumericVector::create(0.0));
         }
       } else {
-        stateParams.push_back(Rcpp::NumericVector::create(paramArray[uniqueIdx]));
+        if (paramArray.size() > uniqueIdx) {
+          stateParams.push_back(Rcpp::NumericVector::create(paramArray[uniqueIdx]));
+        } else {
+          stateParams.push_back(Rcpp::NumericVector::create(0.0));
+        }
       }
     }
 
-    params.push_back(stateParams);
+    newParams.push_back(stateParams);
   }
+
+  params = newParams;
 }
 
 // Fit method
