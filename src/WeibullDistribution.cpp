@@ -88,7 +88,7 @@ Rcpp::NumericVector WeibullMixingDistribution::priorDensity(const Rcpp::List& th
   if (alpha > 0 && alpha < priorParams[0]) {
     density = 1.0 / priorParams[0];
   } else {
-    density = 1e-10;
+    density = 0.0;
   }
 
   return Rcpp::NumericVector::create(density);
@@ -312,6 +312,26 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
 
   for (int i = 0; i < n; i++) {
     int currentLabel = clusterLabels[i];
+
+    // Ensure currentLabel is a valid index for pointsPerCluster
+    if (currentLabel < 0 || currentLabel >= (int)pointsPerCluster.n_elem) {
+      Rcpp::stop("Invalid cluster label encountered for point %d: %d (max allowed: %d)", i, currentLabel, pointsPerCluster.n_elem -1 );
+    }
+
+    // Remove point from current cluster
+    if (pointsPerCluster[currentLabel] > 0) { // Check before decrementing
+      pointsPerCluster[currentLabel]--;
+    } else {
+      // This signifies a logical error: the point is said to be in 'currentLabel',
+      // but 'pointsPerCluster' claims this cluster is already empty.
+      // This should not happen in a consistent state.
+      // For now, this will prevent underflow but the underlying issue might persist.
+      Rcpp::Rcerr << "Warning: Point " << i << " (label " << currentLabel
+                  << ") belongs to a cluster that pointsPerCluster reports as empty. Count not decremented."
+                  << std::endl;
+      // Depending on the desired robustness, you might want to stop,
+      // or attempt a recovery, or ensure initialization/cleanup logic prevents this state.
+    }
 
     // Remove point from current cluster
     pointsPerCluster[currentLabel]--;

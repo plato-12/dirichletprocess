@@ -51,7 +51,7 @@ PriorDensity.weibull <- function(mdObj, theta) {
 
   priorParameters <- mdObj$priorParameters
 
-  theta_density <- dunif(theta[[1]], 0, priorParameters[1])
+  theta_density <- dunif(as.numeric(theta[[1]][1,1,1]), 0, priorParameters[1])
   #theta_density <- thetaDensity * dgamma(1/theta[[2]], priorParameters[2], priorParameters[3])
   return(theta_density)
 }

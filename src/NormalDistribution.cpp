@@ -9,6 +9,11 @@ NormalMixingDistribution::NormalMixingDistribution(const Rcpp::NumericVector& pr
   distribution = "normal";
   conjugate = true;
   priorParameters = priorParams;
+
+  // Ensure we have 4 parameters
+  if (priorParams.size() != 4) {
+    Rcpp::stop("Normal distribution requires 4 prior parameters");
+  }
 }
 
 NormalMixingDistribution::~NormalMixingDistribution() {
@@ -16,7 +21,7 @@ NormalMixingDistribution::~NormalMixingDistribution() {
 }
 
 Rcpp::NumericVector NormalMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
-  // Extract parameters from theta
+  // Extract parameters with safety checks
   Rcpp::NumericVector mu_array = theta[0];
   Rcpp::NumericVector sigma_array = theta[1];
 
