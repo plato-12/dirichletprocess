@@ -57,6 +57,8 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
 
   for (int i = 0; i < n; i++) {
     alpha_values[i] = R::runif(0.0, priorParams[0]);
+    // R code: lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
+    // rgamma uses shape and scale parameterization in R
     double gamma_draw = R::rgamma(priorParams[1], 1.0 / priorParams[2]);
     lambda_values[i] = 1.0 / gamma_draw;
   }
@@ -318,23 +320,15 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
       Rcpp::stop("Invalid cluster label encountered for point %d: %d (max allowed: %d)", i, currentLabel, pointsPerCluster.n_elem -1 );
     }
 
-    // Remove point from current cluster
-    if (pointsPerCluster[currentLabel] > 0) { // Check before decrementing
+    // Remove point from current cluster - ONLY ONCE!
+    if (pointsPerCluster[currentLabel] > 0) {
       pointsPerCluster[currentLabel]--;
     } else {
-      // This signifies a logical error: the point is said to be in 'currentLabel',
-      // but 'pointsPerCluster' claims this cluster is already empty.
-      // This should not happen in a consistent state.
-      // For now, this will prevent underflow but the underlying issue might persist.
+      // This signifies a logical error
       Rcpp::Rcerr << "Warning: Point " << i << " (label " << currentLabel
                   << ") belongs to a cluster that pointsPerCluster reports as empty. Count not decremented."
                   << std::endl;
-      // Depending on the desired robustness, you might want to stop,
-      // or attempt a recovery, or ensure initialization/cleanup logic prevents this state.
     }
-
-    // Remove point from current cluster
-    pointsPerCluster[currentLabel]--;
 
     // Generate auxiliary parameters
     Rcpp::List aux;
@@ -542,8 +536,8 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
   Rcpp::NumericVector alpha_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
   Rcpp::NumericVector lambda_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]));
 
-  // 1. Remove point from old cluster
-  pointsPerCluster[currentLabel]--;
+  // DON'T decrement here - it's already been done in clusterComponentUpdate
+  // pointsPerCluster[currentLabel]--;  // REMOVED THIS LINE
 
   // 2. Assign to new cluster
   if (newLabel < numberClusters) {
@@ -556,14 +550,32 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
       numberClusters--;
       pointsPerCluster.shed_row(currentLabel);
 
-      alpha_vec.erase(currentLabel);
-      lambda_vec.erase(currentLabel);
+      // Recreate parameter vectors without the removed cluster
+      Rcpp::NumericVector new_alpha_vec(numberClusters);
+      Rcpp::NumericVector new_lambda_vec(numberClusters);
+
+      int idx = 0;
+      for (int j = 0; j < alpha_vec.size(); j++) {
+        if (j != currentLabel) {
+          new_alpha_vec[idx] = alpha_vec[j];
+          new_lambda_vec[idx] = lambda_vec[j];
+          idx++;
+        }
+      }
+
+      alpha_vec = new_alpha_vec;
+      lambda_vec = new_lambda_vec;
 
       // Update labels
       for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
         if (clusterLabels[j] > (unsigned int)currentLabel) {
           clusterLabels[j]--;
         }
+      }
+
+      // Update newLabel if it was affected by the shift
+      if (newLabel > currentLabel) {
+        clusterLabels[i] = newLabel - 1;
       }
     }
   } else {
@@ -585,8 +597,20 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
       Rcpp::NumericVector aux_alpha = aux[0];
       Rcpp::NumericVector aux_lambda = aux[1];
 
-      alpha_vec.push_back(aux_alpha[auxIndex]);
-      lambda_vec.push_back(aux_lambda[auxIndex]);
+      // Recreate vectors with one more element
+      Rcpp::NumericVector new_alpha_vec(numberClusters + 1);
+      Rcpp::NumericVector new_lambda_vec(numberClusters + 1);
+
+      for (int j = 0; j < numberClusters; j++) {
+        new_alpha_vec[j] = alpha_vec[j];
+        new_lambda_vec[j] = lambda_vec[j];
+      }
+
+      new_alpha_vec[numberClusters] = aux_alpha[auxIndex];
+      new_lambda_vec[numberClusters] = aux_lambda[auxIndex];
+
+      alpha_vec = new_alpha_vec;
+      lambda_vec = new_lambda_vec;
 
       clusterLabels[i] = numberClusters;
       pointsPerCluster.resize(numberClusters + 1);
