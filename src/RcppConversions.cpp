@@ -217,8 +217,37 @@ MixingDistribution* createMDFromR(const Rcpp::List& rObj) {
   if (md) {
     md->distribution = distType;
 
+    // Updated logic for handling the 'conjugate' field
     if (rObj.containsElementNamed("conjugate")) {
-      md->conjugate = Rcpp::as<bool>(rObj["conjugate"]);
+      SEXP conjugate_sexp = rObj["conjugate"]; // Get the SEXP for the 'conjugate' field
+
+      if (TYPEOF(conjugate_sexp) == STRSXP) { // Check if it's a string
+        Rcpp::CharacterVector conjugate_r_str_vec(conjugate_sexp);
+        if (conjugate_r_str_vec.length() > 0) {
+          std::string conjugate_str = Rcpp::as<std::string>(conjugate_r_str_vec[0]);
+          if (conjugate_str == "conjugate") {
+            md->conjugate = true;
+          } else if (conjugate_str == "nonconjugate") {
+            md->conjugate = false;
+          } else {
+            // Unknown string: issue a warning and default, or stop with an error
+            Rcpp::warning("Unknown string value '%s' for 'conjugate' field in MixingDistribution. Defaulting to false for C++ object.", conjugate_str.c_str());
+            md->conjugate = false;
+          }
+        } else {
+          Rcpp::warning("Empty string vector for 'conjugate' field in MixingDistribution. Defaulting to false for C++ object.");
+          md->conjugate = false;
+        }
+      } else if (TYPEOF(conjugate_sexp) == LGLSXP) { // Optionally handle if it's already boolean
+        md->conjugate = Rcpp::as<bool>(conjugate_sexp);
+      } else {
+        // Type is neither string nor logical
+        Rcpp::stop("MixingDistribution 'conjugate' parameter from R must be a string ('conjugate'/'nonconjugate') or a logical value. Received type: %s", Rf_type2char(TYPEOF(conjugate_sexp)));
+      }
+    } else {
+      // If 'conjugate' field is missing entirely. This should ideally be caught by R-side checks.
+      Rcpp::warning("'conjugate' field is missing in R object for MixingDistribution. Defaulting C++ 'conjugate' flag to false.");
+      md->conjugate = false; // Default or error
     }
 
     if (rObj.containsElementNamed("priorParameters")) {
