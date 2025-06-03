@@ -44,6 +44,10 @@ public:
   arma::uvec relabelStates(const arma::uvec& dpStates);
   double alphabetaLogPosterior(double alpha, double beta, const arma::vec& nii);
 
+  // NEW: Helper methods for parameter validation
+  Rcpp::List getValidatedParams(int idx);
+  Rcpp::List getDefaultNormalParams();
+
   // Conversion methods
   Rcpp::List toR() const override;
   static MarkovDP* fromR(const Rcpp::List& rObj);

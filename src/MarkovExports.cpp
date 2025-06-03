@@ -30,19 +30,53 @@
  Rcpp::List markov_dp_fit_cpp(Rcpp::List dpObj, int iterations,
                               bool updatePrior = false,
                               bool progressBar = true) {
-   // Create C++ object from R
-   dp::MarkovDP* mdp = dp::MarkovDP::fromR(dpObj);
+   dp::MarkovDP* mdp = nullptr;
 
-   // Fit the model
-   mdp->fit(iterations, updatePrior, progressBar);
+   try {
+     // Validate input
+     if (!dpObj.inherits("markov")) {
+       Rcpp::stop("Input must be a Markov DP object");
+     }
 
-   // Convert back to R
-   Rcpp::List result = mdp->toR();
+     if (iterations <= 0) {
+       Rcpp::stop("Number of iterations must be positive");
+     }
 
-   // Clean up
-   delete mdp;
+     // Create C++ object from R with error handling
+     mdp = dp::MarkovDP::fromR(dpObj);
 
-   return result;
+     if (!mdp) {
+       Rcpp::stop("Failed to create MarkovDP object");
+     }
+
+     // Validate that the object was properly initialized
+     if (!mdp->mixingDistribution) {
+       Rcpp::stop("Mixing distribution not properly initialized");
+     }
+
+     // Fit the model
+     mdp->fit(iterations, updatePrior, progressBar);
+
+     // Convert back to R
+     Rcpp::List result = mdp->toR();
+
+     // Clean up
+     delete mdp;
+     mdp = nullptr;
+
+     return result;
+
+   } catch (const std::exception& e) {
+     if (mdp) {
+       delete mdp;
+     }
+     Rcpp::stop("Error in markov_dp_fit_cpp: " + std::string(e.what()));
+   } catch (...) {
+     if (mdp) {
+       delete mdp;
+     }
+     Rcpp::stop("Unknown error in markov_dp_fit_cpp");
+   }
  }
 
 //' @title Update states for Markov DP (C++)
@@ -52,18 +86,53 @@
  //' @export
  // [[Rcpp::export]]
  Rcpp::List markov_dp_update_states_cpp(Rcpp::List dpObj) {
-   dp::MarkovDP* mdp = dp::MarkovDP::fromR(dpObj);
+   dp::MarkovDP* mdp = nullptr;
 
-   // Perform update
-   mdp->updateStates();
+   try {
+     // Validate input
+     if (!dpObj.inherits("markov")) {
+       Rcpp::stop("Input must be a Markov DP object");
+     }
 
-   // Convert back to R
-   Rcpp::List result = mdp->toR();
+     // Create C++ object from R
+     mdp = dp::MarkovDP::fromR(dpObj);
 
-   // Clean up
-   delete mdp;
+     if (!mdp) {
+       Rcpp::stop("Failed to create MarkovDP object");
+     }
 
-   return result;
+     // Validate state
+     if (mdp->states.n_elem == 0) {
+       Rcpp::stop("States vector is empty");
+     }
+
+     if (mdp->states.n_elem != static_cast<size_t>(mdp->n)) {
+       Rcpp::stop("States vector size does not match data size");
+     }
+
+     // Perform update
+     mdp->updateStates();
+
+     // Convert back to R
+     Rcpp::List result = mdp->toR();
+
+     // Clean up
+     delete mdp;
+     mdp = nullptr;
+
+     return result;
+
+   } catch (const std::exception& e) {
+     if (mdp) {
+       delete mdp;
+     }
+     Rcpp::stop("Error in markov_dp_update_states_cpp: " + std::string(e.what()));
+   } catch (...) {
+     if (mdp) {
+       delete mdp;
+     }
+     Rcpp::stop("Unknown error in markov_dp_update_states_cpp");
+   }
  }
 
 //' @title Update alpha and beta for Markov DP (C++)
