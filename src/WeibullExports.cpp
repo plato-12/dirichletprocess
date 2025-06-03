@@ -137,9 +137,12 @@ Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list)
   // Perform cluster component update
   dp_cpp->clusterComponentUpdate();
 
+  // Convert cluster labels back to 1-indexed for R
+  arma::uvec clusterLabels_r = dp_cpp->clusterLabels + 1;
+
   // Extract results
   Rcpp::List result = Rcpp::List::create(
-    Rcpp::Named("clusterLabels") = dp_cpp->clusterLabels,
+    Rcpp::Named("clusterLabels") = clusterLabels_r,  // Convert to 1-indexed
     Rcpp::Named("pointsPerCluster") = dp_cpp->pointsPerCluster,
     Rcpp::Named("numberClusters") = dp_cpp->numberClusters,
     Rcpp::Named("clusterParameters") = dp_cpp->clusterParameters

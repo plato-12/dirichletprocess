@@ -55,10 +55,13 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
   Rcpp::NumericVector alpha_values(n);
   Rcpp::NumericVector lambda_values(n);
 
+  // Fix: priorParams indexing (0-based in C++)
+  // priorParams[0] = phi, priorParams[1] = alpha0, priorParams[2] = beta0
   for (int i = 0; i < n; i++) {
     alpha_values[i] = R::runif(0.0, priorParams[0]);
     // R code: lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
-    // rgamma uses shape and scale parameterization in R
+    // Note: R uses 1-based indexing, so priorParameters[2] in R is priorParams[1] in C++
+    // R's rgamma(shape, rate) where rate is the inverse of scale
     double gamma_draw = R::rgamma(priorParams[1], 1.0 / priorParams[2]);
     lambda_values[i] = 1.0 / gamma_draw;
   }
@@ -102,7 +105,7 @@ Rcpp::List WeibullMixingDistribution::mhParameterProposal(const Rcpp::List& oldP
   Rcpp::NumericVector old_lambda = oldParams[1];
 
   double alpha_old = old_alpha[0];
-  double new_alpha = std::abs(alpha_old + mhStep[0] * R::rnorm(0.0, 1.0));
+  double new_alpha = std::abs(alpha_old + mhStep[0] * R::rnorm(0.0, 1.7)); // Match R implementation
 
   // Create return arrays
   Rcpp::NumericVector alpha_arr(1);
@@ -317,18 +320,11 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
 
     // Ensure currentLabel is a valid index for pointsPerCluster
     if (currentLabel < 0 || currentLabel >= (int)pointsPerCluster.n_elem) {
-      Rcpp::stop("Invalid cluster label encountered for point %d: %d (max allowed: %d)", i, currentLabel, pointsPerCluster.n_elem -1 );
+      Rcpp::stop("Invalid cluster label encountered for point %d: %d (max allowed: %d)", i, currentLabel, pointsPerCluster.n_elem - 1);
     }
 
-    // Remove point from current cluster - ONLY ONCE!
-    if (pointsPerCluster[currentLabel] > 0) {
-      pointsPerCluster[currentLabel]--;
-    } else {
-      // This signifies a logical error
-      Rcpp::Rcerr << "Warning: Point " << i << " (label " << currentLabel
-                  << ") belongs to a cluster that pointsPerCluster reports as empty. Count not decremented."
-                  << std::endl;
-    }
+    // Remove point from current cluster
+    pointsPerCluster[currentLabel]--;
 
     // Generate auxiliary parameters
     Rcpp::List aux;
@@ -536,10 +532,7 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
   Rcpp::NumericVector alpha_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
   Rcpp::NumericVector lambda_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]));
 
-  // DON'T decrement here - it's already been done in clusterComponentUpdate
-  // pointsPerCluster[currentLabel]--;  // REMOVED THIS LINE
-
-  // 2. Assign to new cluster
+  // Assign to new cluster
   if (newLabel < numberClusters) {
     // Existing cluster
     pointsPerCluster[newLabel]++;
