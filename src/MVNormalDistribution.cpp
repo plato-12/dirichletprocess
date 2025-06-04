@@ -6,6 +6,9 @@
 namespace dp {
 
 // MVNormalMixingDistribution implementation
+// Note: Throughout this implementation, 'sig' refers to precision matrices
+// (inverse covariance matrices) following the conjugate Wishart prior convention.
+// When calculating likelihoods, we convert to covariance matrices as needed.
 MVNormalMixingDistribution::MVNormalMixingDistribution(const Rcpp::List& priorParams) {
   distribution = "mvnormal";
   conjugate = true;
@@ -37,6 +40,9 @@ MVNormalMixingDistribution::~MVNormalMixingDistribution() {
 arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x,
                                                     const arma::vec& mu,
                                                     const arma::mat& sigma) const {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   int n = x.n_rows;
   int d = x.n_cols;
   arma::vec result(n);
@@ -76,6 +82,9 @@ arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x,
 
 Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x,
                                                            const Rcpp::List& theta) const {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   // Extract parameters - handle the array structure
   Rcpp::NumericVector mu_array = theta["mu"];
   Rcpp::NumericVector sig_array = theta["sig"];
@@ -116,6 +125,9 @@ Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x,
 }
 
 Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   int d = mu0.n_elem;
 
   // Arrays to store results
@@ -150,13 +162,19 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
 }
 
 Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) const {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   int n = x.n_rows;
   int d = x.n_cols;
 
   // Handle empty data case
   if (n == 0) {
+    // Convert arma::vec to plain Rcpp::NumericVector
+    Rcpp::NumericVector mu0_vec = Rcpp::wrap(mu0);
+    mu0_vec.attr("dim") = R_NilValue; // Remove any dimension attributes
     return Rcpp::List::create(
-      Rcpp::Named("mu_n") = mu0,
+      Rcpp::Named("mu_n") = mu0_vec,
       Rcpp::Named("t_n") = Lambda,
       Rcpp::Named("Lambda_n") = Lambda,  // Add for backward compatibility
       Rcpp::Named("kappa_n") = kappa0,
@@ -169,7 +187,7 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
 
   // Posterior parameters
   double kappa_n = kappa0 + n;
-  arma::vec mu_n = (kappa0 * mu0 + n * x_bar) / kappa_n;
+  arma::vec mu_n_arma = (kappa0 * mu0 + n * x_bar) / kappa_n;
   double nu_n = nu + n;
 
   // Compute scatter matrix
@@ -182,8 +200,12 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
   arma::vec diff = x_bar - mu0;
   arma::mat t_n = Lambda + S + (kappa0 * n / kappa_n) * (diff * diff.t());
 
+  // Convert arma::vec to plain Rcpp::NumericVector
+  Rcpp::NumericVector mu_n_vec = Rcpp::wrap(mu_n_arma);
+  mu_n_vec.attr("dim") = R_NilValue; // Remove any dimension attributes
+
   return Rcpp::List::create(
-    Rcpp::Named("mu_n") = mu_n,
+    Rcpp::Named("mu_n") = mu_n_vec,
     Rcpp::Named("t_n") = t_n,
     Rcpp::Named("Lambda_n") = t_n,  // Add for backward compatibility
     Rcpp::Named("kappa_n") = kappa_n,
@@ -192,6 +214,9 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
 }
 
 Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   // Get posterior parameters
   Rcpp::List post_params = posteriorParameters(x);
 
@@ -234,6 +259,9 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
 }
 
 Rcpp::NumericVector MVNormalMixingDistribution::predictive(const arma::mat& x) const {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   int n = x.n_rows;
   int d = x.n_cols;
   Rcpp::NumericVector result(n);
@@ -290,6 +318,9 @@ Rcpp::List MVNormalMixingDistribution::posteriorDrawStatic(const Rcpp::List& pri
 }
 
 // ConjugateMVNormalDP implementation
+// Note: Throughout this implementation, 'sig' refers to precision matrices
+// (inverse covariance matrices) following the conjugate Wishart prior convention.
+// When calculating likelihoods, we convert to covariance matrices as needed.
 ConjugateMVNormalDP::ConjugateMVNormalDP() : mixingDistribution(nullptr), numberClusters(0) {
   // Constructor
 }
@@ -306,6 +337,9 @@ void ConjugateMVNormalDP::initialisePredictive() {
 }
 
 void ConjugateMVNormalDP::clusterComponentUpdate() {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   // Implementation similar to Normal but for multivariate case
   int n = data.n_rows;
 
@@ -325,14 +359,27 @@ void ConjugateMVNormalDP::clusterComponentUpdate() {
     // Probability for existing clusters
     for (int j = 0; j < numberClusters; j++) {
       if (pointsPerCluster[j] > 0) {
-        // Create parameter list for cluster j
-        Rcpp::List clusterParam = Rcpp::List::create(
-          Rcpp::Named("mu") = mu_array,
-          Rcpp::Named("sig") = sig_array
-        );
+        // Extract parameters for cluster j only
+        int d = data.n_cols;
+        Rcpp::NumericVector mu_j = Rcpp::NumericVector(Rcpp::Dimension(1, d, 1));
+        Rcpp::NumericVector sig_j = Rcpp::NumericVector(Rcpp::Dimension(d, d, 1));
+        // Copy parameters for cluster j
+        for (int k = 0; k < d; k++) {
+          mu_j[k] = mu_array[k + j * d];
+        }
+        for (int k1 = 0; k1 < d; k1++) {
+          for (int k2 = 0; k2 < d; k2++) {
+            sig_j[k1 + k2 * d] = sig_array[k1 + k2 * d + j * d * d];
+          }
+        }
 
+        // Create parameter list for cluster j only
+        Rcpp::List clusterParam = Rcpp::List::create(
+          Rcpp::Named("mu") = mu_j,
+          Rcpp::Named("sig") = sig_j
+        );
         Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
-        probs[j] = pointsPerCluster[j] * lik[j];
+        probs[j] = pointsPerCluster[j] * lik[0]; // Now lik has only 1 element
       } else {
         probs[j] = 0.0;
       }
@@ -377,6 +424,9 @@ void ConjugateMVNormalDP::clusterComponentUpdate() {
 }
 
 void ConjugateMVNormalDP::clusterParameterUpdate() {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   // Update parameters for each cluster
   for (int k = 0; k < numberClusters; k++) {
     // Get data points assigned to this cluster
@@ -439,6 +489,9 @@ void ConjugateMVNormalDP::updateAlpha() {
 }
 
 Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
+  // Note: Throughout this implementation, 'sig' refers to precision matrices
+  // (inverse covariance matrices) following the conjugate Wishart prior convention.
+  // When calculating likelihoods, we convert to covariance matrices as needed.
   if (newLabel == currentLabel) {
     return Rcpp::List::create(
       Rcpp::Named("clusterLabels") = clusterLabels,
@@ -484,9 +537,9 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
       for (int j = 0; j < d; j++) {
         new_mu_array[j + k * d] = mu_array[j + k * d];
       }
-      for (int i = 0; i < d; i++) {
-        for (int j = 0; j < d; j++) {
-          new_sig_array[i + j * d + k * d * d] = sig_array[i + j * d + k * d * d];
+      for (int r_idx = 0; r_idx < d; r_idx++) { // Renamed loop variable to avoid conflict
+        for (int c_idx = 0; c_idx < d; c_idx++) { // Renamed loop variable to avoid conflict
+          new_sig_array[r_idx + c_idx * d + k * d * d] = sig_array[r_idx + c_idx * d + k * d * d];
         }
       }
     }
@@ -495,9 +548,9 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
     for (int j = 0; j < d; j++) {
       new_mu_array[j + (numberClusters - 1) * d] = new_mu[j];
     }
-    for (int i = 0; i < d; i++) {
-      for (int j = 0; j < d; j++) {
-        new_sig_array[i + j * d + (numberClusters - 1) * d * d] = new_sig[i + j * d];
+    for (int r_idx = 0; r_idx < d; r_idx++) { // Renamed loop variable to avoid conflict
+      for (int c_idx = 0; c_idx < d; c_idx++) { // Renamed loop variable to avoid conflict
+        new_sig_array[r_idx + c_idx * d + (numberClusters - 1) * d * d] = new_sig[r_idx + c_idx * d];
       }
     }
 
@@ -525,9 +578,9 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
         for (int j = 0; j < d; j++) {
           new_mu_array[j + new_k * d] = mu_array[j + k * d];
         }
-        for (int i = 0; i < d; i++) {
-          for (int j = 0; j < d; j++) {
-            new_sig_array[i + j * d + new_k * d * d] = sig_array[i + j * d + k * d * d];
+        for (int r_idx = 0; r_idx < d; r_idx++) { // Renamed loop variable to avoid conflict
+          for (int c_idx = 0; c_idx < d; c_idx++) { // Renamed loop variable to avoid conflict
+            new_sig_array[r_idx + c_idx * d + new_k * d * d] = sig_array[r_idx + c_idx * d + k * d * d];
           }
         }
         new_k++;
