@@ -121,8 +121,11 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
   for (int i = 0; i < n; i++) {
-    // Draw Sigma from Inverse-Wishart
-    arma::mat sig_draw = arma::iwishrnd(Lambda, nu);
+    // Draw precision matrix from Wishart (to match R implementation)
+    arma::mat prec_draw = arma::wishrnd(Lambda, nu);
+
+    // Convert to covariance matrix (Sigma = Lambda^{-1})
+    arma::mat sig_draw = arma::inv_sympd(prec_draw);
 
     // Draw mu from Multivariate Normal given Sigma
     arma::mat cov_mu = sig_draw / kappa0;
@@ -133,9 +136,10 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
       mu_arr[j + i * d] = mu_draw(j);
     }
 
+    // Store the precision matrix (not the covariance) to match R implementation
     for (int j = 0; j < d; j++) {
       for (int k = 0; k < d; k++) {
-        sig_arr[j + k * d + i * d * d] = sig_draw(j, k);
+        sig_arr[j + k * d + i * d * d] = prec_draw(j, k);
       }
     }
   }
@@ -154,7 +158,7 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
   if (n == 0) {
     return Rcpp::List::create(
       Rcpp::Named("mu_n") = mu0,
-      Rcpp::Named("Lambda_n") = Lambda,
+      Rcpp::Named("t_n") = Lambda,  // Changed from Lambda_n to t_n
       Rcpp::Named("kappa_n") = kappa0,
       Rcpp::Named("nu_n") = nu
     );
@@ -174,13 +178,13 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
     S = (n - 1) * arma::cov(x);
   }
 
-  // Update Lambda
+  // Update Lambda (called t_n in R code)
   arma::vec diff = x_bar - mu0;
-  arma::mat Lambda_n = Lambda + S + (kappa0 * n / kappa_n) * (diff * diff.t());
+  arma::mat t_n = Lambda + S + (kappa0 * n / kappa_n) * (diff * diff.t());
 
   return Rcpp::List::create(
     Rcpp::Named("mu_n") = mu_n,
-    Rcpp::Named("Lambda_n") = Lambda_n,
+    Rcpp::Named("t_n") = t_n,  // Changed from Lambda_n to t_n
     Rcpp::Named("kappa_n") = kappa_n,
     Rcpp::Named("nu_n") = nu_n
   );
@@ -191,7 +195,7 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   Rcpp::List post_params = posteriorParameters(x);
 
   arma::vec mu_n = Rcpp::as<arma::vec>(post_params["mu_n"]);
-  arma::mat Lambda_n = Rcpp::as<arma::mat>(post_params["Lambda_n"]);
+  arma::mat t_n = Rcpp::as<arma::mat>(post_params["t_n"]);  // Changed from Lambda_n
   double kappa_n = Rcpp::as<double>(post_params["kappa_n"]);
   double nu_n = Rcpp::as<double>(post_params["nu_n"]);
 
@@ -202,8 +206,11 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
   for (int i = 0; i < n; i++) {
-    // Draw Sigma from Inverse-Wishart
-    arma::mat sig_draw = arma::iwishrnd(Lambda_n, nu_n);
+    // Draw precision from Wishart (to match R implementation)
+    arma::mat prec_draw = arma::wishrnd(t_n, nu_n);
+
+    // Convert to covariance
+    arma::mat sig_draw = arma::inv_sympd(prec_draw);
 
     // Draw mu from Multivariate Normal given Sigma
     arma::mat cov_mu = sig_draw / kappa_n;
@@ -214,9 +221,10 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
       mu_arr[j + i * d] = mu_draw(j);
     }
 
+    // Store precision matrix to match R
     for (int j = 0; j < d; j++) {
       for (int k = 0; k < d; k++) {
-        sig_arr[j + k * d + i * d * d] = sig_draw(j, k);
+        sig_arr[j + k * d + i * d * d] = prec_draw(j, k);
       }
     }
   }
@@ -239,18 +247,18 @@ Rcpp::NumericVector MVNormalMixingDistribution::predictive(const arma::mat& x) c
     Rcpp::List post_params = posteriorParameters(x_i);
 
     arma::vec mu_n = Rcpp::as<arma::vec>(post_params["mu_n"]);
-    arma::mat Lambda_n = Rcpp::as<arma::mat>(post_params["Lambda_n"]);
+    arma::mat t_n = Rcpp::as<arma::mat>(post_params["t_n"]);  // Changed from Lambda_n
     double kappa_n = Rcpp::as<double>(post_params["kappa_n"]);
     double nu_n = Rcpp::as<double>(post_params["nu_n"]);
 
-    double det_Lambda, det_Lambda_n;
+    double det_Lambda, det_t_n;
     double sign;
     arma::log_det(det_Lambda, sign, Lambda);
     det_Lambda = std::exp(det_Lambda) * sign;
-    arma::log_det(det_Lambda_n, sign, Lambda_n);
-    det_Lambda_n = std::exp(det_Lambda_n) * sign;
+    arma::log_det(det_t_n, sign, t_n);
+    det_t_n = std::exp(det_t_n) * sign;
 
-    double ratio_det = std::pow(det_Lambda / det_Lambda_n, nu / 2.0);
+    double ratio_det = std::pow(det_Lambda / det_t_n, nu / 2.0);
     double ratio_kappa = std::pow(kappa0 / kappa_n, d / 2.0);
 
     // Compute multivariate gamma ratio
@@ -542,3 +550,5 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
 }
 
 } // namespace dp
+
+
