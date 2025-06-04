@@ -63,7 +63,7 @@
  //' @description C++ implementation for calculating multivariate normal likelihood.
  //' @param x A numeric matrix of data points.
  //' @param mu Mean vector.
- //' @param sigma Covariance matrix.
+ //' @param sigma Covariance matrix (or precision matrix in the context of this package).
  //' @return A numeric vector of likelihood values.
  //' @export
  // [[Rcpp::export]]
@@ -74,8 +74,43 @@
    arma::vec mu_arma = Rcpp::as<arma::vec>(mu);
    arma::mat sigma_arma = Rcpp::as<arma::mat>(sigma);
 
-   dp::MVNormalMixingDistribution md(Rcpp::List::create());
-   return Rcpp::wrap(md.mvnLikelihood(x_arma, mu_arma, sigma_arma));
+   // Note: In the context of this package, sigma is actually a precision matrix
+   // Convert to covariance for standard mvnorm likelihood calculation
+   arma::mat covariance;
+   try {
+     covariance = arma::inv_sympd(sigma_arma);
+   } catch(...) {
+     Rcpp::NumericVector result(x_arma.n_rows);
+     result.fill(1e-300);
+     return result;
+   }
+
+   // Calculate multivariate normal density
+   int n = x_arma.n_rows;
+   int d = x_arma.n_cols;
+   Rcpp::NumericVector result(n);
+
+   double log_det_val;
+   double sign;
+   arma::log_det(log_det_val, sign, covariance);
+
+   if (sign <= 0) {
+     result.fill(1e-300);
+     return result;
+   }
+
+   double log_const = -0.5 * d * std::log(2.0 * M_PI) - 0.5 * log_det_val;
+
+   for (int i = 0; i < n; i++) {
+     arma::vec x_centered = x_arma.row(i).t() - mu_arma;
+     // Use precision matrix (sigma_arma) for quadratic form
+     double quad_form = arma::as_scalar(x_centered.t() * sigma_arma * x_centered);
+     result[i] = std::exp(log_const - 0.5 * quad_form);
+   }
+
+   // Ensure result is a plain numeric vector without extra attributes
+   result.attr("dim") = R_NilValue;
+   return result;
  }
 
 //' @title Update cluster components for MVNormal (C++ conjugate)

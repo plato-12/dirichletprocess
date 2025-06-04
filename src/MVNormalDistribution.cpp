@@ -41,31 +41,33 @@ arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x,
   int d = x.n_cols;
   arma::vec result(n);
 
-  // Calculate log-determinant and inverse once
+  // sigma here is actually a precision matrix (inverse covariance)
+  // We need to convert it to covariance for likelihood calculation
+  arma::mat covariance;
+  try {
+    covariance = arma::inv_sympd(sigma);
+  } catch(...) {
+    result.fill(1e-300);
+    return result;
+  }
+
+  // Calculate log-determinant and inverse of covariance
   double log_det_val;
   double sign;
-  arma::log_det(log_det_val, sign, sigma);
+  arma::log_det(log_det_val, sign, covariance);
 
   if (sign <= 0) {
-    // Sigma is not positive definite
+    // Covariance is not positive definite
     result.fill(1e-300);
     return result;
   }
 
-  arma::mat sigma_inv;
-  try {
-    sigma_inv = arma::inv_sympd(sigma);
-  } catch(...) {
-    // If inversion fails, return very small likelihood
-    result.fill(1e-300);
-    return result;
-  }
-
+  // Use the precision matrix (sigma) directly for the quadratic form
   double log_const = -0.5 * d * std::log(2.0 * M_PI) - 0.5 * log_det_val;
 
   for (int i = 0; i < n; i++) {
     arma::vec x_centered = x.row(i).t() - mu;
-    double quad_form = arma::as_scalar(x_centered.t() * sigma_inv * x_centered);
+    double quad_form = arma::as_scalar(x_centered.t() * sigma * x_centered);
     result(i) = std::exp(log_const - 0.5 * quad_form);
   }
 
@@ -98,7 +100,7 @@ Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x,
       mu_k(j) = mu_array[j + k * d];
     }
 
-    // Extract sigma for cluster k
+    // Extract sigma for cluster k (this is actually precision matrix)
     arma::mat sig_k(d, d);
     for (int i = 0; i < d; i++) {
       for (int j = 0; j < d; j++) {
@@ -121,14 +123,11 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
   for (int i = 0; i < n; i++) {
-    // Draw precision matrix from Wishart (to match R implementation)
+    // Draw precision matrix from Wishart distribution
     arma::mat prec_draw = arma::wishrnd(Lambda, nu);
 
-    // Convert to covariance matrix (Sigma = Lambda^{-1})
-    arma::mat sig_draw = arma::inv_sympd(prec_draw);
-
-    // Draw mu from Multivariate Normal given Sigma
-    arma::mat cov_mu = sig_draw / kappa0;
+    // Draw mu from Multivariate Normal given precision matrix
+    arma::mat cov_mu = arma::inv_sympd(prec_draw / kappa0);
     arma::vec mu_draw = arma::mvnrnd(mu0, cov_mu);
 
     // Store in arrays
@@ -136,7 +135,7 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
       mu_arr[j + i * d] = mu_draw(j);
     }
 
-    // Store the precision matrix (not the covariance) to match R implementation
+    // Store the precision matrix (to match R implementation)
     for (int j = 0; j < d; j++) {
       for (int k = 0; k < d; k++) {
         sig_arr[j + k * d + i * d * d] = prec_draw(j, k);
@@ -158,7 +157,8 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
   if (n == 0) {
     return Rcpp::List::create(
       Rcpp::Named("mu_n") = mu0,
-      Rcpp::Named("t_n") = Lambda,  // Changed from Lambda_n to t_n
+      Rcpp::Named("t_n") = Lambda,
+      Rcpp::Named("Lambda_n") = Lambda,  // Add for backward compatibility
       Rcpp::Named("kappa_n") = kappa0,
       Rcpp::Named("nu_n") = nu
     );
@@ -184,7 +184,8 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
 
   return Rcpp::List::create(
     Rcpp::Named("mu_n") = mu_n,
-    Rcpp::Named("t_n") = t_n,  // Changed from Lambda_n to t_n
+    Rcpp::Named("t_n") = t_n,
+    Rcpp::Named("Lambda_n") = t_n,  // Add for backward compatibility
     Rcpp::Named("kappa_n") = kappa_n,
     Rcpp::Named("nu_n") = nu_n
   );
@@ -195,7 +196,7 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   Rcpp::List post_params = posteriorParameters(x);
 
   arma::vec mu_n = Rcpp::as<arma::vec>(post_params["mu_n"]);
-  arma::mat t_n = Rcpp::as<arma::mat>(post_params["t_n"]);  // Changed from Lambda_n
+  arma::mat t_n = Rcpp::as<arma::mat>(post_params["t_n"]);
   double kappa_n = Rcpp::as<double>(post_params["kappa_n"]);
   double nu_n = Rcpp::as<double>(post_params["nu_n"]);
 
@@ -206,14 +207,11 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
   for (int i = 0; i < n; i++) {
-    // Draw precision from Wishart (to match R implementation)
+    // Draw precision from Wishart
     arma::mat prec_draw = arma::wishrnd(t_n, nu_n);
 
-    // Convert to covariance
-    arma::mat sig_draw = arma::inv_sympd(prec_draw);
-
-    // Draw mu from Multivariate Normal given Sigma
-    arma::mat cov_mu = sig_draw / kappa_n;
+    // Draw mu from Multivariate Normal given precision
+    arma::mat cov_mu = arma::inv_sympd(prec_draw / kappa_n);
     arma::vec mu_draw = arma::mvnrnd(mu_n, cov_mu);
 
     // Store in arrays
@@ -247,25 +245,31 @@ Rcpp::NumericVector MVNormalMixingDistribution::predictive(const arma::mat& x) c
     Rcpp::List post_params = posteriorParameters(x_i);
 
     arma::vec mu_n = Rcpp::as<arma::vec>(post_params["mu_n"]);
-    arma::mat t_n = Rcpp::as<arma::mat>(post_params["t_n"]);  // Changed from Lambda_n
+    arma::mat t_n = Rcpp::as<arma::mat>(post_params["t_n"]);
     double kappa_n = Rcpp::as<double>(post_params["kappa_n"]);
     double nu_n = Rcpp::as<double>(post_params["nu_n"]);
 
-    double det_Lambda, det_t_n;
-    double sign;
-    arma::log_det(det_Lambda, sign, Lambda);
-    det_Lambda = std::exp(det_Lambda) * sign;
-    arma::log_det(det_t_n, sign, t_n);
-    det_t_n = std::exp(det_t_n) * sign;
+    // Calculate determinants
+    double log_det_Lambda, log_det_t_n;
+    double sign_Lambda, sign_t_n;
+    arma::log_det(log_det_Lambda, sign_Lambda, Lambda);
+    arma::log_det(log_det_t_n, sign_t_n, t_n);
 
-    double ratio_det = std::pow(det_Lambda / det_t_n, nu / 2.0);
+    // Handle potential numerical issues
+    if (sign_Lambda <= 0 || sign_t_n <= 0) {
+      result[i] = 1e-300;
+      continue;
+    }
+
+    double ratio_det = std::exp((nu / 2.0) * (log_det_Lambda - log_det_t_n));
     double ratio_kappa = std::pow(kappa0 / kappa_n, d / 2.0);
 
     // Compute multivariate gamma ratio
-    double gamma_ratio = 1.0;
-    for (int j = 0; j < d; j++) {
-      gamma_ratio *= R::gammafn((nu_n + 1.0 - j) / 2.0) / R::gammafn((nu + 1.0 - j) / 2.0);
+    double log_gamma_ratio = 0.0;
+    for (int j = 1; j <= d; j++) {
+      log_gamma_ratio += lgamma((nu_n + 1.0 - j) / 2.0) - lgamma((nu + 1.0 - j) / 2.0);
     }
+    double gamma_ratio = std::exp(log_gamma_ratio);
 
     result[i] = pi_const * ratio_kappa * ratio_det * gamma_ratio;
   }
@@ -550,5 +554,3 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
 }
 
 } // namespace dp
-
-
