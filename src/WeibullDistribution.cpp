@@ -60,10 +60,9 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
   for (int i = 0; i < n; i++) {
     alpha_values[i] = R::runif(0.0, priorParams[0]);
     // R code: lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
-    // Note: R uses 1-based indexing, so priorParameters[2] in R is priorParams[1] in C++
-    // R's rgamma(shape, rate) where rate is the inverse of scale
-    // FIXED: Don't invert the rate parameter
-    double gamma_draw = R::rgamma(priorParams[1], priorParams[2]);
+    // R's rgamma uses shape and rate, but R::rgamma uses shape and scale
+    // Need to convert rate to scale: scale = 1/rate
+    double gamma_draw = R::rgamma(priorParams[1], 1.0 / priorParams[2]);
     lambda_values[i] = 1.0 / gamma_draw;
   }
 
@@ -83,6 +82,7 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
     Rcpp::Named("lambda") = lambda_arr
   );
 }
+
 
 Rcpp::NumericVector WeibullMixingDistribution::priorDensity(const Rcpp::List& theta) const {
   Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);

@@ -3,7 +3,7 @@ context("Weibull Distribution C++ Implementation")
 test_that("Weibull PriorDraw C++ matches R implementation", {
   set.seed(42)
   priorParams <- c(10, 2, 4)  # phi, alpha0, beta0
-  n <- 10
+  n <- 100  # Use larger sample size for more stable comparison
 
   # Create mixing distribution object for R implementation
   mdObj <- WeibullMixtureCreate(priorParams, c(1, 1))
@@ -25,10 +25,16 @@ test_that("Weibull PriorDraw C++ matches R implementation", {
   expect_true(all(cpp_result$alpha > 0 & cpp_result$alpha < priorParams[1]))
   expect_true(all(cpp_result$lambda > 0))
 
-  # Compare statistical properties
-  expect_equal(mean(cpp_result$alpha), mean(r_result[[1]]), tolerance = 0.5)
+  # Compare statistical properties with appropriate tolerance
+  # Lambda follows inverse gamma which is highly skewed, so use larger tolerance
+  expect_equal(mean(cpp_result$alpha), mean(r_result[[1]]), tolerance = 0.1)
   expect_equal(mean(cpp_result$lambda), mean(r_result[[2]]), tolerance = 0.5)
+
+  # Also check medians which are more stable for skewed distributions
+  expect_equal(median(cpp_result$alpha), median(r_result[[1]]), tolerance = 0.1)
+  expect_equal(median(cpp_result$lambda), median(r_result[[2]]), tolerance = 0.3)
 })
+
 
 test_that("Weibull Likelihood C++ matches R implementation", {
   priorParams <- c(10, 2, 4)
@@ -162,15 +168,11 @@ test_that("NonconjugateWeibullClusterComponentUpdate C++ works correctly", {
 
   dp <- DirichletProcessWeibull(y, c(10, 2, 4), verbose = FALSE)
 
-  # Convert to 0-indexed for C++
-  dp_cpp <- dp
-  dp_cpp$clusterLabels <- dp$clusterLabels - 1
-
   # Store initial state
-  initial_clusters <- dp_cpp$numberClusters
+  initial_clusters <- dp$numberClusters
 
   # Run component update
-  cpp_result <- nonconjugate_weibull_cluster_component_update_cpp(dp_cpp)
+  cpp_result <- nonconjugate_weibull_cluster_component_update_cpp(dp)
 
   # Basic checks
   expect_equal(length(cpp_result$clusterLabels), length(y))
@@ -178,10 +180,11 @@ test_that("NonconjugateWeibullClusterComponentUpdate C++ works correctly", {
   expect_true(cpp_result$numberClusters >= 1)
   expect_true(cpp_result$numberClusters <= length(y))
 
-  # Check all labels are valid (0-indexed)
-  expect_true(all(cpp_result$clusterLabels >= 0))
-  expect_true(all(cpp_result$clusterLabels < cpp_result$numberClusters))
+  # Check all labels are valid (1-indexed for R)
+  expect_true(all(cpp_result$clusterLabels >= 1))
+  expect_true(all(cpp_result$clusterLabels <= cpp_result$numberClusters))
 })
+
 
 test_that("End-to-end Weibull C++ sampler test", {
   set.seed(2025)
@@ -196,8 +199,8 @@ test_that("End-to-end Weibull C++ sampler test", {
   # Initialize DP
   dp <- DirichletProcessWeibull(y, c(10, 2, 4), verbose = FALSE, mhDraws = 50)
 
-  # Convert to 0-indexed for C++
-  dp$clusterLabels <- dp$clusterLabels - 1
+  # Don't manually convert labels - the C++ functions handle it internally
+  # dp$clusterLabels <- dp$clusterLabels - 1  # REMOVE THIS LINE
 
   # Run several iterations
   for (iter in 1:5) {

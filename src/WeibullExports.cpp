@@ -67,6 +67,10 @@ Rcpp::List nonconjugate_weibull_cluster_parameter_update_cpp(Rcpp::List dp_list)
   // Extract necessary components
   arma::mat data = Rcpp::as<arma::mat>(dp_list["data"]);
   arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dp_list["clusterLabels"]);
+
+  // Convert from R's 1-based to C++'s 0-based indexing
+  clusterLabels = clusterLabels - 1;
+
   int numberClusters = dp_list["numberClusters"];
   Rcpp::List mixingDistribution = dp_list["mixingDistribution"];
   Rcpp::NumericVector priorParams = mixingDistribution["priorParameters"];
@@ -105,6 +109,10 @@ Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list)
   // Extract necessary components
   arma::mat data = Rcpp::as<arma::mat>(dp_list["data"]);
   arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dp_list["clusterLabels"]);
+
+  // Convert from R's 1-based to C++'s 0-based indexing
+  clusterLabels = clusterLabels - 1;
+
   arma::uvec pointsPerCluster = Rcpp::as<arma::uvec>(dp_list["pointsPerCluster"]);
   int numberClusters = dp_list["numberClusters"];
   double alpha = dp_list["alpha"];
@@ -153,3 +161,5 @@ Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list)
 
   return result;
 }
+
+
