@@ -62,7 +62,8 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
     // R code: lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
     // Note: R uses 1-based indexing, so priorParameters[2] in R is priorParams[1] in C++
     // R's rgamma(shape, rate) where rate is the inverse of scale
-    double gamma_draw = R::rgamma(priorParams[1], 1.0 / priorParams[2]);
+    // FIXED: Don't invert the rate parameter
+    double gamma_draw = R::rgamma(priorParams[1], priorParams[2]);
     lambda_values[i] = 1.0 / gamma_draw;
   }
 
@@ -312,7 +313,6 @@ NonConjugateWeibullDP::~NonConjugateWeibullDP() {
 }
 
 void NonConjugateWeibullDP::clusterComponentUpdate() {
-  // Implementation similar to Beta non-conjugate case
   int n = data.n_rows;
 
   for (int i = 0; i < n; i++) {
@@ -323,13 +323,14 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
       Rcpp::stop("Invalid cluster label encountered for point %d: %d (max allowed: %d)", i, currentLabel, pointsPerCluster.n_elem - 1);
     }
 
-    // Remove point from current cluster
-    pointsPerCluster[currentLabel]--;
+    // Create a copy of the current state for probability calculations
+    arma::uvec tempPointsPerCluster = pointsPerCluster;
+    tempPointsPerCluster[currentLabel]--;
 
     // Generate auxiliary parameters
     Rcpp::List aux;
-    if (pointsPerCluster[currentLabel] == 0) {
-      // If cluster is now empty, we need m-1 auxiliary parameters
+    if (tempPointsPerCluster[currentLabel] == 0) {
+      // If cluster would be empty, we need m-1 auxiliary parameters
       aux = mixingDistribution->priorDraw(m - 1);
 
       // Include the current cluster's parameters as one of the auxiliary
@@ -359,13 +360,13 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
       aux = mixingDistribution->priorDraw(m);
     }
 
-    // Calculate probabilities
+    // Calculate probabilities using temporary counts
     int totalLabels = numberClusters + m;
     Rcpp::NumericVector probs(totalLabels);
 
     // Existing clusters
     for (int j = 0; j < numberClusters; j++) {
-      if (pointsPerCluster[j] > 0) {
+      if (tempPointsPerCluster[j] > 0) {
         // Extract parameters for cluster j
         Rcpp::NumericVector alpha_vec = clusterParameters[0];
         Rcpp::NumericVector lambda_vec = clusterParameters[1];
@@ -386,7 +387,7 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
         );
 
         Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
-        probs[j] = pointsPerCluster[j] * lik[0];
+        probs[j] = tempPointsPerCluster[j] * lik[0]; // Use temp counts
       } else {
         probs[j] = 0.0;
       }
@@ -441,7 +442,11 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
       }
     }
 
-    // Update cluster assignment
+    // Now update the actual state
+    // First decrement the count from current cluster
+    pointsPerCluster[currentLabel]--;
+
+    // Then perform the label change
     Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel, aux);
 
     // Update state from result
@@ -520,6 +525,8 @@ void NonConjugateWeibullDP::updateAlpha() {
 Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int currentLabel,
                                                      const Rcpp::List& aux) {
   if (newLabel == currentLabel) {
+    // No change needed, but still need to re-increment the count
+    pointsPerCluster[currentLabel]++;
     return Rcpp::List::create(
       Rcpp::Named("clusterLabels") = clusterLabels,
       Rcpp::Named("pointsPerCluster") = pointsPerCluster,
@@ -527,6 +534,8 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
       Rcpp::Named("numberClusters") = numberClusters
     );
   }
+
+  // Note: pointsPerCluster[currentLabel] has already been decremented
 
   // Extract current parameters
   Rcpp::NumericVector alpha_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
@@ -539,15 +548,24 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
     clusterLabels[i] = newLabel;
 
     // If old cluster is now empty, remove it
-    if (pointsPerCluster[currentLabel] == 0) {
+    if (pointsPerCluster[currentLabel] == 0 && currentLabel != newLabel) {
       numberClusters--;
-      pointsPerCluster.shed_row(currentLabel);
 
-      // Recreate parameter vectors without the removed cluster
+      // Remove the empty cluster from pointsPerCluster
+      arma::uvec new_points = arma::uvec(numberClusters);
+      int idx = 0;
+      for (int j = 0; j < (int)pointsPerCluster.n_elem; j++) {
+        if (j != currentLabel) {
+          new_points[idx++] = pointsPerCluster[j];
+        }
+      }
+      pointsPerCluster = new_points;
+
+      // Remove from parameter vectors
       Rcpp::NumericVector new_alpha_vec(numberClusters);
       Rcpp::NumericVector new_lambda_vec(numberClusters);
 
-      int idx = 0;
+      idx = 0;
       for (int j = 0; j < alpha_vec.size(); j++) {
         if (j != currentLabel) {
           new_alpha_vec[idx] = alpha_vec[j];
@@ -559,14 +577,14 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
       alpha_vec = new_alpha_vec;
       lambda_vec = new_lambda_vec;
 
-      // Update labels
+      // Update all labels that were greater than currentLabel
       for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
-        if (clusterLabels[j] > (unsigned int)currentLabel) {
+        if ((int)clusterLabels[j] > currentLabel) {
           clusterLabels[j]--;
         }
       }
 
-      // Update newLabel if it was affected by the shift
+      // If the point was assigned to a label that got shifted, update it
       if (newLabel > currentLabel) {
         clusterLabels[i] = newLabel - 1;
       }
@@ -590,7 +608,7 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
       Rcpp::NumericVector aux_alpha = aux[0];
       Rcpp::NumericVector aux_lambda = aux[1];
 
-      // Recreate vectors with one more element
+      // Expand vectors
       Rcpp::NumericVector new_alpha_vec(numberClusters + 1);
       Rcpp::NumericVector new_lambda_vec(numberClusters + 1);
 
@@ -605,9 +623,15 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
       alpha_vec = new_alpha_vec;
       lambda_vec = new_lambda_vec;
 
+      // Expand pointsPerCluster
+      arma::uvec new_points = arma::uvec(numberClusters + 1);
+      for (int j = 0; j < numberClusters; j++) {
+        new_points[j] = pointsPerCluster[j];
+      }
+      new_points[numberClusters] = 1;
+      pointsPerCluster = new_points;
+
       clusterLabels[i] = numberClusters;
-      pointsPerCluster.resize(numberClusters + 1);
-      pointsPerCluster[numberClusters] = 1;
       numberClusters++;
     }
   }
