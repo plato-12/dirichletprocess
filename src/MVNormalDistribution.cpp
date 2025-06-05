@@ -37,21 +37,23 @@ MVNormalMixingDistribution::~MVNormalMixingDistribution() {
   // Destructor
 }
 
+// DO NOT define ensureSymmetric here - it's already defined as inline in the header
+
 arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x,
                                                     const arma::vec& mu,
                                                     const arma::mat& sigma) const {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   int n = x.n_rows;
   int d = x.n_cols;
   arma::vec result(n);
+
+  // Ensure sigma is symmetric before inversion
+  arma::mat sigma_sym = ensureSymmetric(sigma);
 
   // sigma here is actually a precision matrix (inverse covariance)
   // We need to convert it to covariance for likelihood calculation
   arma::mat covariance;
   try {
-    covariance = arma::inv_sympd(sigma);
+    covariance = arma::inv_sympd(sigma_sym);
   } catch(...) {
     result.fill(1e-300);
     return result;
@@ -68,12 +70,12 @@ arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x,
     return result;
   }
 
-  // Use the precision matrix (sigma) directly for the quadratic form
+  // Use the precision matrix (sigma_sym) directly for the quadratic form
   double log_const = -0.5 * d * std::log(2.0 * M_PI) - 0.5 * log_det_val;
 
   for (int i = 0; i < n; i++) {
     arma::vec x_centered = x.row(i).t() - mu;
-    double quad_form = arma::as_scalar(x_centered.t() * sigma * x_centered);
+    double quad_form = arma::as_scalar(x_centered.t() * sigma_sym * x_centered);
     result(i) = std::exp(log_const - 0.5 * quad_form);
   }
 
@@ -82,9 +84,6 @@ arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x,
 
 Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x,
                                                            const Rcpp::List& theta) const {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   // Extract parameters - handle the array structure
   Rcpp::NumericVector mu_array = theta["mu"];
   Rcpp::NumericVector sig_array = theta["sig"];
@@ -125,21 +124,24 @@ Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x,
 }
 
 Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   int d = mu0.n_elem;
 
   // Arrays to store results
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
+  // Ensure Lambda is symmetric
+  arma::mat Lambda_sym = ensureSymmetric(Lambda);
+
   for (int i = 0; i < n; i++) {
     // Draw precision matrix from Wishart distribution
-    arma::mat prec_draw = arma::wishrnd(Lambda, nu);
+    arma::mat prec_draw = arma::wishrnd(Lambda_sym, nu);
+
+    // Ensure the drawn matrix is symmetric (numerical safety)
+    prec_draw = ensureSymmetric(prec_draw);
 
     // Draw mu from Multivariate Normal given precision matrix
-    arma::mat cov_mu = arma::inv_sympd(prec_draw / kappa0);
+    arma::mat cov_mu = arma::inv_sympd(ensureSymmetric(prec_draw / kappa0));
     arma::vec mu_draw = arma::mvnrnd(mu0, cov_mu);
 
     // Store in arrays
@@ -162,9 +164,6 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
 }
 
 Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) const {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   int n = x.n_rows;
   int d = x.n_cols;
 
@@ -175,8 +174,8 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
     mu0_vec.attr("dim") = R_NilValue; // Remove any dimension attributes
     return Rcpp::List::create(
       Rcpp::Named("mu_n") = mu0_vec,
-      Rcpp::Named("t_n") = Lambda,
-      Rcpp::Named("Lambda_n") = Lambda,  // Add for backward compatibility
+      Rcpp::Named("t_n") = ensureSymmetric(Lambda),
+      Rcpp::Named("Lambda_n") = ensureSymmetric(Lambda),  // Add for backward compatibility
       Rcpp::Named("kappa_n") = kappa0,
       Rcpp::Named("nu_n") = nu
     );
@@ -194,11 +193,13 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
   arma::mat S = arma::zeros(d, d);
   if (n > 1) {
     S = (n - 1) * arma::cov(x);
+    S = ensureSymmetric(S);  // Ensure numerical symmetry
   }
 
   // Update Lambda (called t_n in R code)
   arma::vec diff = x_bar - mu0;
   arma::mat t_n = Lambda + S + (kappa0 * n / kappa_n) * (diff * diff.t());
+  t_n = ensureSymmetric(t_n);  // Ensure result is symmetric
 
   // Convert arma::vec to plain Rcpp::NumericVector
   Rcpp::NumericVector mu_n_vec = Rcpp::wrap(mu_n_arma);
@@ -214,9 +215,6 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
 }
 
 Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   // Get posterior parameters
   Rcpp::List post_params = posteriorParameters(x);
 
@@ -231,12 +229,18 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
+  // Ensure t_n is symmetric
+  arma::mat t_n_sym = ensureSymmetric(t_n);
+
   for (int i = 0; i < n; i++) {
     // Draw precision from Wishart
-    arma::mat prec_draw = arma::wishrnd(t_n, nu_n);
+    arma::mat prec_draw = arma::wishrnd(t_n_sym, nu_n);
+
+    // Ensure the drawn precision matrix is symmetric
+    prec_draw = ensureSymmetric(prec_draw);
 
     // Draw mu from Multivariate Normal given precision
-    arma::mat cov_mu = arma::inv_sympd(prec_draw / kappa_n);
+    arma::mat cov_mu = arma::inv_sympd(ensureSymmetric(prec_draw / kappa_n));
     arma::vec mu_draw = arma::mvnrnd(mu_n, cov_mu);
 
     // Store in arrays
@@ -259,9 +263,6 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
 }
 
 Rcpp::NumericVector MVNormalMixingDistribution::predictive(const arma::mat& x) const {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   int n = x.n_rows;
   int d = x.n_cols;
   Rcpp::NumericVector result(n);
@@ -318,9 +319,6 @@ Rcpp::List MVNormalMixingDistribution::posteriorDrawStatic(const Rcpp::List& pri
 }
 
 // ConjugateMVNormalDP implementation
-// Note: Throughout this implementation, 'sig' refers to precision matrices
-// (inverse covariance matrices) following the conjugate Wishart prior convention.
-// When calculating likelihoods, we convert to covariance matrices as needed.
 ConjugateMVNormalDP::ConjugateMVNormalDP() : mixingDistribution(nullptr), numberClusters(0) {
   // Constructor
 }
@@ -337,10 +335,6 @@ void ConjugateMVNormalDP::initialisePredictive() {
 }
 
 void ConjugateMVNormalDP::clusterComponentUpdate() {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
-  // Implementation similar to Normal but for multivariate case
   int n = data.n_rows;
 
   for (int i = 0; i < n; i++) {
@@ -356,20 +350,39 @@ void ConjugateMVNormalDP::clusterComponentUpdate() {
     Rcpp::NumericVector mu_array = clusterParameters["mu"];
     Rcpp::NumericVector sig_array = clusterParameters["sig"];
 
+    // Get dimensions
+    Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
+    int d = mu_dim[1];
+    int max_clusters = mu_dim[2];  // Maximum number of clusters in the arrays
+
     // Probability for existing clusters
     for (int j = 0; j < numberClusters; j++) {
+      // BOUNDS CHECK: Ensure j is within the parameter arrays
+      if (j >= max_clusters) {
+        Rcpp::stop("Cluster index %d exceeds parameter array size %d", j, max_clusters);
+      }
+
       if (pointsPerCluster[j] > 0) {
         // Extract parameters for cluster j only
-        int d = data.n_cols;
         Rcpp::NumericVector mu_j = Rcpp::NumericVector(Rcpp::Dimension(1, d, 1));
         Rcpp::NumericVector sig_j = Rcpp::NumericVector(Rcpp::Dimension(d, d, 1));
-        // Copy parameters for cluster j
+
+        // Copy parameters for cluster j with bounds checking
         for (int k = 0; k < d; k++) {
-          mu_j[k] = mu_array[k + j * d];
+          int idx = k + j * d;
+          if (idx >= mu_array.size()) {
+            Rcpp::stop("Mu index out of bounds: %d >= %d", idx, mu_array.size());
+          }
+          mu_j[k] = mu_array[idx];
         }
+
         for (int k1 = 0; k1 < d; k1++) {
           for (int k2 = 0; k2 < d; k2++) {
-            sig_j[k1 + k2 * d] = sig_array[k1 + k2 * d + j * d * d];
+            int idx = k1 + k2 * d + j * d * d;
+            if (idx >= sig_array.size()) {
+              Rcpp::stop("Sigma index out of bounds: %d >= %d", idx, sig_array.size());
+            }
+            sig_j[k1 + k2 * d] = sig_array[idx];
           }
         }
 
@@ -378,8 +391,9 @@ void ConjugateMVNormalDP::clusterComponentUpdate() {
           Rcpp::Named("mu") = mu_j,
           Rcpp::Named("sig") = sig_j
         );
+
         Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
-        probs[j] = pointsPerCluster[j] * lik[0]; // Now lik has only 1 element
+        probs[j] = pointsPerCluster[j] * lik[0];
       } else {
         probs[j] = 0.0;
       }
@@ -389,12 +403,17 @@ void ConjugateMVNormalDP::clusterComponentUpdate() {
     probs[numberClusters] = alpha * predictiveArray[i];
 
     // Handle edge cases
+    for (int j = 0; j < probs.size(); j++) {
+      if (!std::isfinite(probs[j])) probs[j] = 0.0;
+    }
+
     if (Rcpp::is_true(Rcpp::all(probs == 0))) {
       probs.fill(1.0 / probs.size());
     }
 
     // Normalize
     double probSum = Rcpp::sum(probs);
+    if (probSum <= 0) probSum = 1.0;  // Safety check
     probs = probs / probSum;
 
     // Sample new label
@@ -420,13 +439,22 @@ void ConjugateMVNormalDP::clusterComponentUpdate() {
     pointsPerCluster = Rcpp::as<arma::uvec>(updateResult["pointsPerCluster"]);
     clusterParameters = updateResult["clusterParameters"];
     numberClusters = updateResult["numberClusters"];
+
+    // Validate state after update
+    if (numberClusters > max_clusters) {
+      // Need to expand parameter arrays - this should be handled in clusterLabelChange
+      // but let's add a check here
+      Rcpp::NumericVector new_mu_array = clusterParameters["mu"];
+      Rcpp::IntegerVector new_mu_dim = new_mu_array.attr("dim");
+      if (new_mu_dim[2] < numberClusters) {
+        Rcpp::stop("Parameter arrays not properly expanded: %d clusters but only %d slots",
+                   numberClusters, new_mu_dim[2]);
+      }
+    }
   }
 }
 
 void ConjugateMVNormalDP::clusterParameterUpdate() {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   // Update parameters for each cluster
   for (int k = 0; k < numberClusters; k++) {
     // Get data points assigned to this cluster
@@ -449,15 +477,31 @@ void ConjugateMVNormalDP::clusterParameterUpdate() {
       // Get dimensions
       Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
       int d = mu_dim[1];
+      int max_clusters = mu_dim[2];
+
+      // Bounds check
+      if (k >= max_clusters) {
+        Rcpp::stop("Cluster index %d exceeds parameter array size %d in clusterParameterUpdate",
+                   k, max_clusters);
+      }
 
       // Update the k-th cluster parameters
       for (int j = 0; j < d; j++) {
         mu_array[j + k * d] = new_mu[j];
       }
 
+      // Ensure symmetry when storing precision matrix
+      arma::mat sig_k(d, d);
       for (int i = 0; i < d; i++) {
         for (int j = 0; j < d; j++) {
-          sig_array[i + j * d + k * d * d] = new_sig[i + j * d];
+          sig_k(i, j) = new_sig[i + j * d];
+        }
+      }
+      sig_k = ensureSymmetric(sig_k);
+
+      for (int i = 0; i < d; i++) {
+        for (int j = 0; j < d; j++) {
+          sig_array[i + j * d + k * d * d] = sig_k(i, j);
         }
       }
 
@@ -489,9 +533,6 @@ void ConjugateMVNormalDP::updateAlpha() {
 }
 
 Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int currentLabel) {
-  // Note: Throughout this implementation, 'sig' refers to precision matrices
-  // (inverse covariance matrices) following the conjugate Wishart prior convention.
-  // When calculating likelihoods, we convert to covariance matrices as needed.
   if (newLabel == currentLabel) {
     return Rcpp::List::create(
       Rcpp::Named("clusterLabels") = clusterLabels,
@@ -510,6 +551,7 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
   // Get dimensions
   Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
   int d = mu_dim[1];
+  int current_max_clusters = mu_dim[2];
 
   // 1. Remove point from old cluster
   pointsPerCluster[currentLabel]--;
@@ -518,44 +560,59 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
   clusterLabels[i] = newLabel;
 
   if (newLabel == numberClusters) {
-    // New cluster
+    // New cluster case
     numberClusters++;
     pointsPerCluster.resize(numberClusters);
-    pointsPerCluster(newLabel) = 1;
+    pointsPerCluster[newLabel] = 1;
+
+    // Check if we need to expand the parameter arrays
+    if (numberClusters > current_max_clusters) {
+      // Need to expand arrays - double the size or add at least 10 more slots
+      int new_max_clusters = std::max(current_max_clusters * 2, numberClusters + 10);
+
+      // Create new arrays with expanded size
+      Rcpp::NumericVector new_mu_array = Rcpp::NumericVector(Rcpp::Dimension(1, d, new_max_clusters));
+      Rcpp::NumericVector new_sig_array = Rcpp::NumericVector(Rcpp::Dimension(d, d, new_max_clusters));
+
+      // Initialize new arrays with NA
+      new_mu_array.fill(NA_REAL);
+      new_sig_array.fill(NA_REAL);
+
+      // Copy existing parameters
+      for (int k = 0; k < current_max_clusters; k++) {
+        for (int j = 0; j < d; j++) {
+          new_mu_array[j + k * d] = mu_array[j + k * d];
+        }
+        for (int r_idx = 0; r_idx < d; r_idx++) {
+          for (int c_idx = 0; c_idx < d; c_idx++) {
+            new_sig_array[r_idx + c_idx * d + k * d * d] =
+              sig_array[r_idx + c_idx * d + k * d * d];
+          }
+        }
+      }
+
+      mu_array = new_mu_array;
+      sig_array = new_sig_array;
+      current_max_clusters = new_max_clusters;
+    }
 
     // Draw parameters for new cluster
     Rcpp::List postDraw = mixingDistribution->posteriorDraw(x_i, 1);
     Rcpp::NumericVector new_mu = postDraw["mu"];
     Rcpp::NumericVector new_sig = postDraw["sig"];
 
-    // Create new arrays with expanded size
-    Rcpp::NumericVector new_mu_array = Rcpp::NumericVector(Rcpp::Dimension(1, d, numberClusters));
-    Rcpp::NumericVector new_sig_array = Rcpp::NumericVector(Rcpp::Dimension(d, d, numberClusters));
-
-    // Copy existing parameters
-    for (int k = 0; k < numberClusters - 1; k++) {
-      for (int j = 0; j < d; j++) {
-        new_mu_array[j + k * d] = mu_array[j + k * d];
-      }
-      for (int r_idx = 0; r_idx < d; r_idx++) { // Renamed loop variable to avoid conflict
-        for (int c_idx = 0; c_idx < d; c_idx++) { // Renamed loop variable to avoid conflict
-          new_sig_array[r_idx + c_idx * d + k * d * d] = sig_array[r_idx + c_idx * d + k * d * d];
-        }
-      }
-    }
-
-    // Add new cluster parameters
+    // Add new cluster parameters at position newLabel
     for (int j = 0; j < d; j++) {
-      new_mu_array[j + (numberClusters - 1) * d] = new_mu[j];
+      mu_array[j + newLabel * d] = new_mu[j];
     }
-    for (int r_idx = 0; r_idx < d; r_idx++) { // Renamed loop variable to avoid conflict
-      for (int c_idx = 0; c_idx < d; c_idx++) { // Renamed loop variable to avoid conflict
-        new_sig_array[r_idx + c_idx * d + (numberClusters - 1) * d * d] = new_sig[r_idx + c_idx * d];
+    for (int r_idx = 0; r_idx < d; r_idx++) {
+      for (int c_idx = 0; c_idx < d; c_idx++) {
+        sig_array[r_idx + c_idx * d + newLabel * d * d] = new_sig[r_idx + c_idx * d];
       }
     }
 
-    clusterParameters["mu"] = new_mu_array;
-    clusterParameters["sig"] = new_sig_array;
+    clusterParameters["mu"] = mu_array;
+    clusterParameters["sig"] = sig_array;
 
   } else {
     // Existing cluster
@@ -567,28 +624,9 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
     pointsPerCluster.shed_row(currentLabel);
     numberClusters--;
 
-    // Create new arrays with reduced size
-    Rcpp::NumericVector new_mu_array = Rcpp::NumericVector(Rcpp::Dimension(1, d, numberClusters));
-    Rcpp::NumericVector new_sig_array = Rcpp::NumericVector(Rcpp::Dimension(d, d, numberClusters));
-
-    // Copy parameters, skipping the removed cluster
-    int new_k = 0;
-    for (int k = 0; k < numberClusters + 1; k++) {
-      if (k != currentLabel) {
-        for (int j = 0; j < d; j++) {
-          new_mu_array[j + new_k * d] = mu_array[j + k * d];
-        }
-        for (int r_idx = 0; r_idx < d; r_idx++) { // Renamed loop variable to avoid conflict
-          for (int c_idx = 0; c_idx < d; c_idx++) { // Renamed loop variable to avoid conflict
-            new_sig_array[r_idx + c_idx * d + new_k * d * d] = sig_array[r_idx + c_idx * d + k * d * d];
-          }
-        }
-        new_k++;
-      }
-    }
-
-    clusterParameters["mu"] = new_mu_array;
-    clusterParameters["sig"] = new_sig_array;
+    // Shift parameters and labels
+    // Instead of creating new arrays, we'll just mark the empty slot
+    // and handle it during compaction later
 
     // Shift labels
     for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
@@ -596,6 +634,33 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
         clusterLabels[j]--;
       }
     }
+
+    // Compact the parameter arrays by shifting left
+    for (int k = currentLabel; k < numberClusters; k++) {
+      // Copy from k+1 to k
+      for (int j = 0; j < d; j++) {
+        mu_array[j + k * d] = mu_array[j + (k+1) * d];
+      }
+      for (int r_idx = 0; r_idx < d; r_idx++) {
+        for (int c_idx = 0; c_idx < d; c_idx++) {
+          sig_array[r_idx + c_idx * d + k * d * d] =
+            sig_array[r_idx + c_idx * d + (k+1) * d * d];
+        }
+      }
+    }
+
+    // Clear the last slot (now unused)
+    for (int j = 0; j < d; j++) {
+      mu_array[j + numberClusters * d] = NA_REAL;
+    }
+    for (int r_idx = 0; r_idx < d; r_idx++) {
+      for (int c_idx = 0; c_idx < d; c_idx++) {
+        sig_array[r_idx + c_idx * d + numberClusters * d * d] = NA_REAL;
+      }
+    }
+
+    clusterParameters["mu"] = mu_array;
+    clusterParameters["sig"] = sig_array;
   }
 
   return Rcpp::List::create(

@@ -7,6 +7,11 @@
 
 namespace dp {
 
+// Helper function to ensure matrix symmetry
+inline arma::mat ensureSymmetric(const arma::mat& A) {
+  return 0.5 * (A + A.t());
+}
+
 class MVNormalMixingDistribution : public MixingDistribution {
 public:
   MVNormalMixingDistribution(const Rcpp::List& priorParams);

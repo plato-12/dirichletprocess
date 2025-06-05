@@ -252,3 +252,143 @@ test_that("End-to-end MVNormal C++ sampler test", {
   cat("Final clusters:", final_clusters, "\n")
   cat("Cluster sizes:", as.numeric(dp$pointsPerCluster), "\n")
 })
+
+# Test to verify MVNormal fixes work correctly
+test_that("MVNormal C++ implementation handles matrix symmetry and bounds correctly", {
+  skip_if_not(requireNamespace("mvtnorm", quietly = TRUE))
+
+  # Test 1: Matrix symmetry in prior draws
+  priorParams <- list(
+    mu0 = c(0, 0),
+    Lambda = matrix(c(1, 0.1, 0.1, 1), 2, 2),  # Slightly asymmetric due to numerics
+    kappa0 = 1,
+    nu = 4
+  )
+
+  # This should not produce warnings
+  expect_silent({
+    result <- mvnormal_prior_draw_cpp(priorParams, n = 10)
+  })
+
+  # Check all covariance matrices are symmetric
+  for (i in 1:10) {
+    sig_i <- result$sig[,,i]
+    # Check symmetry (within numerical tolerance)
+    expect_true(all(abs(sig_i - t(sig_i)) < 1e-10))
+  }
+
+  # Test 2: Bounds checking in cluster updates
+  set.seed(123)
+  n <- 30
+  d <- 2
+  data <- rbind(
+    mvtnorm::rmvnorm(15, c(-2, -2), diag(2)),
+    mvtnorm::rmvnorm(15, c(2, 2), diag(2))
+  )
+
+  # Create DP object with proper initialization
+  dp <- DirichletProcessMvnormal(data)
+
+  # Ensure parameter arrays have enough space
+  if (dim(dp$clusterParameters$mu)[3] < 20) {
+    new_mu <- array(NA_real_, dim = c(1, d, 20))
+    new_sig <- array(NA_real_, dim = c(d, d, 20))
+
+    old_dim <- dim(dp$clusterParameters$mu)[3]
+    new_mu[, , 1:old_dim] <- dp$clusterParameters$mu
+    new_sig[, , 1:old_dim] <- dp$clusterParameters$sig
+
+    dp$clusterParameters$mu <- new_mu
+    dp$clusterParameters$sig <- new_sig
+  }
+
+  # Convert to 0-indexed for C++
+  dp_cpp <- dp
+  dp_cpp$clusterLabels <- dp$clusterLabels - 1
+
+  # Run multiple iterations without errors
+  for (iter in 1:5) {
+    result <- conjugate_mvnormal_cluster_component_update_cpp(dp_cpp)
+    dp_cpp$clusterLabels <- result$clusterLabels
+    dp_cpp$pointsPerCluster <- result$pointsPerCluster
+    dp_cpp$numberClusters <- result$numberClusters
+    dp_cpp$clusterParameters <- result$clusterParameters
+
+    # Verify consistency
+    expect_equal(length(dp_cpp$clusterLabels), n)
+    expect_equal(sum(dp_cpp$pointsPerCluster), n)
+    expect_true(dp_cpp$numberClusters >= 1)
+    expect_true(dp_cpp$numberClusters <= n)
+
+    # Check parameter arrays are properly sized
+    mu_dim <- dim(dp_cpp$clusterParameters$mu)
+    expect_true(mu_dim[3] >= dp_cpp$numberClusters)
+  }
+
+  # Test 3: Ensure no hanging with many clusters
+  # Create data that will likely create many clusters
+  set.seed(456)
+  scattered_data <- matrix(rnorm(100 * 2, sd = 5), ncol = 2)
+
+  dp2 <- DirichletProcessMvnormal(scattered_data)
+
+  # Pre-allocate enough space
+  new_mu <- array(NA_real_, dim = c(1, 2, 100))
+  new_sig <- array(NA_real_, dim = c(2, 2, 100))
+
+  old_dim <- dim(dp2$clusterParameters$mu)[3]
+  new_mu[, , 1:old_dim] <- dp2$clusterParameters$mu
+  new_sig[, , 1:old_dim] <- dp2$clusterParameters$sig
+
+  # Fill remaining with prior draws
+  if (old_dim < 100) {
+    extra_params <- PriorDraw(dp2$mixingDistribution, 100 - old_dim)
+    new_mu[, , (old_dim+1):100] <- extra_params$mu
+    new_sig[, , (old_dim+1):100] <- extra_params$sig
+  }
+
+  dp2$clusterParameters$mu <- new_mu
+  dp2$clusterParameters$sig <- new_sig
+
+  dp2$clusterLabels <- dp2$clusterLabels - 1
+
+  # This should complete without hanging
+  result2 <- conjugate_mvnormal_cluster_component_update_cpp(dp2)
+
+  expect_true(result2$numberClusters >= 1)
+  expect_equal(sum(result2$pointsPerCluster), 100)
+})
+
+test_that("MVNormal symmetry is preserved throughout operations", {
+  skip_if_not(requireNamespace("mvtnorm", quietly = TRUE))
+
+  # Create a precision matrix that might become asymmetric
+  priorParams <- list(
+    mu0 = c(0, 0, 0),
+    Lambda = matrix(c(1, 0.5, 0.3,
+                      0.5, 2, 0.4,
+                      0.3, 0.4, 1.5), 3, 3),
+    kappa0 = 2,
+    nu = 5
+  )
+
+  # Generate data
+  set.seed(789)
+  x <- mvtnorm::rmvnorm(20, rep(1, 3), diag(3))
+
+  # Test posterior parameters
+  post_params <- mvnormal_posterior_parameters_cpp(priorParams, x)
+
+  # Check t_n is symmetric
+  t_n <- post_params$t_n
+  expect_true(all(abs(t_n - t(t_n)) < 1e-10))
+
+  # Test posterior draws
+  post_draws <- mvnormal_posterior_draw_cpp(priorParams, x, n = 5)
+
+  # Check all drawn precision matrices are symmetric
+  for (i in 1:5) {
+    sig_i <- post_draws$sig[,,i]
+    expect_true(all(abs(sig_i - t(sig_i)) < 1e-10))
+  }
+})

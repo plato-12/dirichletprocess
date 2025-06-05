@@ -26,6 +26,39 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
     dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution, numInitialClusters)
   }
 
+  # For multivariate normal, ensure we have enough space for future clusters
+  if (inherits(dpObj, "mvnormal")) {
+    # Get current dimensions
+    mu_dim <- dim(dpObj$clusterParameters$mu)
+    sig_dim <- dim(dpObj$clusterParameters$sig)
+
+    # Ensure we have at least 20 slots for clusters (or 2x initial clusters)
+    min_slots <- max(20, numInitialClusters * 2)
+
+    if (mu_dim[3] < min_slots) {
+      # Expand arrays
+      d <- mu_dim[2]
+
+      # Create new arrays with more space
+      new_mu <- array(NA_real_, dim = c(1, d, min_slots))
+      new_sig <- array(NA_real_, dim = c(d, d, min_slots))
+
+      # Copy existing parameters
+      new_mu[, , 1:mu_dim[3]] <- dpObj$clusterParameters$mu
+      new_sig[, , 1:sig_dim[3]] <- dpObj$clusterParameters$sig
+
+      # Fill remaining slots with prior draws
+      if (mu_dim[3] < min_slots) {
+        extra_params <- PriorDraw(dpObj$mixingDistribution, min_slots - mu_dim[3])
+        new_mu[, , (mu_dim[3]+1):min_slots] <- extra_params$mu
+        new_sig[, , (sig_dim[3]+1):min_slots] <- extra_params$sig
+      }
+
+      dpObj$clusterParameters$mu <- new_mu
+      dpObj$clusterParameters$sig <- new_sig
+    }
+  }
+
   dpObj <- InitialisePredictive(dpObj)
 
   return(dpObj)

@@ -2,6 +2,8 @@
 #include "../inst/include/MVNormalDistribution.h"
 #include "../inst/include/RcppConversions.h"
 
+// The ensureSymmetric function is already defined as inline in the header, so we don't need to define it here
+
 //' @title Draw from a Multivariate Normal-Wishart prior (C++)
  //' @description C++ implementation for drawing from the prior distribution of a
  //'   Multivariate Normal-Wishart model.
@@ -79,6 +81,9 @@
    int n = x_arma.n_rows;
    int d = x_arma.n_cols;
    Rcpp::NumericVector result(n);
+
+   // Ensure sigma is symmetric
+   sigma_arma = dp::ensureSymmetric(sigma_arma);
 
    double log_det_val;
    double sign;
