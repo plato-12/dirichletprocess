@@ -172,13 +172,44 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
       phi_n += diff * diff.t();
     }
 
+    // Ensure phi_n is well-conditioned before drawing from Wishart
+    // Add small regularization if needed
+    double min_eigenval = arma::eig_sym(phi_n).min();
+    if (min_eigenval < 1e-10) {
+      phi_n += arma::eye(d, d) * (1e-10 - min_eigenval);
+    }
+
     // Draw new Sigma
-    arma::mat sig_samp = arma::iwishrnd(arma::inv_sympd(phi_n), nu_n);
+    arma::mat phi_n_inv;
+    bool inv_success = arma::inv_sympd(phi_n_inv, phi_n);
+    if (!inv_success) {
+      // If inversion fails, add more regularization
+      phi_n += arma::eye(d, d) * 1e-8;
+      phi_n_inv = arma::inv_sympd(phi_n);
+    }
+
+    arma::mat sig_samp = arma::iwishrnd(phi_n_inv, nu_n);
 
     // Update mu given new Sigma
-    arma::mat sig_n = arma::inv_sympd(arma::inv_sympd(sigma0) + x.n_rows * arma::inv_sympd(sig_samp));
-    arma::vec mu_n = sig_n * (x.n_rows * arma::inv_sympd(sig_samp) * arma::mean(x, 0).t() +
-      arma::inv_sympd(sigma0) * mu0.t());
+    arma::mat sig_samp_inv;
+    inv_success = arma::inv_sympd(sig_samp_inv, sig_samp);
+    if (!inv_success) {
+      // Add regularization to sig_samp
+      sig_samp += arma::eye(d, d) * 1e-8;
+      sig_samp_inv = arma::inv_sympd(sig_samp);
+    }
+
+    arma::mat sigma0_inv;
+    inv_success = arma::inv_sympd(sigma0_inv, sigma0);
+    if (!inv_success) {
+      // Use pseudo-inverse or regularized inverse
+      arma::mat sigma0_reg = sigma0 + arma::eye(d, d) * 1e-8;
+      sigma0_inv = arma::inv_sympd(sigma0_reg);
+    }
+
+    arma::mat sig_n = arma::inv_sympd(sigma0_inv + x.n_rows * sig_samp_inv);
+    arma::vec mu_n = sig_n * (x.n_rows * sig_samp_inv * arma::mean(x, 0).t() +
+      sigma0_inv * mu0.t());
 
     // Draw new mu
     mu_samp = arma::mvnrnd(mu_n, sig_n);
