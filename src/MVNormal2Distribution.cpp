@@ -119,12 +119,38 @@ Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
+  // Check if sigma0 is well-conditioned
+  arma::mat sigma0_reg = sigma0;
+  arma::vec eigvals = arma::eig_sym(sigma0);
+  double min_eigenval = eigvals.min();
+  double max_eigenval = eigvals.max();
+
+  // If nearly singular, add regularization
+  if (min_eigenval < 1e-10 || max_eigenval / min_eigenval > 1e10) {
+    double regularization = std::max(1e-8, max_eigenval * 1e-8);
+    sigma0_reg = sigma0 + arma::eye(d, d) * regularization;
+  }
+
   for (int i = 0; i < n; i++) {
-    // Draw Sigma from Inverse-Wishart (corrected parameterization)
-    arma::mat sig_draw = arma::iwishrnd(phi0, nu0);
+    // Draw Sigma from Inverse-Wishart with regularization if needed
+    arma::mat sig_draw;
+    try {
+      sig_draw = arma::iwishrnd(phi0, nu0);
+    } catch(...) {
+      // If phi0 is problematic, regularize it
+      arma::mat phi0_reg = phi0 + arma::eye(d, d) * 1e-8;
+      sig_draw = arma::iwishrnd(phi0_reg, nu0);
+    }
+
+    // Ensure sig_draw is well-conditioned
+    eigvals = arma::eig_sym(sig_draw);
+    min_eigenval = eigvals.min();
+    if (min_eigenval < 1e-10) {
+      sig_draw += arma::eye(d, d) * (1e-8 - min_eigenval);
+    }
 
     // Draw mu from Multivariate Normal given Sigma
-    arma::vec mu_draw = arma::mvnrnd(mu0.t(), sigma0);
+    arma::vec mu_draw = arma::mvnrnd(mu0.t(), sigma0_reg);
 
     // Store in arrays
     for (int j = 0; j < d; j++) {
@@ -159,69 +185,140 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
 
+  // Standardize extreme data to improve numerical stability
+  arma::mat x_scaled = x;
+  arma::vec scale_factors = arma::ones(d);
+
+  for (int j = 0; j < d; j++) {
+    double col_max = arma::abs(x.col(j)).max();
+    if (col_max > 1e6) {
+      scale_factors(j) = col_max / 1e3;
+      x_scaled.col(j) = x.col(j) / scale_factors(j);
+    } else if (col_max < 1e-6 && col_max > 0) {
+      scale_factors(j) = col_max * 1e3;
+      x_scaled.col(j) = x.col(j) / scale_factors(j);
+    }
+  }
+
   // Initialize with a reasonable starting value
-  arma::vec mu_samp = arma::mean(x, 0).t();
+  arma::vec mu_samp = arma::mean(x_scaled, 0).t();
 
   for (int i = 0; i < n; i++) {
     // Update Sigma given current mu
-    double nu_n = x.n_rows + nu0;
+    double nu_n = x_scaled.n_rows + nu0;
     arma::mat phi_n = phi0;
 
-    for (arma::uword j = 0; j < x.n_rows; j++) {
-      arma::vec diff = x.row(j).t() - mu_samp;
-      phi_n += diff * diff.t();
+    // Compute scatter matrix with numerical stability
+    arma::mat scatter = arma::zeros(d, d);
+    for (arma::uword j = 0; j < x_scaled.n_rows; j++) {
+      arma::vec diff = x_scaled.row(j).t() - mu_samp;
+
+      // Check for extreme differences
+      double max_diff = arma::abs(diff).max();
+      if (max_diff > 1e8) {
+        diff = diff / (max_diff / 1e4);
+      }
+
+      scatter += diff * diff.t();
     }
 
-    // Ensure phi_n is well-conditioned before drawing from Wishart
-    // Add small regularization if needed
-    double min_eigenval = arma::eig_sym(phi_n).min();
+    // Add scatter to phi_n with regularization
+    phi_n += scatter;
+
+    // More aggressive regularization for ill-conditioned matrices
+    double trace_phi = arma::trace(phi_n);
+    double regularization = std::max(1e-8, trace_phi * 1e-10);
+    phi_n += arma::eye(d, d) * regularization;
+
+    // Ensure phi_n is well-conditioned
+    arma::vec eigvals = arma::eig_sym(phi_n);
+    double min_eigenval = eigvals.min();
+    double max_eigenval = eigvals.max();
+
+    // Check condition number
+    if (max_eigenval / min_eigenval > 1e10 || min_eigenval < 1e-10) {
+      double target_min = std::max(1e-6, max_eigenval * 1e-8);
+      phi_n += arma::eye(d, d) * (target_min - min_eigenval);
+    }
+
+    // Draw new Sigma using more stable inversion
+    arma::mat sig_samp;
+    try {
+      // Try standard inverse Wishart
+      arma::mat phi_n_inv = arma::inv_sympd(phi_n);
+      sig_samp = arma::iwishrnd(phi_n_inv, nu_n);
+    } catch(...) {
+      // If that fails, use SVD-based approach
+      arma::mat U;
+      arma::vec s;
+      arma::mat V;
+      arma::svd(U, s, V, phi_n);
+
+      // Regularize small singular values
+      for (arma::uword j = 0; j < s.n_elem; j++) {
+        if (s(j) < 1e-10) s(j) = 1e-10;
+      }
+
+      arma::mat phi_n_inv = V * arma::diagmat(1.0 / s) * U.t();
+      sig_samp = arma::iwishrnd(phi_n_inv, nu_n);
+    }
+
+    // Ensure sig_samp is well-conditioned
+    eigvals = arma::eig_sym(sig_samp);
+    min_eigenval = eigvals.min();
     if (min_eigenval < 1e-10) {
-      phi_n += arma::eye(d, d) * (1e-10 - min_eigenval);
+      sig_samp += arma::eye(d, d) * (1e-8 - min_eigenval);
     }
-
-    // Draw new Sigma
-    arma::mat phi_n_inv;
-    bool inv_success = arma::inv_sympd(phi_n_inv, phi_n);
-    if (!inv_success) {
-      // If inversion fails, add more regularization
-      phi_n += arma::eye(d, d) * 1e-8;
-      phi_n_inv = arma::inv_sympd(phi_n);
-    }
-
-    arma::mat sig_samp = arma::iwishrnd(phi_n_inv, nu_n);
 
     // Update mu given new Sigma
-    arma::mat sig_samp_inv;
-    inv_success = arma::inv_sympd(sig_samp_inv, sig_samp);
-    if (!inv_success) {
-      // Add regularization to sig_samp
-      sig_samp += arma::eye(d, d) * 1e-8;
-      sig_samp_inv = arma::inv_sympd(sig_samp);
+    arma::mat sig_n;
+    try {
+      arma::mat sig_samp_inv = arma::inv_sympd(sig_samp);
+      arma::mat sigma0_inv = arma::inv_sympd(sigma0);
+
+      sig_n = arma::inv_sympd(sigma0_inv + x_scaled.n_rows * sig_samp_inv);
+      arma::vec mu_n = sig_n * (x_scaled.n_rows * sig_samp_inv * arma::mean(x_scaled, 0).t() +
+        sigma0_inv * mu0.t());
+
+      // Draw new mu
+      mu_samp = arma::mvnrnd(mu_n, sig_n);
+    } catch(...) {
+      // If matrix operations fail, use regularized versions
+      arma::mat sig_samp_reg = sig_samp + arma::eye(d, d) * 1e-6;
+      arma::mat sigma0_reg = sigma0 + arma::eye(d, d) * 1e-6;
+
+      arma::mat sig_samp_inv = arma::inv(sig_samp_reg);
+      arma::mat sigma0_inv = arma::inv(sigma0_reg);
+
+      sig_n = arma::inv(sigma0_inv + x_scaled.n_rows * sig_samp_inv);
+      arma::vec mu_n = sig_n * (x_scaled.n_rows * sig_samp_inv * arma::mean(x_scaled, 0).t() +
+        sigma0_inv * mu0.t());
+
+      mu_samp = arma::mvnrnd(mu_n, sig_n);
     }
 
-    arma::mat sigma0_inv;
-    inv_success = arma::inv_sympd(sigma0_inv, sigma0);
-    if (!inv_success) {
-      // Use pseudo-inverse or regularized inverse
-      arma::mat sigma0_reg = sigma0 + arma::eye(d, d) * 1e-8;
-      sigma0_inv = arma::inv_sympd(sigma0_reg);
+    // Scale mu back to original scale
+    arma::vec mu_original = mu_samp;
+    for (int j = 0; j < d; j++) {
+      mu_original(j) *= scale_factors(j);
     }
 
-    arma::mat sig_n = arma::inv_sympd(sigma0_inv + x.n_rows * sig_samp_inv);
-    arma::vec mu_n = sig_n * (x.n_rows * sig_samp_inv * arma::mean(x, 0).t() +
-      sigma0_inv * mu0.t());
-
-    // Draw new mu
-    mu_samp = arma::mvnrnd(mu_n, sig_n);
+    // Scale sig back to original scale
+    arma::mat sig_original = sig_samp;
+    for (int j1 = 0; j1 < d; j1++) {
+      for (int j2 = 0; j2 < d; j2++) {
+        sig_original(j1, j2) *= scale_factors(j1) * scale_factors(j2);
+      }
+    }
 
     // Store results
     for (int j = 0; j < d; j++) {
-      mu_arr[j + i * d] = mu_samp(j);
+      mu_arr[j + i * d] = mu_original(j);
     }
 
     for (int j = 0; j < d; j++) {
       for (int k = 0; k < d; k++) {
-        sig_arr[j + k * d + i * d * d] = sig_samp(j, k);
+        sig_arr[j + k * d + i * d * d] = sig_original(j, k);
       }
     }
   }
@@ -231,6 +328,7 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
     Rcpp::Named("sig") = sig_arr
   );
 }
+
 
 Rcpp::List MVNormal2MixingDistribution::toR() const {
   return Rcpp::List::create(
