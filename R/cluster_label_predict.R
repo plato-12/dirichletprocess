@@ -32,6 +32,21 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
   Predictive_newData <- Predictive(mdobj, newData)
   componentIndexes <- numeric(nrow(newData))
 
+  # For mvnormal with pre-allocated arrays, extract only active clusters
+  active_clusterParams <- clusterParams
+  if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
+    active_clusterParams <- list()
+    for (i in seq_along(clusterParams)) {
+      param_dims <- dim(clusterParams[[i]])
+      if (length(param_dims) == 3 && param_dims[3] > numLabels) {
+        # Extract only the active clusters
+        active_clusterParams[[i]] <- clusterParams[[i]][, , 1:numLabels, drop = FALSE]
+      } else {
+        active_clusterParams[[i]] <- clusterParams[[i]]
+      }
+    }
+  }
+
   # For mvnormal with pre-allocated arrays, check capacity
   if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
     current_capacity <- dim(clusterParams[[1]])[3]
@@ -57,13 +72,19 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
           clusterParams[[j]] <- new_array
         }
       }
+      # Update active_clusterParams with the expanded arrays
+      active_clusterParams <- list()
+      for (i in seq_along(clusterParams)) {
+        active_clusterParams[[i]] <- clusterParams[[i]][, , 1:numLabels, drop = FALSE]
+      }
     }
   }
 
   for (i in seq_len(nrow(newData))) {
     dataVal <- newData[i, , drop = FALSE]
     weights <- numeric(numLabels + 1)
-    weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, clusterParams)
+    # Use active_clusterParams instead of full clusterParams
+    weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, active_clusterParams)
     weights[numLabels + 1] <- alpha * Predictive_newData[i]
 
     ind <- numLabels + 1
@@ -90,7 +111,14 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
         for (j in seq_along(clusterParams)) {
           param_dims <- dim(clusterParams[[j]])
           if (length(param_dims) == 3) {
-            clusterParams[[j]][, , numLabels] <- post_draw[[j]][, , 1]
+            # Extract the single draw properly
+            if (j == 1) {
+              # For mu
+              clusterParams[[j]][1, , numLabels] <- post_draw[[j]][1, , 1]
+            } else {
+              # For sig
+              clusterParams[[j]][, , numLabels] <- post_draw[[j]][, , 1]
+            }
           }
         }
       } else {
