@@ -152,6 +152,10 @@ test_that("Multivariate Normal Cluster Label Change", {
   dpobj <- Initialise(dpobj)
 
   dpobj <- ClusterLabelChange(dpobj, 1, 11, 1)
+
+  expect_equal(dpobj$numberClusters, 1)
+  expect_gte(dim(dpobj$clusterParameters$mu)[3], 1)
+  expect_gte(dim(dpobj$clusterParameters$sig)[3], 1)
 })
 
 test_that("Multivariate Normal Cluster Parameter Update", {
