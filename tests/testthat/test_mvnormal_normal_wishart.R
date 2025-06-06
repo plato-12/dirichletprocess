@@ -20,11 +20,9 @@ test_that("Multivariate Normal Likelihood", {
   lik_test_multi <- Likelihood(mdobj, matrix(c(0,0), nrow=1), test_theta_multi)
 
   expect_equal(lik_test_multi, rep.int(1/sqrt(4*pi^2), 2))
-
 })
 
 test_that("Multivariate Normal Prior Draw", {
-
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
 
   mdobj <- MvnormalCreate(priorParameters)
@@ -41,7 +39,6 @@ test_that("Multivariate Normal Prior Draw", {
 })
 
 test_that("Multivariate Normal Posterior Parameters", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
 
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
@@ -55,7 +52,6 @@ test_that("Multivariate Normal Posterior Parameters", {
 })
 
 test_that("Multivariate Normal Posterior Parameters 1 Data Point", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
 
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=2, nu=2)
@@ -67,7 +63,6 @@ test_that("Multivariate Normal Posterior Parameters 1 Data Point", {
 })
 
 test_that("Multivariate Normal Posterior Draw", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
   mdobj <- MvnormalCreate(priorParameters)
@@ -88,7 +83,6 @@ test_that("Multivariate Normal Posterior Draw", {
 })
 
 test_that("Multivariate Normal Predictive", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
   mdobj <- MvnormalCreate(priorParameters)
@@ -96,11 +90,9 @@ test_that("Multivariate Normal Predictive", {
   pred_test <- Predictive(mdobj, test_data)
 
   expect_length(pred_test, 10)
-
 })
 
 test_that("Multivariate Normal Dirichlet Create and Initialise", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
   mdobj <- MvnormalCreate(priorParameters)
@@ -119,7 +111,6 @@ test_that("Multivariate Normal Dirichlet Create and Initialise", {
 })
 
 test_that("Multivariate Normal Dirichlet Create and Initialise Multi Cluster", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
   mdobj <- MvnormalCreate(priorParameters)
@@ -138,7 +129,6 @@ test_that("Multivariate Normal Dirichlet Create and Initialise Multi Cluster", {
 })
 
 test_that("Multivariate Normal Component Update", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
   mdobj <- MvnormalCreate(priorParameters)
@@ -153,8 +143,7 @@ test_that("Multivariate Normal Component Update", {
   expect_equal(dpobj$data, test_data)
 })
 
-test_that("Multivariate Normal Cluster Label Change",{
-
+test_that("Multivariate Normal Cluster Label Change", {
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
   mdobj <- MvnormalCreate(priorParameters)
@@ -163,11 +152,9 @@ test_that("Multivariate Normal Cluster Label Change",{
   dpobj <- Initialise(dpobj)
 
   dpobj <- ClusterLabelChange(dpobj, 1, 11, 1)
-
 })
 
 test_that("Multivariate Normal Cluster Parameter Update", {
-
   test_data <- mvtnorm::rmvnorm(10, c(0,0), diag(2))
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
   mdobj <- MvnormalCreate(priorParameters)
@@ -181,7 +168,6 @@ test_that("Multivariate Normal Cluster Parameter Update", {
   expect_equal(dpobj$numberClusters, 1)
   expect_gte(dim(dpobj$clusterParameters$mu)[3], 1)
   expect_gte(dim(dpobj$clusterParameters$sig)[3], 1)
-
 })
 
 test_that("Multivariate Normal Fit", {
@@ -196,12 +182,10 @@ test_that("Multivariate Normal Fit", {
   expect_equal(dpobj$n, 10)
   expect_equal(sum(dpobj$pointsPerCluster), 10)
   expect_equal(dpobj$data, test_data)
-
 })
 
 test_that("Multivariate Normal Cluster Predict", {
-
-  test_data <- as.matrix(mvtnorm::rmvnorm(1, c(0,0), diag(2)))
+  test_data <- as.matrix(mvtnorm::rmvnorm(10, c(0,0), diag(2)))
 
   dp <- DirichletProcessMvnormal(test_data)
   dp <- Fit(dp, 10, progressBar=FALSE)
@@ -209,11 +193,9 @@ test_that("Multivariate Normal Cluster Predict", {
   pred <- ClusterLabelPredict(dp, mvtnorm::rmvnorm(1, c(0,0), diag(2)))
 
   expect_length(pred$componentIndexes, 1)
-
 })
 
 test_that("Multivariate Normal Initial Clusters", {
-
   test_data <- as.matrix(mvtnorm::rmvnorm(10, c(0,0), diag(2)))
 
   dp <- DirichletProcessMvnormal(test_data, numInitialClusters = 5)
@@ -223,5 +205,4 @@ test_that("Multivariate Normal Initial Clusters", {
   # Pre-allocated arrays will have at least 20 slots
   expect_gte(dim(dp$clusterParameters[[1]])[3], 5)
   expect_gte(dim(dp$clusterParameters[[2]])[3], 5)
-
 })
