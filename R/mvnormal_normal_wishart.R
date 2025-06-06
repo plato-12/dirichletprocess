@@ -24,6 +24,18 @@ MvnormalCreate <- function(priorParameters) {
     )
   }
 
+  # Handle the case where a vector is passed instead of a list
+  if (is.numeric(priorParameters) && !is.list(priorParameters)) {
+    # Assume it's the mean vector
+    d <- length(priorParameters)
+    priorParameters <- list(
+      mu0 = priorParameters,
+      kappa0 = 1,
+      nu = d + 1,
+      Lambda = diag(d)
+    )
+  }
+
   # Ensure mu0 is a vector
   if (is.matrix(priorParameters$mu0)) {
     priorParameters$mu0 <- as.vector(priorParameters$mu0)

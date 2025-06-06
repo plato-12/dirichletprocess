@@ -31,20 +31,36 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
     pointsPerCluster[newLabel] <- pointsPerCluster[newLabel] + 1
     clusterLabels[i] <- newLabel
 
-    # If the original cluster (currentLabel) is now empty (caller would have decremented it,
-    # and if it was the only point, it's now 0 AFTER that decrement by caller)
-    # This check should be pointsPerCluster[currentLabel] == 0
-    # (assuming the caller already removed the point from currentLabel for counting purposes)
-    # However, standard algorithm 8 implies this function does the full management.
-    # Let's assume currentLabel's count includes point i *before* this function's logic fully applied the change.
-    # The critical part is what the caller (ClusterComponentUpdate) does *before* calling this.
-    # If caller does: dpObj$pointsPerCluster[ci] <- dpObj$pointsPerCluster[ci] - 1
-    # then currentLabel's count is already reduced.
-
-    if (pointsPerCluster[currentLabel] == 0 && currentLabel != newLabel) { # Old cluster (not the one we moved to) is now empty
+    # If the original cluster (currentLabel) is now empty
+    if (pointsPerCluster[currentLabel] == 0 && currentLabel != newLabel) {
+      # Old cluster (not the one we moved to) is now empty
       numLabels <- numLabels - 1
       pointsPerCluster <- pointsPerCluster[-currentLabel]
-      clusterParams <- lapply(clusterParams, function(param_array) param_array[, , -currentLabel, drop = FALSE])
+
+      # Handle pre-allocated arrays for mvnormal
+      if (inherits(dpObj, "mvnormal") && is.list(clusterParams)) {
+        # For mvnormal, we keep the pre-allocated structure but mark slots as unused
+        # We don't actually remove slots, just compact the active ones
+        for (j in seq_along(clusterParams)) {
+          param_dims <- dim(clusterParams[[j]])
+          if (length(param_dims) == 3) {
+            # Shift parameters down to fill the gap
+            if (currentLabel < param_dims[3]) {
+              for (k in currentLabel:(param_dims[3]-1)) {
+                if (k < numLabels) {
+                  # Copy from k+1 to k
+                  clusterParams[[j]][, , k] <- clusterParams[[j]][, , k+1]
+                }
+              }
+            }
+          }
+        }
+      } else {
+        # For other distributions, remove the slot
+        clusterParams <- lapply(clusterParams, function(param_array) {
+          param_array[, , -currentLabel, drop = FALSE]
+        })
+      }
 
       # Adjust labels for clusters that were after the removed one
       # And also adjust newLabel if it was affected by the shift
@@ -58,11 +74,7 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
         clusterLabels[i] <- original_newLabel_val - 1 # Correctly point to the shifted newLabel
       }
     }
-  } else { # Assigning to a new cluster (newLabel refers to an auxiliary parameter index)
-    # newLabel from caller is an index into a combined list of existing + m auxiliary parameters.
-    # If it's > numLabels, it means one of the m auxiliary parameters was chosen.
-    # The actual new cluster index will be numLabels + 1.
-
+  } else { # Assigning to a new cluster
     # Case 1: The point's original cluster (currentLabel) becomes empty
     if (pointsPerCluster[currentLabel] == 0) {
       # Re-purpose the slot of the now-empty currentLabel for the new cluster parameters
@@ -76,19 +88,36 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
     } else {
       # Case 2: The point's original cluster is not empty, so we truly add a new cluster
       clusterLabels[i] <- numLabels + 1 # Assign to the next available cluster index
-
       pointsPerCluster <- c(pointsPerCluster, 1) # Add count for the new cluster
 
       post_draw <- PosteriorDraw(mdObj, x) # Parameters for the new cluster
-      for (j in seq_along(clusterParams)) {
-        dim_existing <- dim(clusterParams[[j]])
-        new_param_array <- array(NA, dim = c(dim_existing[1], dim_existing[2], numLabels + 1)) # new size
-        if(numLabels > 0 && dim_existing[3] > 0) { # Copy if there were existing params
-          new_param_array[,,1:numLabels] <- clusterParams[[j]]
+
+      # Handle pre-allocated arrays for mvnormal
+      if (inherits(dpObj, "mvnormal") && is.list(clusterParams)) {
+        # For mvnormal, use the pre-allocated slot
+        for (j in seq_along(clusterParams)) {
+          param_dims <- dim(clusterParams[[j]])
+          if (length(param_dims) == 3 && (numLabels + 1) <= param_dims[3]) {
+            # We have a pre-allocated slot available
+            clusterParams[[j]][, , numLabels + 1] <- post_draw[[j]]
+          } else {
+            # Need to expand - this should be rare with proper pre-allocation
+            stop("Insufficient pre-allocated slots for new cluster")
+          }
         }
-        new_param_array[,,numLabels+1] <- post_draw[[j]]
-        clusterParams[[j]] <- new_param_array
+      } else {
+        # For other distributions, expand the arrays
+        for (j in seq_along(clusterParams)) {
+          dim_existing <- dim(clusterParams[[j]])
+          new_param_array <- array(NA, dim = c(dim_existing[1], dim_existing[2], numLabels + 1))
+          if(numLabels > 0 && dim_existing[3] > 0) {
+            new_param_array[,,1:numLabels] <- clusterParams[[j]]
+          }
+          new_param_array[,,numLabels+1] <- post_draw[[j]]
+          clusterParams[[j]] <- new_param_array
+        }
       }
+
       numLabels <- numLabels + 1 # Increment total number of clusters
     }
   }
