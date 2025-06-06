@@ -32,8 +32,8 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
     mu_dim <- dim(dpObj$clusterParameters$mu)
     sig_dim <- dim(dpObj$clusterParameters$sig)
 
-    # Ensure we have at least 20 slots for clusters (or 2x initial clusters)
-    min_slots <- max(20, numInitialClusters * 2)
+    # Ensure we have at least enough slots for the data size or 50, whichever is larger
+    min_slots <- max(50, dpObj$n, numInitialClusters * 10)
 
     if (mu_dim[3] < min_slots) {
       # Expand arrays
