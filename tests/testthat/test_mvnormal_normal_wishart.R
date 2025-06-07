@@ -151,11 +151,14 @@ test_that("Multivariate Normal Cluster Label Change", {
   dpobj <- DirichletProcessCreate(test_data, mdobj)
   dpobj <- Initialise(dpobj)
 
+  # Properly decrement the count before calling ClusterLabelChange
+  dpobj$pointsPerCluster[1] <- dpobj$pointsPerCluster[1] - 1
+
   dpobj <- ClusterLabelChange(dpobj, 1, 11, 1)
 
-  expect_equal(dpobj$numberClusters, 1)
-  expect_gte(dim(dpobj$clusterParameters$mu)[3], 1)
-  expect_gte(dim(dpobj$clusterParameters$sig)[3], 1)
+  expect_equal(dpobj$numberClusters, 2)  # Should be 2, not 1
+  expect_gte(dim(dpobj$clusterParameters$mu)[3], 2)  # At least 2 slots
+  expect_gte(dim(dpobj$clusterParameters$sig)[3], 2)  # At least 2 slots
 })
 
 test_that("Multivariate Normal Cluster Parameter Update", {
