@@ -53,6 +53,11 @@ public:
   void globalParameterUpdate() override;
   void updateG0() override;
   void updateGamma() override;
+  void clusterComponentUpdate() override;
+  void clusterParameterUpdate() override;
+  void updateAlpha() override;
+  Rcpp::List toR() const override;
+
 
   static HierarchicalBetaDP* fromR(const Rcpp::List& rObj);
 };

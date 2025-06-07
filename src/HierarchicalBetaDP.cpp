@@ -153,6 +153,9 @@ void HierarchicalBetaDP::globalParameterUpdate() {
   // Get unique global labels across all DPs
   std::vector<int> all_global_labels;
 
+  // Use a more reasonable tolerance for parameter matching
+  const double PARAM_TOLERANCE = 1e-6;  // Changed from 1e-10
+
   for (size_t i = 0; i < indDP.size(); i++) {
     NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
     if (!betaDP) continue;
@@ -163,10 +166,30 @@ void HierarchicalBetaDP::globalParameterUpdate() {
 
     for (int j = 0; j < betaDP->numberClusters; j++) {
       // Find which global parameter this cluster corresponds to
+      bool found = false;
       for (int k = 0; k < mu_global.size(); k++) {
-        if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
+        if (std::abs(mu_params[j] - mu_global[k]) < PARAM_TOLERANCE) {
           all_global_labels.push_back(k);
+          found = true;
           break;
+        }
+      }
+
+      // If no match found, this might be a new cluster that hasn't been assigned yet
+      if (!found) {
+        // Find the closest global parameter
+        double min_dist = std::numeric_limits<double>::infinity();
+        int closest_idx = 0;
+        for (int k = 0; k < mu_global.size(); k++) {
+          double dist = std::abs(mu_params[j] - mu_global[k]);
+          if (dist < min_dist) {
+            min_dist = dist;
+            closest_idx = k;
+          }
+        }
+        // If the closest is still reasonably close, use it
+        if (min_dist < 0.1) {  // More lenient threshold for assignment
+          all_global_labels.push_back(closest_idx);
         }
       }
     }
@@ -191,9 +214,9 @@ void HierarchicalBetaDP::globalParameterUpdate() {
 
       // Find clusters in this DP that use this global parameter
       for (int j = 0; j < betaDP->numberClusters; j++) {
-        if (std::abs(mu_params[j] - mu_global[global_idx]) < 1e-10) {
+        if (std::abs(mu_params[j] - mu_global[global_idx]) < PARAM_TOLERANCE) {
           // Get data points for this cluster
-          for (int i = 0; i < betaDP->n; i++) {
+          for (arma::uword i = 0; i < betaDP->n; i++) {
             if (betaDP->clusterLabels[i] == j) {
               combined_data.push_back(betaDP->data(i, 0));
             }
@@ -230,7 +253,8 @@ void HierarchicalBetaDP::globalParameterUpdate() {
         Rcpp::NumericVector nu_params = betaDP->clusterParameters[1];
 
         for (int j = 0; j < betaDP->numberClusters; j++) {
-          if (std::abs(mu_params[j] - mu_global[global_idx]) < 1e-10) {
+          if (std::abs(mu_params[j] - new_mu[99]) < PARAM_TOLERANCE ||
+              std::abs(mu_params[j] - mu_global[global_idx]) < PARAM_TOLERANCE) {
             mu_params[j] = new_mu[99];
             nu_params[j] = new_nu[99];
           }
@@ -246,6 +270,7 @@ void HierarchicalBetaDP::globalParameterUpdate() {
 void HierarchicalBetaDP::updateGamma() {
   // Get the number of unique global parameters
   std::set<int> unique_global_labels;
+  const double PARAM_TOLERANCE = 1e-6;  // Match the tolerance used in globalParameterUpdate
 
   for (size_t i = 0; i < indDP.size(); i++) {
     NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
@@ -256,7 +281,7 @@ void HierarchicalBetaDP::updateGamma() {
 
     for (int j = 0; j < betaDP->numberClusters; j++) {
       for (int k = 0; k < mu_global.size(); k++) {
-        if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
+        if (std::abs(mu_params[j] - mu_global[k]) < PARAM_TOLERANCE) {
           unique_global_labels.insert(k);
           break;
         }
@@ -304,6 +329,7 @@ void HierarchicalBetaDP::updateGamma() {
 void HierarchicalBetaDP::updateG0() {
   // Get global parameters and their frequencies
   std::map<int, int> global_param_counts;
+  const double PARAM_TOLERANCE = 1e-6;  // Match the tolerance used in globalParameterUpdate
 
   for (size_t i = 0; i < indDP.size(); i++) {
     NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(indDP[i]);
@@ -314,7 +340,7 @@ void HierarchicalBetaDP::updateG0() {
 
     for (int j = 0; j < betaDP->numberClusters; j++) {
       for (int k = 0; k < mu_global.size(); k++) {
-        if (std::abs(mu_params[j] - mu_global[k]) < 1e-10) {
+        if (std::abs(mu_params[j] - mu_global[k]) < PARAM_TOLERANCE) {
           global_param_counts[k]++;
           break;
         }
@@ -391,6 +417,33 @@ void HierarchicalBetaDP::updateG0() {
 
     globalParameters[0] = expanded_mu;
     globalParameters[1] = expanded_nu;
+  }
+}
+
+void HierarchicalBetaDP::clusterComponentUpdate() {
+  // Update cluster components for each individual DP
+  for (auto& dp : indDP) {
+    if (dp) {
+      dp->clusterComponentUpdate();
+    }
+  }
+}
+
+void HierarchicalBetaDP::clusterParameterUpdate() {
+  // Update cluster parameters for each individual DP
+  for (auto& dp : indDP) {
+    if (dp) {
+      dp->clusterParameterUpdate();
+    }
+  }
+}
+
+void HierarchicalBetaDP::updateAlpha() {
+  // Update alpha for each individual DP
+  for (auto& dp : indDP) {
+    if (dp) {
+      dp->updateAlpha();
+    }
   }
 }
 
@@ -475,6 +528,37 @@ void HierarchicalBetaDP::fit(int iterations, bool updatePrior, bool progressBar)
   if (progressBar) {
     Rcpp::Rcout << "Hierarchical Beta DP fitting complete." << std::endl;
   }
+}
+
+Rcpp::List HierarchicalBetaDP::toR() const {
+  Rcpp::List result;
+
+  // Convert individual DPs
+  Rcpp::List indDP_list;
+  for (size_t i = 0; i < indDP.size(); i++) {
+    NonConjugateBetaDP* betaDP = dynamic_cast<NonConjugateBetaDP*>(const_cast<DirichletProcess*>(indDP[i]));
+    if (betaDP) {
+      // Convert cluster labels back to 1-indexed for R (already handled in wrapper)
+      indDP_list.push_back(betaDP->toR());
+    }
+  }
+  result["indDP"] = indDP_list;
+
+  // Copy global parameters
+  result["globalParameters"] = Rcpp::clone(globalParameters);
+  result["globalStick"] = Rcpp::wrap(globalStick);
+  result["gamma"] = gamma;
+  result["gammaPriors"] = Rcpp::clone(gammaPriors);
+
+  // IMPORTANT: Include the gamma chain values
+  if (gammaChain.size() > 0) {
+    result["gammaValues"] = Rcpp::clone(gammaChain);
+  }
+
+  // Set the class attribute
+  result.attr("class") = Rcpp::CharacterVector::create("list", "dirichletprocess", "hierarchical");
+
+  return result;
 }
 
 } // namespace dp
