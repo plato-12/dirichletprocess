@@ -32,22 +32,7 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
   Predictive_newData <- Predictive(mdobj, newData)
   componentIndexes <- numeric(nrow(newData))
 
-  # For mvnormal with pre-allocated arrays, extract only active clusters
-  active_clusterParams <- clusterParams
-  if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
-    active_clusterParams <- list()
-    for (i in seq_along(clusterParams)) {
-      param_dims <- dim(clusterParams[[i]])
-      if (length(param_dims) == 3 && param_dims[3] > numLabels) {
-        # Extract only the active clusters
-        active_clusterParams[[i]] <- clusterParams[[i]][, , 1:numLabels, drop = FALSE]
-      } else {
-        active_clusterParams[[i]] <- clusterParams[[i]]
-      }
-    }
-  }
-
-  # For mvnormal with pre-allocated arrays, check capacity
+  # For mvnormal with pre-allocated arrays, check capacity and expand if necessary
   if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
     current_capacity <- dim(clusterParams[[1]])[3]
     if (current_capacity < numLabels + nrow(newData)) {
@@ -68,14 +53,8 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
               new_array[, , (current_capacity+1):new_capacity] <- extra_params$sig
             }
           }
-
           clusterParams[[j]] <- new_array
         }
-      }
-      # Update active_clusterParams with the expanded arrays
-      active_clusterParams <- list()
-      for (i in seq_along(clusterParams)) {
-        active_clusterParams[[i]] <- clusterParams[[i]][, , 1:numLabels, drop = FALSE]
       }
     }
   }
@@ -83,7 +62,32 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
   for (i in seq_len(nrow(newData))) {
     dataVal <- newData[i, , drop = FALSE]
     weights <- numeric(numLabels + 1)
-    # Use active_clusterParams instead of full clusterParams
+
+    # FIX: Re-extract active parameters inside the loop to reflect the current number of clusters.
+    active_clusterParams <- clusterParams
+    if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
+      active_clusterParams <- list()
+      for (j in seq_along(clusterParams)) {
+        param_dims <- dim(clusterParams[[j]])
+        if (length(param_dims) == 3 && param_dims[3] >= numLabels) {
+          # Extract only the active clusters
+          active_clusterParams[[j]] <- clusterParams[[j]][, , 1:numLabels, drop = FALSE]
+        } else {
+          active_clusterParams[[j]] <- clusterParams[[j]]
+        }
+      }
+    } else if (is.list(clusterParams)) { # General case for other array-based distributions
+      active_clusterParams <- list()
+      for (j in seq_along(clusterParams)) {
+        param_dims <- dim(clusterParams[[j]])
+        if (length(param_dims) == 3 && param_dims[3] >= numLabels) {
+          active_clusterParams[[j]] <- clusterParams[[j]][, , 1:numLabels, drop = FALSE]
+        } else {
+          active_clusterParams[[j]] <- clusterParams[[j]]
+        }
+      }
+    }
+
     weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, active_clusterParams)
     weights[numLabels + 1] <- alpha * Predictive_newData[i]
 
@@ -103,7 +107,7 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
         # For mvnormal with pre-allocated arrays
         current_capacity <- dim(clusterParams[[1]])[3]
         if (numLabels > current_capacity) {
-          # This shouldn't happen if we pre-expanded correctly
+          # This should not be reached due to pre-expansion
           stop("Insufficient capacity in pre-allocated arrays")
         }
 
@@ -112,11 +116,9 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
           param_dims <- dim(clusterParams[[j]])
           if (length(param_dims) == 3) {
             # Extract the single draw properly
-            if (j == 1) {
-              # For mu
+            if (j == 1) { # For mu
               clusterParams[[j]][1, , numLabels] <- post_draw[[j]][1, , 1]
-            } else {
-              # For sig
+            } else { # For sig
               clusterParams[[j]][, , numLabels] <- post_draw[[j]][, , 1]
             }
           }
@@ -166,7 +168,7 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
 
     weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, clusterParams)
     weights[(numLabels + 1):(numLabels + m)] <- (alpha/m) * Likelihood(mdobj,
-      dataVal, aux)
+                                                                       dataVal, aux)
 
     if (all(weights == 0)) {
       weights[1:(numLabels + m)] <- 1
@@ -191,7 +193,7 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
 
       for (j in seq_along(clusterParams)) {
         clusterParams[[j]] <- array(c(clusterParams[[j]], aux[[j]][, , component - numLabels]), dim = c(dim(clusterParams[[j]])[1:2], dim(clusterParams[[j]])[3] +
-          1))
+                                                                                                          1))
       }
 
       numLabels <- numLabels + 1
@@ -203,4 +205,3 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
                   numLabels = numLabels)
   return(outList)
 }
-
