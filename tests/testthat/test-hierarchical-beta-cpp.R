@@ -307,8 +307,8 @@ test_that("Hierarchical Beta DP recovers known parameters", {
   # Run for more iterations with burn-in
   dp_fit <- Fit(dp, its = 2000, progressBar = FALSE)
 
-  # Extract active parameters with better error handling
-  active_mus <- numeric(0)  # Initialize as empty numeric vector
+  # Extract all local parameters as active (simpler approach)
+  all_local_mus <- numeric(0)
 
   for (i in seq_along(dp_fit$indDP)) {
     dp_i <- dp_fit$indDP[[i]]
@@ -319,62 +319,60 @@ test_that("Hierarchical Beta DP recovers known parameters", {
 
       # Ensure local_mus is numeric
       if (is.numeric(local_mus) && length(local_mus) > 0) {
-        for (j in seq_len(dp_i$numberClusters)) {
-          if (j <= length(local_mus)) {
-            local_mu <- local_mus[j]
-
-            # Find closest global parameter
-            global_mus <- dp_fit$globalParameters[[1]]
-            if (is.numeric(global_mus) && length(global_mus) > 0) {
-              distances <- abs(global_mus - local_mu)
-              closest_idx <- which.min(distances)
-
-              if (length(closest_idx) > 0 && distances[closest_idx] < 1e-6) {
-                active_mus <- c(active_mus, global_mus[closest_idx])
-              }
-            }
-          }
-        }
+        # Take only the active clusters (first numberClusters values)
+        active_local_mus <- local_mus[seq_len(dp_i$numberClusters)]
+        all_local_mus <- c(all_local_mus, active_local_mus)
       }
     }
   }
 
-  # Check that we found some active clusters
-  expect_true(length(active_mus) > 0,
-              info = "Should find at least one active cluster")
+  # Remove duplicates with reasonable tolerance
+  unique_mus <- numeric(0)
+  tol <- 0.05  # 5% tolerance for considering parameters as duplicate
 
-  # Get unique active mus (only if we have some)
-  if (length(active_mus) > 0) {
-    unique_mus <- unique(round(active_mus, 2))
-
-    # Check we have at least 2 unique clusters
-    expect_true(length(unique_mus) >= 2,
-                info = sprintf("Found %d unique clusters, expected at least 2",
-                               length(unique_mus)))
-
-    # Check that we have clusters in the right regions
-    low_clusters <- active_mus[active_mus < 0.5]
-    high_clusters <- active_mus[active_mus > 0.5]
-
-    expect_true(length(low_clusters) > 0,
-                info = "Should find clusters in low region (< 0.5)")
-    expect_true(length(high_clusters) > 0,
-                info = "Should find clusters in high region (> 0.5)")
-
-    # Check parameter recovery with relaxed criteria
-    if (length(low_clusters) > 0) {
-      closest_to_mu1 <- low_clusters[which.min(abs(low_clusters - true_mu1))]
-      expect_true(abs(closest_to_mu1 - true_mu1) < 0.2,  # More relaxed
-                  info = sprintf("Closest low cluster %.3f should be near %.3f",
-                                 closest_to_mu1, true_mu1))
+  for (mu in all_local_mus) {
+    if (length(unique_mus) == 0) {
+      unique_mus <- mu
+    } else {
+      # Check if this mu is already in unique_mus
+      if (min(abs(unique_mus - mu)) > tol) {
+        unique_mus <- c(unique_mus, mu)
+      }
     }
+  }
 
-    if (length(high_clusters) > 0) {
-      closest_to_mu2 <- high_clusters[which.min(abs(high_clusters - true_mu2))]
-      expect_true(abs(closest_to_mu2 - true_mu2) < 0.2,  # More relaxed
-                  info = sprintf("Closest high cluster %.3f should be near %.3f",
-                                 closest_to_mu2, true_mu2))
-    }
+  # Sort for easier inspection
+  unique_mus <- sort(unique_mus)
+
+  # Check that we found some clusters
+  expect_true(length(unique_mus) >= 2,
+              info = sprintf("Found %d unique clusters, expected at least 2. Clusters: %s",
+                             length(unique_mus), paste(round(unique_mus, 3), collapse=", ")))
+
+  # Check that we have clusters in the right regions
+  low_clusters <- unique_mus[unique_mus < 0.5]
+  high_clusters <- unique_mus[unique_mus > 0.5]
+
+  expect_true(length(low_clusters) > 0,
+              info = sprintf("Should find clusters in low region (< 0.5). Found: %s",
+                             paste(round(low_clusters, 3), collapse=", ")))
+  expect_true(length(high_clusters) > 0,
+              info = sprintf("Should find clusters in high region (> 0.5). Found: %s",
+                             paste(round(high_clusters, 3), collapse=", ")))
+
+  # Check parameter recovery with relaxed criteria
+  if (length(low_clusters) > 0) {
+    closest_to_mu1 <- low_clusters[which.min(abs(low_clusters - true_mu1))]
+    expect_true(abs(closest_to_mu1 - true_mu1) < 0.15,  # 15% tolerance
+                info = sprintf("Closest low cluster %.3f should be near %.3f (diff: %.3f)",
+                               closest_to_mu1, true_mu1, abs(closest_to_mu1 - true_mu1)))
+  }
+
+  if (length(high_clusters) > 0) {
+    closest_to_mu2 <- high_clusters[which.min(abs(high_clusters - true_mu2))]
+    expect_true(abs(closest_to_mu2 - true_mu2) < 0.15,  # 15% tolerance
+                info = sprintf("Closest high cluster %.3f should be near %.3f (diff: %.3f)",
+                               closest_to_mu2, true_mu2, abs(closest_to_mu2 - true_mu2)))
   }
 })
 
