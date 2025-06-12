@@ -376,10 +376,10 @@ run_and_report <- function() {
   cat("\n3. MEMORY USAGE:\n")
   print(memory_results$summary)
 
-  cat("\n4. COMPONENT-LEVEL PERFORMANCE:\n")
+  # cat("\n4. COMPONENT-LEVEL PERFORMANCE:\n")
   print(component_results)
 
-  cat("\n5. COMPONENT SPEEDUP:\n")
+  # cat("\n5. COMPONENT SPEEDUP:\n")
   comp_speedup <- component_results %>%
     select(component, implementation, mean_time_ms) %>%
     pivot_wider(names_from = implementation, values_from = mean_time_ms) %>%
@@ -396,4 +396,4 @@ run_and_report <- function() {
 }
 
 # Example usage:
-# results <- run_and_report()
+#results <- run_and_report()
