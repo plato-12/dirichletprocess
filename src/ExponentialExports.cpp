@@ -108,6 +108,39 @@
    return result;
  }
 
+//' @title Update alpha for conjugate exponential DP (C++)
+ //' @description C++ implementation of the concentration parameter update.
+ //' @param dpObj A list representing the Dirichlet Process object.
+ //' @return Updated alpha value.
+ //' @export
+ // [[Rcpp::export]]
+ double conjugate_exponential_update_alpha_cpp(Rcpp::List dpObj) {
+   // Extract necessary components
+   double alpha = dpObj["alpha"];
+   int n = dpObj["n"];
+   int numberClusters = dpObj["numberClusters"];
+   Rcpp::NumericVector alphaPriorParameters = dpObj["alphaPriorParameters"];
+
+   // Perform the update using auxiliary variable method
+   double x = R::rbeta(alpha + 1.0, n);
+
+   double pi1 = alphaPriorParameters[0] + numberClusters - 1.0;
+   double pi2 = n * (alphaPriorParameters[1] - log(x));
+   double pi_ratio = pi1 / (pi1 + pi2);
+
+   double postShape, postRate;
+   if (R::runif(0, 1) < pi_ratio) {
+     postShape = alphaPriorParameters[0] + numberClusters;
+   } else {
+     postShape = alphaPriorParameters[0] + numberClusters - 1.0;
+   }
+   postRate = alphaPriorParameters[1] - log(x);
+
+   double new_alpha = R::rgamma(postShape, 1.0/postRate);
+
+   return new_alpha;
+ }
+
 //' @title Update cluster parameters (C++ conjugate exponential)
  //' @description C++ implementation of the cluster parameter update for conjugate models.
  //' @param dpObj A list representing the Dirichlet Process object.

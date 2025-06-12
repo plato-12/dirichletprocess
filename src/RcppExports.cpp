@@ -216,6 +216,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// conjugate_exponential_update_alpha_cpp
+double conjugate_exponential_update_alpha_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_exponential_update_alpha_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_exponential_update_alpha_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
 // conjugate_exponential_cluster_parameter_update_cpp
 Rcpp::List conjugate_exponential_cluster_parameter_update_cpp(Rcpp::List dpObj);
 RcppExport SEXP _dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp(SEXP dpObjSEXP) {
@@ -755,6 +766,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_exponential_likelihood_cpp", (DL_FUNC) &_dirichletprocess_exponential_likelihood_cpp, 2},
     {"_dirichletprocess_exponential_predictive_cpp", (DL_FUNC) &_dirichletprocess_exponential_predictive_cpp, 2},
     {"_dirichletprocess_conjugate_exponential_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_component_update_cpp, 1},
+    {"_dirichletprocess_conjugate_exponential_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_update_alpha_cpp, 1},
     {"_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_hierarchical_beta_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_beta_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_cluster_component_update_cpp, 1},

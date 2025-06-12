@@ -59,6 +59,9 @@ NULL
 #' @title Update cluster components (C++ conjugate exponential)
 NULL
 
+#' @title Update alpha for conjugate exponential DP (C++)
+NULL
+
 #' @title Update cluster parameters (C++ conjugate exponential)
 NULL
 
@@ -84,6 +87,10 @@ exponential_predictive_cpp <- function(priorParams, x) {
 
 conjugate_exponential_cluster_component_update_cpp <- function(dpObj) {
     .Call(`_dirichletprocess_conjugate_exponential_cluster_component_update_cpp`, dpObj)
+}
+
+conjugate_exponential_update_alpha_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_exponential_update_alpha_cpp`, dpObj)
 }
 
 conjugate_exponential_cluster_parameter_update_cpp <- function(dpObj) {
