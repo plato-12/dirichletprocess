@@ -17,27 +17,26 @@ ExponentialMixingDistribution::~ExponentialMixingDistribution() {
 }
 
 Rcpp::NumericVector ExponentialMixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
-  // Extract rate parameter from theta
-  Rcpp::NumericVector lambda_array = theta[0];
+  // Direct extraction - avoid copies
+  const Rcpp::NumericVector& lambda_array = theta[0];  // Use reference!
+  const double lambda = lambda_array[0];
 
-  int n_data = x.n_elem;
+  const int n_data = x.n_elem;
   Rcpp::NumericVector result(n_data);
-
-  // Get the first element (assuming single cluster for now)
-  double lambda = lambda_array[0];
 
   if (lambda <= 0) {
     result.fill(1e-300);
     return result;
   }
 
-  // Calculate exponential likelihood: f(x|λ) = λ * exp(-λ * x)
-  for (int i = 0; i < n_data; i++) {
-    if (x[i] >= 0) {
-      result[i] = lambda * std::exp(-lambda * x[i]);
-    } else {
-      result[i] = 0.0; // Exponential distribution is only defined for x >= 0
-    }
+  // Direct pointer access for speed
+  double* result_ptr = &result[0];
+  const double* x_ptr = x.memptr();
+
+  // Vectorized calculation
+  for (int i = 0; i < n_data; ++i) {
+    result_ptr[i] = (x_ptr[i] >= 0) ?
+    (lambda * std::exp(-lambda * x_ptr[i])) : 0.0;
   }
 
   return result;
@@ -165,58 +164,63 @@ void ConjugateExponentialDP::initialisePredictive() {
 }
 
 void ConjugateExponentialDP::clusterComponentUpdate() {
-  // Implementation of Chinese Restaurant Process for conjugate case
-  int n = data.n_rows;
+  const int n = data.n_rows;
 
-  for (int i = 0; i < n; i++) {
-    int currentLabel = clusterLabels[i];
+  // Pre-allocate probability vector - CRITICAL
+  arma::vec probs(numberClusters + 1);
+
+  // Cache cluster parameters for fast access - CRITICAL
+  const Rcpp::NumericVector& lambda_vec = clusterParameters[0];
+  std::vector<double> cluster_lambdas(numberClusters);
+  for (int j = 0; j < numberClusters; ++j) {
+    cluster_lambdas[j] = lambda_vec[j];
+  }
+
+  // Cache data as vector for faster access
+  const arma::vec data_vec = arma::vectorise(data);
+  const double* data_ptr = data_vec.memptr();
+  const double* pred_ptr = predictiveArray.memptr();
+
+  for (int i = 0; i < n; ++i) {
+    const int currentLabel = clusterLabels[i];
+    const double x_i = data_ptr[i];
 
     // Remove point from current cluster
     pointsPerCluster[currentLabel]--;
 
     // Calculate probabilities for existing clusters
-    Rcpp::NumericVector probs(numberClusters + 1);
+    double* probs_ptr = probs.memptr();
 
-    // Probability for existing clusters
-    for (int j = 0; j < numberClusters; j++) {
+    for (int j = 0; j < numberClusters; ++j) {
       if (pointsPerCluster[j] > 0) {
-        // Extract parameters for cluster j
-        Rcpp::NumericVector lambda_vec = clusterParameters[0];
-
-        // Create properly formatted parameter array
-        Rcpp::NumericVector lambda_j(1);
-        lambda_j[0] = lambda_vec[j];
-        lambda_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-
-        Rcpp::List clusterParam = Rcpp::List::create(
-          Rcpp::Named("lambda") = lambda_j
-        );
-
-        double likelihood = mixingDistribution->likelihood(data.row(i).t(), clusterParam)[0];
-        probs[j] = pointsPerCluster[j] * likelihood;
+        // Direct exponential likelihood calculation - NO FUNCTION CALLS!
+        const double lambda = cluster_lambdas[j];
+        const double likelihood = (x_i >= 0) ?
+        (lambda * std::exp(-lambda * x_i)) : 0.0;
+        probs_ptr[j] = pointsPerCluster[j] * likelihood;
       } else {
-        probs[j] = 0.0;
+        probs_ptr[j] = 0.0;
       }
     }
 
     // Probability for new cluster
-    probs[numberClusters] = alpha * predictiveArray[i];
+    probs_ptr[numberClusters] = alpha * pred_ptr[i];
 
-    // Normalize probabilities
-    double probSum = arma::sum(arma::vec(probs));
-    if (probSum == 0) {
-      // If all probabilities are 0, make them uniform
-      probs.fill(1.0 / probs.size());
+    // Normalize probabilities efficiently
+    const double probSum = arma::sum(probs);
+    if (probSum > 0) {
+      probs /= probSum;
     } else {
-      probs = probs / probSum;
+      probs.fill(1.0 / (numberClusters + 1));
     }
 
-    // Sample new label
-    int newLabel = 0;
-    double u = R::runif(0, 1);
+    // Sample new label using cumulative sum
+    const double u = R::runif(0, 1);
     double cumProb = 0.0;
-    for (int j = 0; j < probs.size(); j++) {
-      cumProb += probs[j];
+    int newLabel = numberClusters;
+
+    for (int j = 0; j <= numberClusters; ++j) {
+      cumProb += probs_ptr[j];
       if (u <= cumProb) {
         newLabel = j;
         break;
@@ -226,14 +230,80 @@ void ConjugateExponentialDP::clusterComponentUpdate() {
     // Restore point count before the change
     pointsPerCluster[currentLabel]++;
 
-    // Update cluster assignment using clusterLabelChange
-    Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel);
+    // Update cluster assignment using optimized clusterLabelChange
+    clusterLabelChangeOptimized(i, newLabel, currentLabel);
+  }
+}
 
-    // Update state from result
-    clusterLabels = Rcpp::as<arma::uvec>(updateResult["clusterLabels"]);
-    pointsPerCluster = Rcpp::as<arma::uvec>(updateResult["pointsPerCluster"]);
-    clusterParameters = updateResult["clusterParameters"];
-    numberClusters = updateResult["numberClusters"];
+void ConjugateExponentialDP::clusterLabelChangeOptimized(int i, int newLabel, int currentLabel) {
+  if (newLabel == currentLabel) {
+    return;
+  }
+
+  const arma::rowvec x_i = data.row(i);
+
+  // Remove point from old cluster
+  pointsPerCluster[currentLabel]--;
+
+  // Handle cluster assignment
+  if (newLabel == numberClusters) {
+    // New cluster case
+    if (pointsPerCluster[currentLabel] == 0) {
+      // Reuse empty slot - AVOID MEMORY REALLOCATION
+      clusterLabels[i] = currentLabel;
+      pointsPerCluster[currentLabel] = 1;
+
+      // Update parameters directly
+      Rcpp::NumericVector lambda_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
+      const Rcpp::NumericVector& priorParams = Rcpp::as<Rcpp::NumericVector>(
+        mixingDistribution->priorParameters);
+
+      const double alpha_n = priorParams[0] + 1;
+      const double beta_n = priorParams[1] + x_i[0];
+      lambda_vec[currentLabel] = R::rgamma(alpha_n, 1.0/beta_n);
+
+      clusterParameters[0] = lambda_vec;
+    } else {
+      // Create new cluster
+      clusterLabels[i] = numberClusters;
+      pointsPerCluster.resize(numberClusters + 1);
+      pointsPerCluster[numberClusters] = 1;
+
+      // Expand parameters
+      Rcpp::NumericVector lambda_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
+      const Rcpp::NumericVector& priorParams = Rcpp::as<Rcpp::NumericVector>(
+        mixingDistribution->priorParameters);
+
+      const double alpha_n = priorParams[0] + 1;
+      const double beta_n = priorParams[1] + x_i[0];
+      lambda_vec.push_back(R::rgamma(alpha_n, 1.0/beta_n));
+
+      clusterParameters[0] = lambda_vec;
+      numberClusters++;
+    }
+  } else {
+    // Existing cluster
+    clusterLabels[i] = newLabel;
+    pointsPerCluster[newLabel]++;
+
+    // Handle empty cluster removal
+    if (pointsPerCluster[currentLabel] == 0) {
+      // Remove empty cluster efficiently
+      pointsPerCluster.shed_row(currentLabel);
+
+      Rcpp::NumericVector lambda_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
+      lambda_vec.erase(currentLabel);
+      clusterParameters[0] = lambda_vec;
+
+      numberClusters--;
+
+      // Adjust labels
+      for (arma::uword j = 0; j < clusterLabels.n_elem; ++j) {
+        if (clusterLabels[j] > (unsigned int)currentLabel) {
+          clusterLabels[j]--;
+        }
+      }
+    }
   }
 }
 

@@ -55,16 +55,25 @@
  //' @export
  // [[Rcpp::export]]
  Rcpp::NumericVector exponential_likelihood_cpp(Rcpp::NumericVector x, double lambda) {
-   arma::vec x_arma = Rcpp::as<arma::vec>(x);
+   if (lambda <= 0) {
+     Rcpp::NumericVector result(x.size(), 1e-300);
+     return result;
+   }
 
-   Rcpp::NumericVector lambda_arr(1);
-   lambda_arr.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-   lambda_arr[0] = lambda;
+   const int n = x.size();
+   Rcpp::NumericVector result(n);
 
-   Rcpp::List theta = Rcpp::List::create(lambda_arr);
+   // Direct pointer access - KEY OPTIMIZATION
+   const double* x_ptr = &x[0];
+   double* result_ptr = &result[0];
 
-   dp::ExponentialMixingDistribution md(Rcpp::NumericVector::create(0.01, 0.01));
-   return md.likelihood(x_arma, theta);
+   // Vectorized computation
+   for (int i = 0; i < n; ++i) {
+     result_ptr[i] = (x_ptr[i] >= 0) ?
+     (lambda * std::exp(-lambda * x_ptr[i])) : 0.0;
+   }
+
+   return result;
  }
 
 //' @title Calculate Exponential predictive distribution (C++)

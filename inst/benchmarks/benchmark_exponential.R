@@ -7,6 +7,16 @@ library(dplyr)
 library(tidyr)
 library(microbenchmark)
 
+# Memory tracking fallback
+if (!requireNamespace("pryr", quietly = TRUE)) {
+  mem_used <- function() {
+    gc_info <- gc()
+    (gc_info[1, 2] + gc_info[2, 2]) * 1024
+  }
+} else {
+  mem_used <- pryr::mem_used
+}
+
 #' Generate synthetic exponential mixture data
 #'
 #' @param n Number of observations
@@ -221,7 +231,8 @@ benchmark_exponential_components <- function(n_obs = 1000, n_clusters = 3) {
   cat("Benchmarking individual components...\n")
 
   # Generate test data
-  data <- generate_exponential_mixture(n_obs, rates = seq(0.5, 5, length.out = n_clusters))
+  data_vec <- generate_exponential_mixture(n_obs, rates = seq(0.5, 5, length.out = n_clusters))
+  data <- matrix(data_vec, ncol = 1)
 
   # Initialize DP objects
   set_use_cpp(FALSE)

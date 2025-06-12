@@ -9,25 +9,49 @@
 #' @return Vector of likelihood values
 #' @keywords internal
 likelihood_cpp_wrapper <- function(mdObj, x, theta) {
-  # Convert data to appropriate format
-  if (is.matrix(x)) {
-    x <- as.vector(x)
+  # Check if we have a distribution type
+  if (!is.list(mdObj) || is.null(mdObj$distribution)) {
+    return(UseMethod("Likelihood", mdObj))
   }
 
-  # For now, we'll fall back to the R implementation
-  # This will be replaced with actual C++ calls once they're implemented
-  tryCatch({
-    # Try to call C++ implementation if available
-    if (exists("likelihood_cpp")) {
-      return(likelihood_cpp(mdObj, x, theta))
-    } else {
-      # Fall back to R implementation
+  dist_type <- mdObj$distribution
+
+  # Handle exponential distribution directly
+  if (dist_type == "exponential") {
+    tryCatch({
+      # Extract lambda parameter correctly
+      if (is.list(theta) && length(theta) > 0) {
+        lambda_array <- theta[[1]]
+        if (is.array(lambda_array) || is.numeric(lambda_array)) {
+          lambda <- as.numeric(lambda_array)[1]
+          x_vec <- if (is.matrix(x)) as.vector(x) else as.numeric(x)
+          return(exponential_likelihood_cpp(x_vec, lambda))
+        }
+      }
+      # Fall back if parameter extraction fails
       return(UseMethod("Likelihood", mdObj))
-    }
-  }, error = function(e) {
-    # If C++ implementation fails, fall back to R
-    return(UseMethod("Likelihood", mdObj))
-  })
+    }, error = function(e) {
+      return(UseMethod("Likelihood", mdObj))
+    })
+  }
+
+  # Handle normal distribution
+  if (dist_type == "normal") {
+    tryCatch({
+      if (is.list(theta) && length(theta) >= 2) {
+        mu <- as.numeric(theta[[1]])[1]
+        sigma <- as.numeric(theta[[2]])[1]
+        x_vec <- if (is.matrix(x)) as.vector(x) else as.numeric(x)
+        return(normal_likelihood_cpp(x_vec, mu, sigma))
+      }
+      return(UseMethod("Likelihood", mdObj))
+    }, error = function(e) {
+      return(UseMethod("Likelihood", mdObj))
+    })
+  }
+
+  # Fall back to R implementation for other distributions
+  return(UseMethod("Likelihood", mdObj))
 }
 
 #' Register C++ Implementations
@@ -64,11 +88,11 @@ get_cpp_status <- function() {
   status <- list(
     likelihood = exists("likelihood_cpp"),
     normal_likelihood = exists("normal_likelihood_cpp"),
+    exponential_likelihood = exists("exponential_likelihood_cpp"),  # Added
     mvnormal_likelihood = exists("mvnormal_likelihood_cpp"),
     benchmark_components = exists("benchmark_cpp_components"),
     memory_tracking = exists("get_memory_tracking")
   )
-
   return(status)
 }
 
