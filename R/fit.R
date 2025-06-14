@@ -115,3 +115,45 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
   }
   return(dpObj)
 }
+
+#' @export
+Fit.dirichletprocess <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
+                                 update_concentration = TRUE, ...) {
+
+  if (getOption("dirichletprocess.use_cpp", FALSE) &&
+      can_use_cpp(dp_obj)) {
+
+    # Prepare parameters for C++
+    mixing_params <- prepare_mixing_dist_params(dp_obj)
+    mcmc_params <- list(
+      n_iter = n_iter,
+      n_burn = n_burn,
+      thin = thin,
+      update_concentration = update_concentration,
+      alpha = dp_obj$alpha
+    )
+
+    # Run C++ MCMC
+    results <- run_mcmc_cpp(dp_obj$data, mixing_params, mcmc_params)
+
+    # Update dp_obj with results
+    dp_obj$cluster_labels <- results$cluster_labels
+    dp_obj$alpha <- results$alpha
+    dp_obj$theta <- results$theta
+    dp_obj$n_clusters <- results$n_clusters
+
+  } else {
+    # Use existing R implementation
+    dp_obj <- fit_r_implementation(dp_obj, n_iter, n_burn, thin,
+                                   update_concentration, ...)
+  }
+
+  return(dp_obj)
+}
+
+#' Check if C++ implementation is available for this model
+#' @keywords internal
+can_use_cpp <- function(dp_obj) {
+  supported_types <- c("normal_inverse_gamma")  # Add more as implemented
+  inherits(dp_obj$mixing_distribution, supported_types)
+}

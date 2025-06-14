@@ -749,6 +749,8 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP _dirichletprocess_run_mcmc_cpp(SEXP, SEXP, SEXP);
+
 static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_current_memory_usage", (DL_FUNC) &_dirichletprocess_current_memory_usage, 0},
     {"_dirichletprocess_benchmark_cpp_components_impl", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components_impl, 3},
@@ -810,6 +812,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
+    {"_dirichletprocess_run_mcmc_cpp", (DL_FUNC) &_dirichletprocess_run_mcmc_cpp, 3},
     {NULL, NULL, 0}
 };
 

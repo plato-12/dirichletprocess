@@ -141,3 +141,31 @@ has_cpp_implementation <- function(func_name) {
     }
   }
 }
+
+#' Run MCMC using C++ implementation
+#' @keywords internal
+run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
+  .Call("_dirichletprocess_run_mcmc_cpp",
+        data = as.matrix(data),
+        mixing_dist_params = mixing_dist_params,
+        mcmc_params = mcmc_params,
+        PACKAGE = "dirichletprocess")
+}
+
+#' Create mixing distribution parameters for C++
+#' @keywords internal
+prepare_mixing_dist_params <- function(dp_obj) {
+  md <- dp_obj$mixing_distribution
+
+  if (inherits(md, "normal_inverse_gamma")) {
+    list(
+      type = "gaussian",
+      mu0 = md$priors$mu_0,
+      kappa0 = md$priors$kappa_0,
+      alpha0 = md$priors$alpha_0,
+      beta0 = md$priors$beta_0
+    )
+  } else {
+    stop("Mixing distribution not yet implemented in C++")
+  }
+}
