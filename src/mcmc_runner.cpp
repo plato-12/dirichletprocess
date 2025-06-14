@@ -1,6 +1,7 @@
 // src/mcmc_runner.cpp
-#include "mcmc_runner.h"
-#include "gaussian_mixing.h"
+#include <RcppArmadillo.h>
+#include "../inst/include/mcmc_runner.h"
+#include "../inst/include/gaussian_mixing.h"
 #include <algorithm>
 
 namespace dirichletprocess {
@@ -113,32 +114,46 @@ void MCMCRunner::update_cluster_assignments() {
       state->cluster_params.push_back(new_params);
       state->cluster_sizes.resize(state->n_clusters + 1);
       state->cluster_sizes[state->n_clusters] = 1;
+      state->cluster_labels[i] = state->n_clusters;
       state->n_clusters++;
     } else {
+      // Assign to existing cluster
       state->cluster_sizes[new_cluster]++;
+      state->cluster_labels[i] = new_cluster;
     }
-
-    state->cluster_labels[i] = new_cluster;
   }
 }
+
 
 void MCMCRunner::update_cluster_parameters() {
   for (int k = 0; k < state->n_clusters; ++k) {
-    // Get data in cluster k
-    arma::uvec cluster_idx = arma::find(state->cluster_labels == k);
-    arma::mat cluster_data = data.rows(cluster_idx);
+    if (state->cluster_sizes[k] > 0) {
+      // Extract data for this cluster
+      arma::uvec cluster_indices = arma::find(state->cluster_labels == k);
+      arma::mat cluster_data = data.rows(cluster_indices);
 
-    // Draw from posterior
-    state->cluster_params[k] = mixing_dist->posterior_draw(cluster_data,
-                                                           state->cluster_params[k]);
+      // Draw new parameters
+      arma::vec prior_params; // Can be empty for now
+      state->cluster_params[k] = mixing_dist->posterior_draw(cluster_data, prior_params);
+    }
   }
 }
 
+void MCMCRunner::store_iteration(int iter) {
+  alpha_samples.push_back(arma::vec{state->alpha});
+
+  // Store cluster labels (convert to std::vector)
+  std::vector<int> labels(state->cluster_labels.begin(), state->cluster_labels.end());
+  cluster_samples.push_back(labels);
+
+  // Store cluster parameters
+  theta_samples.push_back(state->cluster_params);
+}
+
 void MCMCRunner::update_concentration() {
-  // Implement concentration parameter update (e.g., using auxiliary variable method)
-  // This is a simplified version - you'd want the full auxiliary variable sampler
-  double a = 1.0; // hyperparameter
-  double b = 1.0; // hyperparameter
+  // Simple auxiliary variable method for updating alpha
+  double a = 1.0;
+  double b = 1.0; // hyperparameters
 
   // Auxiliary variable method
   double eta = R::rbeta(state->alpha + 1, data.n_rows);
@@ -151,6 +166,23 @@ void MCMCRunner::update_concentration() {
     state->alpha = R::rgamma(a + state->n_clusters - 1, 1.0 / (b - std::log(eta)));
   }
 }
+
+void DPState::update_cluster_counts() {
+  cluster_sizes.zeros();
+  for (size_t i = 0; i < cluster_labels.n_elem; ++i) {
+    cluster_sizes[cluster_labels[i]]++;
+  }
+}
+
+// DPState implementation
+DPState::DPState(int n_obs, double initial_alpha)
+  : cluster_labels(n_obs), alpha(initial_alpha), n_clusters(1) {
+  cluster_sizes.resize(1);
+  cluster_sizes[0] = n_obs;
+  std::fill(cluster_labels.begin(), cluster_labels.end(), 0);
+}
+
+
 
 // Helper function
 int sample_categorical(const arma::vec& probs) {

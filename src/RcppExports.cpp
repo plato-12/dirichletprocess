@@ -238,6 +238,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// run_mcmc_cpp
+Rcpp::List run_mcmc_cpp(arma::mat data, Rcpp::List mixing_dist_params, Rcpp::List mcmc_params);
+RcppExport SEXP _dirichletprocess_run_mcmc_cpp(SEXP dataSEXP, SEXP mixing_dist_paramsSEXP, SEXP mcmc_paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mixing_dist_params(mixing_dist_paramsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mcmc_params(mcmc_paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_mcmc_cpp(data, mixing_dist_params, mcmc_params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // hierarchical_beta_fit_cpp
 Rcpp::List hierarchical_beta_fit_cpp(Rcpp::List dpList, int iterations, bool updatePrior, bool progressBar);
 RcppExport SEXP _dirichletprocess_hierarchical_beta_fit_cpp(SEXP dpListSEXP, SEXP iterationsSEXP, SEXP updatePriorSEXP, SEXP progressBarSEXP) {
@@ -749,8 +762,6 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP _dirichletprocess_run_mcmc_cpp(SEXP, SEXP, SEXP);
-
 static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_current_memory_usage", (DL_FUNC) &_dirichletprocess_current_memory_usage, 0},
     {"_dirichletprocess_benchmark_cpp_components_impl", (DL_FUNC) &_dirichletprocess_benchmark_cpp_components_impl, 3},
@@ -770,6 +781,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_conjugate_exponential_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_component_update_cpp, 1},
     {"_dirichletprocess_conjugate_exponential_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_update_alpha_cpp, 1},
     {"_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp, 1},
+    {"_dirichletprocess_run_mcmc_cpp", (DL_FUNC) &_dirichletprocess_run_mcmc_cpp, 3},
     {"_dirichletprocess_hierarchical_beta_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_beta_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_cluster_component_update_cpp, 1},
     {"_dirichletprocess_hierarchical_beta_global_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_beta_global_parameter_update_cpp, 1},
@@ -812,7 +824,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
-    {"_dirichletprocess_run_mcmc_cpp", (DL_FUNC) &_dirichletprocess_run_mcmc_cpp, 3},
     {NULL, NULL, 0}
 };
 

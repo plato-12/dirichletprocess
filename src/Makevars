@@ -10,4 +10,6 @@ SOURCES = likelihood_functions.cpp likelihood.cpp \
           HierarchicalBetaDP.cpp HierarchicalBetaExports.cpp \
           MarkovDP.cpp MarkovExports.cpp \
           DistributionStubs.cpp Benchmarking.cpp MemoryProfiling.cpp \
+          gaussian_mixing.cpp mcmc_runner.cpp mixing_distribution_base.cpp \
+          GaussianExports.cpp \
           RcppExports.cpp

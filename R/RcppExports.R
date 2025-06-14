@@ -97,6 +97,10 @@ conjugate_exponential_cluster_parameter_update_cpp <- function(dpObj) {
     .Call(`_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp`, dpObj)
 }
 
+run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocess_run_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
 #' @title Fit Hierarchical Beta DP (C++)
 NULL
 
