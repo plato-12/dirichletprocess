@@ -1,6 +1,7 @@
 // src/GaussianExports.cpp
 #include <RcppArmadillo.h>
 #include "../inst/include/mcmc_runner.h"
+#include "../inst/include/mixing_distribution_base.h"  // CRITICAL: Include complete definition
 
 // [[Rcpp::export]]
 Rcpp::List run_mcmc_cpp(arma::mat data,

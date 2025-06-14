@@ -16,7 +16,9 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
     double alpha0 = Rcpp::as<double>(params["alpha0"]);
     double beta0 = Rcpp::as<double>(params["beta0"]);
 
-    return std::make_unique<GaussianMixing>(mu0, kappa0, alpha0, beta0);
+    // C++11 compatible way to create unique_ptr
+    return std::unique_ptr<MixingDistribution>(
+      new GaussianMixing(mu0, kappa0, alpha0, beta0));
   }
 
   Rcpp::stop("Unknown mixing distribution type: " + type);
