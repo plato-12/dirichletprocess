@@ -28,7 +28,7 @@ private:
   int n_iter;
   int n_burn;
   int thin;
-  bool update_concentration_flag;  // RENAMED from update_concentration
+  bool update_concentration_flag;
 
   // Storage for results
   std::vector<arma::vec> alpha_samples;
@@ -47,8 +47,8 @@ private:
   // MCMC steps
   void update_cluster_assignments();
   void update_cluster_parameters();
-  void update_concentration();  // Method name remains the same
-  void store_iteration(int iter);
+  void update_concentration();
+  void store_iteration(int iter); // FIXED: Correct function name
 };
 
 // State container for DP

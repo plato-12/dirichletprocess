@@ -6,20 +6,20 @@
 #'
 #' @param dpObj Initialised Dirichlet Process object
 #' @param its Number of iterations to use
-#' @param updatePrior Logical flag, defaults to \code{FAlSE}. Set whether the parameters of the base measure are updated.
+#' @param updatePrior Logical flag, defaults to \code{FALSE}. Set whether the parameters of the base measure are updated.
 #' @param progressBar Logical flag indicating whether to display a progress bar.
 #' @return A Dirichlet Process object with the fitted cluster parameters and labels.
 #'
 #' @references Neal, R. M. (2000). Markov chain sampling methods for Dirichlet process mixture models. Journal of computational and graphical statistics, 9(2), 249-265.
 #'
 #' @export
-Fit <- function(dpObj, its, updatePrior = FALSE, progressBar=TRUE) UseMethod("Fit", dpObj)
+Fit <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE) UseMethod("Fit", dpObj)
 
 #' @export
 Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()) {
 
-  if (progressBar){
-    pb <- txtProgressBar(min=0, max=its, width=50, char="-", style=3)
+  if (progressBar) {
+    pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
   }
 
   alphaChain <- numeric(its)
@@ -44,11 +44,12 @@ Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interacti
     dpObj <- ClusterParameterUpdate(dpObj)
     dpObj <- UpdateAlpha(dpObj)
 
-    if (updatePrior) {
+    # FIXED: Only update prior parameters for non-conjugate models and when explicitly requested
+    if (updatePrior && !inherits(dpObj$mixingDistribution, "conjugate")) {
       dpObj$mixingDistribution <- PriorParametersUpdate(dpObj$mixingDistribution,
                                                         dpObj$clusterParameters)
     }
-    if (progressBar){
+    if (progressBar) {
       setTxtProgressBar(pb, i)
     }
   }
@@ -67,8 +68,8 @@ Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interacti
   return(dpObj)
 }
 
-#'@export
-Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()){
+#' @export
+Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()) {
   # Use C++ implementation if enabled and available
   if (using_cpp_hierarchical_samplers() && all(sapply(dpObj$indDP, function(x) inherits(x, "beta")))) {
     return(Fit.hierarchical.cpp(dpObj, its, updatePrior, progressBar))
@@ -76,12 +77,12 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
 
   # Original R implementation
   if (progressBar) {
-    pb <- txtProgressBar(min=0, max=its, width=50, char="-", style=3)
+    pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
   }
 
   gammaValues <- numeric(its)
 
-  for(i in seq_len(its)){
+  for (i in seq_len(its)) {
 
     dpObj <- ClusterComponentUpdate(dpObj)
     dpObj <- UpdateAlpha(dpObj)
@@ -93,11 +94,11 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
 
       clustParamLen <- length(unique(lapply(dpObj$indDP, function(x) x$clusterParameters[[1]])))
 
-      clustParam <- lapply(dpObj$globalParameters, function(x) x[,,1:clustParamLen, drop=FALSE])
+      clustParam <- lapply(dpObj$globalParameters, function(x) x[, , 1:clustParamLen, drop = FALSE])
 
       tempMD <- PriorParametersUpdate(dpObj$indDP[[1]]$mixingDistribution, clustParam)
 
-      for(j in seq_along(dpObj$indDP)){
+      for (j in seq_along(dpObj$indDP)) {
         dpObj$indDP[[j]]$mixingDistribution$priorParameters <- tempMD$priorParameters
       }
     }
@@ -107,7 +108,6 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
     }
 
     gammaValues[i] <- dpObj$gamma
-
   }
   dpObj$gammaValues <- gammaValues
   if (progressBar) {
@@ -143,7 +143,7 @@ Fit.dirichletprocess <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
     dp_obj$n_clusters <- results$n_clusters
 
   } else {
-    # Use existing R implementation
+    # FIXED: Use correct R implementation that doesn't confuse update_concentration with updatePrior
     dp_obj <- fit_r_implementation(dp_obj, n_iter, n_burn, thin,
                                    update_concentration, ...)
   }
@@ -151,9 +151,44 @@ Fit.dirichletprocess <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
   return(dp_obj)
 }
 
+#' R implementation function for backward compatibility and testing
+#' @keywords internal
+fit_r_implementation <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
+                                 update_concentration = TRUE, ...) {
+
+  # FIXED: Extract and handle parameters properly to avoid conflicts
+  dots <- list(...)
+
+  # Remove updatePrior from dots if it exists to avoid conflict
+  if ("updatePrior" %in% names(dots)) {
+    updatePrior <- dots$updatePrior
+    dots$updatePrior <- NULL
+  } else {
+    # For conjugate models, we typically don't update prior parameters
+    updatePrior <- FALSE
+  }
+
+  # If this is a non-conjugate model, we might want to update prior parameters
+  if (!inherits(dp_obj$mixingDistribution, "conjugate")) {
+    # For now, keeping it FALSE unless explicitly requested
+    if (!"updatePrior" %in% names(list(...))) {
+      updatePrior <- FALSE
+    }
+  }
+
+  # Call the standard R implementation with correct parameters
+  # Pass remaining arguments from dots
+  do.call(Fit.default, c(list(dpObj = dp_obj, its = n_iter, updatePrior = updatePrior), dots))
+}
+
 #' Check if C++ implementation is available for this model
 #' @keywords internal
 can_use_cpp <- function(dp_obj) {
-  supported_types <- c("normal_inverse_gamma")  # Add more as implemented
-  inherits(dp_obj$mixing_distribution, supported_types)
+  # For now, only return TRUE if we actually have the C++ implementation
+  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+    return(FALSE)
+  }
+
+  supported_types <- c("normal_inverse_gamma", "normal")
+  inherits(dp_obj$mixingDistribution, supported_types)
 }

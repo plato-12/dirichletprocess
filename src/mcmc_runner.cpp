@@ -1,7 +1,6 @@
-// src/mcmc_runner.cpp
 #include <RcppArmadillo.h>
 #include "../inst/include/mcmc_runner.h"
-#include "../inst/include/mixing_distribution_base.h"  // CRITICAL: Include complete definition
+#include "../inst/include/mixing_distribution_base.h"
 #include "../inst/include/gaussian_mixing.h"
 #include <algorithm>
 
@@ -15,22 +14,63 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
                        const Rcpp::List& mcmc_params)
   : data(data) {
 
-  // Extract MCMC parameters
+  // Validate inputs
+  if (data.n_rows == 0) {
+    Rcpp::stop("Data cannot be empty");
+  }
+
+  if (data.has_nan() || data.has_inf()) {
+    Rcpp::stop("Data contains NA or Inf values");
+  }
+
+  // Extract MCMC parameters with validation
+  if (!mcmc_params.containsElementNamed("n_iter") ||
+      !mcmc_params.containsElementNamed("n_burn") ||
+      !mcmc_params.containsElementNamed("thin") ||
+      !mcmc_params.containsElementNamed("update_concentration") ||
+      !mcmc_params.containsElementNamed("alpha")) {
+      Rcpp::stop("Missing required MCMC parameters");
+  }
+
   n_iter = mcmc_params["n_iter"];
   n_burn = mcmc_params["n_burn"];
   thin = mcmc_params["thin"];
-  update_concentration_flag = mcmc_params["update_concentration"];  // FIXED: renamed variable
+  update_concentration_flag = mcmc_params["update_concentration"];
+
+  // Validate MCMC parameters
+  if (n_iter <= 0) {
+    Rcpp::stop("n_iter must be positive");
+  }
+  if (n_burn >= n_iter) {
+    Rcpp::stop("n_burn must be less than n_iter");
+  }
+  if (thin <= 0) {
+    Rcpp::stop("thin must be positive");
+  }
+
+  // Validate mixing distribution parameters
+  if (!mixing_dist_params.containsElementNamed("type")) {
+    Rcpp::stop("Missing distribution type");
+  }
 
   // Create mixing distribution
   std::string dist_type = mixing_dist_params["type"];
   mixing_dist = MixingDistribution::create(dist_type, mixing_dist_params);
 
-  // Initialize state - C++11 compatible
+  // Initialize state
   double initial_alpha = mcmc_params["alpha"];
+  if (initial_alpha <= 0) {
+    Rcpp::stop("alpha must be positive");
+  }
+
   state.reset(new DPState(data.n_rows, initial_alpha));
 
   // Pre-allocate storage
   int n_store = (n_iter - n_burn) / thin;
+  if (n_store <= 0) {
+    Rcpp::stop("No samples would be stored with current burn-in and thinning settings");
+  }
+
   alpha_samples.reserve(n_store);
   cluster_samples.reserve(n_store);
   theta_samples.reserve(n_store);
@@ -45,22 +85,26 @@ Rcpp::List MCMCRunner::run() {
   state->cluster_params.resize(1);
   state->cluster_params[0] = mixing_dist->prior_draw();
 
-  // Main MCMC loop
+  // MCMC loop
   for (int iter = 0; iter < n_iter; ++iter) {
+    // Update cluster assignments
     update_cluster_assignments();
+
+    // Update cluster parameters
     update_cluster_parameters();
 
-    if (update_concentration_flag) {  // FIXED: use renamed variable
+    // Update concentration parameter
+    if (update_concentration_flag) {
       update_concentration();
     }
 
-    // Store samples after burn-in and according to thinning
+    // Store samples (after burn-in and according to thinning)
     if (iter >= n_burn && (iter - n_burn) % thin == 0) {
-      store_iteration(iter);
+      store_iteration(iter); // FIXED: Changed from store_sample
     }
   }
 
-  // Package results
+  // Return results - FIXED: Removed get_n_clusters_chain()
   return Rcpp::List::create(
     Rcpp::Named("cluster_labels") = cluster_samples,
     Rcpp::Named("alpha") = alpha_samples,
@@ -180,20 +224,20 @@ DPState::DPState(int n_obs, double initial_alpha)
 
 void DPState::update_cluster_counts() {
   cluster_sizes.zeros();
-  for (size_t i = 0; i < cluster_labels.n_elem; ++i) {
+  for (arma::uword i = 0; i < cluster_labels.n_elem; ++i) { // FIXED: Use arma::uword
     cluster_sizes[cluster_labels[i]]++;
   }
 }
 
-// Helper function implementation
+// Helper function implementation - FIXED: Use arma::uword to avoid signedness warning
 int sample_categorical(const arma::vec& probs) {
   double u = R::runif(0, 1);
   double cumsum = 0;
-  for (size_t i = 0; i < probs.n_elem; ++i) {
+  for (arma::uword i = 0; i < probs.n_elem; ++i) { // FIXED: Use arma::uword
     cumsum += probs[i];
-    if (u <= cumsum) return i;
+    if (u <= cumsum) return static_cast<int>(i); // FIXED: Cast to int
   }
-  return probs.n_elem - 1;
+  return static_cast<int>(probs.n_elem - 1); // FIXED: Cast to int
 }
 
 } // namespace dirichletprocess

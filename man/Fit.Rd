@@ -11,7 +11,7 @@ Fit(dpObj, its, updatePrior = FALSE, progressBar = TRUE)
 
 \item{its}{Number of iterations to use}
 
-\item{updatePrior}{Logical flag, defaults to \code{FAlSE}. Set whether the parameters of the base measure are updated.}
+\item{updatePrior}{Logical flag, defaults to \code{FALSE}. Set whether the parameters of the base measure are updated.}
 
 \item{progressBar}{Logical flag indicating whether to display a progress bar.}
 }
