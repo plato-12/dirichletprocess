@@ -2,11 +2,11 @@
 % Please edit documentation in R/cpp_interface.R
 \name{run_mcmc_cpp}
 \alias{run_mcmc_cpp}
-\title{Run MCMC using C++ implementation}
+\title{Run MCMC using C++ implementation with proper chain handling}
 \usage{
 run_mcmc_cpp(data, mixing_dist_params, mcmc_params)
 }
 \description{
-Run MCMC using C++ implementation
+Run MCMC using C++ implementation with proper chain handling
 }
 \keyword{internal}

@@ -122,7 +122,7 @@ Rcpp::List MCMCRunner::run() {
 
   for (int i = 0; i < n_stored; ++i) {
     alpha_vector[i] = alpha_chain[i][0];
-    for (int j = 0; j < data.n_rows; ++j) {
+    for (arma::uword j = 0; j < data.n_rows; j++) {
       // Convert to 1-indexed for R
       labels_matrix(i, j) = labels_chain[i][j] + 1;
     }
@@ -210,8 +210,8 @@ void MCMCRunner::update_cluster_parameters() {
     arma::mat cluster_data;
     int count = 0;
 
-    for (int i = 0; i < data.n_rows; ++i) {
-      if (state->cluster_labels[i] == k) {
+    for (arma::uword j = 0; j < data.n_rows; j++) {
+      if (state->cluster_labels[j] == k) {
         count++;
       }
     }
@@ -219,7 +219,7 @@ void MCMCRunner::update_cluster_parameters() {
     if (count > 0) {
       cluster_data.set_size(count, data.n_cols);
       int idx = 0;
-      for (int i = 0; i < data.n_rows; ++i) {
+      for (arma::uword i = 0; i < data.n_rows; i++) {
         if (state->cluster_labels[i] == k) {
           cluster_data.row(idx++) = data.row(i);
         }
