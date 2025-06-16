@@ -277,8 +277,6 @@ can_use_cpp <- function(dp_obj) {
   return(FALSE)
 }
 
-# R/cpp_interface.R - Update prepare_mcmc_params function
-
 prepare_mcmc_params <- function(n_iter, n_burn = 0, thin = 1,
                                 update_concentration = TRUE,
                                 alpha = NULL, ...) {

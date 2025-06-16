@@ -67,8 +67,6 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
     Rcpp::warning("Very small alpha may limit cluster creation. Consider using a larger value.");
   }
 
-  state.reset(new DPState(data.n_rows, initial_alpha));
-
   // Validate MCMC parameters
   if (n_iter <= 0) {
     Rcpp::stop("n_iter must be positive");
@@ -84,12 +82,7 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
   std::string dist_type = Rcpp::as<std::string>(mixing_dist_params["type"]);
   mixing_dist = MixingDistribution::create(dist_type, mixing_dist_params);
 
-  // Initialize state
-  double initial_alpha = Rcpp::as<double>(mcmc_params["alpha"]);
-  if (initial_alpha <= 0) {
-    Rcpp::stop("alpha must be positive");
-  }
-
+  // Initialize state with the alpha value we already have
   state.reset(new DPState(data.n_rows, initial_alpha));
 
   // Pre-allocate storage for ALL iterations (not just post-burn)
@@ -214,7 +207,16 @@ void MCMCRunner::update_cluster_assignments() {
     if (state->cluster_sizes[current_cluster] == 0) {
       // Remove empty cluster
       state->cluster_params.erase(state->cluster_params.begin() + current_cluster);
-      state->cluster_sizes.shed_row(current_cluster);
+
+      // Create new cluster_sizes vector without the empty cluster
+      arma::vec new_cluster_sizes(state->n_clusters - 1);
+      int idx = 0;
+      for (int k = 0; k < state->n_clusters; ++k) {
+        if (k != current_cluster) {
+          new_cluster_sizes[idx++] = state->cluster_sizes[k];
+        }
+      }
+      state->cluster_sizes = new_cluster_sizes;
 
       // Relabel clusters
       for (int j = 0; j < n; ++j) {
@@ -239,7 +241,6 @@ void MCMCRunner::update_cluster_assignments() {
     }
 
     // Log probability of creating new cluster
-    // Use single auxiliary parameter OR integrate over prior
     arma::vec aux_params = mixing_dist->prior_draw();
     double new_cluster_log_lik = mixing_dist->log_likelihood(obs, aux_params);
 
@@ -252,7 +253,13 @@ void MCMCRunner::update_cluster_assignments() {
     arma::vec probs = arma::exp(log_probs - max_log_prob);
 
     // Normalize
-    probs = probs / arma::sum(probs);
+    double prob_sum = arma::sum(probs);
+    if (prob_sum > 0) {
+      probs = probs / prob_sum;
+    } else {
+      // If all probabilities are 0, use uniform distribution
+      probs.fill(1.0 / probs.n_elem);
+    }
 
     // Sample new cluster assignment
     int new_cluster = sample_categorical(probs);
