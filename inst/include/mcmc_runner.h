@@ -29,6 +29,7 @@ private:
   int n_burn;
   int thin;
   bool update_concentration_flag;
+  int m_auxiliary; // Number of auxiliary parameters for Algorithm 8
 
   // Storage for results
   std::vector<arma::vec> alpha_samples;
@@ -45,16 +46,16 @@ public:
 
 private:
   // MCMC steps
-  void update_cluster_assignments();
+  void update_cluster_assignments_algorithm8(); // Algorithm 8 implementation
   void update_cluster_parameters();
   void update_concentration();
-  void store_iteration(int iter); // FIXED: Correct function name
+  void store_iteration(int iter);
 };
 
 // State container for DP
 class DPState {
 public:
-  std::vector<int> cluster_labels;  // Use std::vector instead of arma::vec
+  std::vector<int> cluster_labels;
   std::vector<arma::vec> cluster_params;
   arma::vec cluster_sizes;
   double alpha;
@@ -66,10 +67,16 @@ public:
   }
 
   void update_cluster_counts() {
-    // Ensure consistency
-    n_clusters = cluster_params.size();
-    if (n_clusters != static_cast<int>(cluster_sizes.n_elem)) {
-      Rcpp::stop("Inconsistent cluster state");
+    // Count actual clusters
+    std::set<int> unique_labels(cluster_labels.begin(), cluster_labels.end());
+    n_clusters = unique_labels.size();
+
+    // Update cluster sizes
+    cluster_sizes.zeros(n_clusters);
+    for (int label : cluster_labels) {
+      if (label >= 0 && label < n_clusters) {
+        cluster_sizes[label]++;
+      }
     }
   }
 };

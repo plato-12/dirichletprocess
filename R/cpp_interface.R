@@ -115,81 +115,54 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
     stop("C++ MCMC implementation not available. Make sure the package is compiled with C++ support.")
   }
 
+  # Convert data to matrix format if needed
+  if (!is.matrix(data)) {
+    data <- as.matrix(data)
+  }
+
+  # Ensure all required MCMC parameters are present
+  if (!all(c("n_iter", "n_burn", "thin", "alpha") %in% names(mcmc_params))) {
+    stop("Missing required MCMC parameters")
+  }
+
+  # Ensure update_concentration is set
+  if (!"update_concentration" %in% names(mcmc_params)) {
+    mcmc_params$update_concentration <- TRUE
+  }
+
+  # Ensure m_auxiliary is passed for non-conjugate cases (NEW ADDITION)
+  if (!("m_auxiliary" %in% names(mcmc_params))) {
+    mcmc_params$m_auxiliary <- 3  # Default value from Neal's Algorithm 8
+  }
+
+  # Standardize types
+  mcmc_params$n_iter <- as.integer(mcmc_params$n_iter)
+  mcmc_params$n_burn <- as.integer(mcmc_params$n_burn)
+  mcmc_params$thin <- as.integer(mcmc_params$thin)
+  mcmc_params$alpha <- as.numeric(mcmc_params$alpha)
+  mcmc_params$update_concentration <- as.logical(mcmc_params$update_concentration)
+  mcmc_params$m_auxiliary <- as.integer(mcmc_params$m_auxiliary)  # NEW ADDITION
+
   # Call C++ implementation
-  raw_results <- .Call("_dirichletprocess_run_mcmc_cpp",
-                       data = as.matrix(data),
-                       mixing_dist_params = mixing_dist_params,
-                       mcmc_params = mcmc_params,
-                       PACKAGE = "dirichletprocess")
+  result <- .Call(`_dirichletprocess_run_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
 
-  # Process raw results to match expected R structure
-  results <- list()
+  # Post-process results to match expected format
+  # The C++ implementation returns raw results that need formatting
 
-  # Extract chains from the matrix format
-  if ("cluster_labels" %in% names(raw_results)) {
-    labels_matrix <- raw_results$cluster_labels
-    # Convert matrix rows to list of vectors
-    results$labelsChain <- lapply(1:nrow(labels_matrix), function(i) {
-      as.integer(labels_matrix[i,])
-    })
-    # Get final labels
-    results$clusterLabels <- as.integer(labels_matrix[nrow(labels_matrix),])
-  } else if ("final_labels" %in% names(raw_results)) {
-    results$clusterLabels <- as.integer(raw_results$final_labels)
+  # Ensure cluster_labels is properly formatted
+  if (!is.null(result$cluster_labels) && is.matrix(result$cluster_labels)) {
+    # Already in the right format
+  } else if (!is.null(result$labels_chain)) {
+    result$cluster_labels <- result$labels_chain
   }
 
-  # Handle alpha chain
-  if ("alpha" %in% names(raw_results)) {
-    results$alphaChain <- as.numeric(raw_results$alpha)
-    results$alpha <- tail(results$alphaChain, 1)
+  # Ensure we have the expected fields for compatibility
+  if (is.null(result$n_clusters) && !is.null(result$cluster_labels)) {
+    # Calculate n_clusters from labels if not provided
+    result$n_clusters <- apply(result$cluster_labels, 1, function(x) length(unique(x)))
   }
 
-  # Handle cluster parameters chain
-  if ("theta" %in% names(raw_results)) {
-    results$clusterParametersChain <- raw_results$theta
-    # Get final parameters
-    if (length(raw_results$theta) > 0) {
-      final_params <- raw_results$theta[[length(raw_results$theta)]]
-      # Convert to R format (list with means and variances)
-      results$clusterParameters <- list(
-        means = sapply(final_params, function(p) p[1]),
-        variances = sapply(final_params, function(p) p[2])
-      )
-    }
-  }
-
-  # Handle number of clusters
-  if ("n_clusters" %in% names(raw_results)) {
-    results$numberClusters <- tail(raw_results$n_clusters, 1)
-  } else if ("final_n_clusters" %in% names(raw_results)) {
-    results$numberClusters <- raw_results$final_n_clusters
-  }
-
-  # Calculate weights chain
-  if (!is.null(results$labelsChain)) {
-    results$weightsChain <- lapply(results$labelsChain, function(labels) {
-      tbl <- table(labels)
-      weights <- numeric(max(labels))
-      weights[as.integer(names(tbl))] <- as.numeric(tbl) / length(labels)
-      weights
-    })
-
-    # Final weights
-    tbl <- table(results$clusterLabels)
-    results$weights <- as.numeric(tbl) / length(results$clusterLabels)
-  }
-
-  # Points per cluster
-  if (!is.null(results$clusterLabels)) {
-    results$pointsPerCluster <- as.numeric(table(results$clusterLabels))
-  }
-
-  # Add placeholder likelihood chain
-  if (!is.null(results$alphaChain)) {
-    results$likelihoodChain <- numeric(length(results$alphaChain))
-  }
-
-  return(results)
+  return(result)
 }
 
 #' Create mixing distribution parameters for C++

@@ -13,7 +13,8 @@ debug_mcmc_cpp <- function(data, n_iter = 10, verbose = TRUE) {
     n_burn = 0,
     thin = 1,
     update_concentration = TRUE,
-    alpha = 1.0
+    alpha = 1.0,
+    m_auxiliary = 3
   )
 
   dist_params <- list(
