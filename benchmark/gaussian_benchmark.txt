@@ -1,0 +1,279 @@
+> comprehensive_benchmark()
+=================================================================
+Comprehensive Gaussian DP Benchmark: R vs C++ Implementation
+=================================================================
+
+C++ Implementation Status:
+$mcmc_runner
+[1] TRUE
+
+$gaussian_likelihood
+[1] TRUE
+
+$likelihood
+[1] TRUE
+
+$normal_likelihood
+[1] TRUE
+
+$exponential_likelihood
+[1] TRUE
+
+$mvnormal_likelihood
+[1] TRUE
+
+$hierarchical_beta
+[1] TRUE
+
+$hierarchical_mvnormal
+[1] TRUE
+
+$markov_dp
+[1] TRUE
+
+$benchmark_components
+[1] TRUE
+
+$memory_tracking
+[1] TRUE
+
+
+Scenario 1: Small dataset, quick fit
+  Data size: 100 observations
+  Iterations: 50
+Benchmarking with 100 observations, 50 iterations...
+  Testing R backend...
+  Testing C++ backend...
+  R time: 2.08 seconds
+  C++ time: 0.11 seconds
+  Speedup: 18.91x
+  Clusters found (R): 12
+  Clusters found (C++): 1
+
+Scenario 2: Medium dataset
+  Data size: 500 observations
+  Iterations: 100
+Benchmarking with 500 observations, 100 iterations...
+  Testing R backend...
+  Testing C++ backend...
+  R time: 16.19 seconds
+  C++ time: 0.21 seconds
+  Speedup: 77.10x
+  Clusters found (R): 7
+  Clusters found (C++): 1
+
+Scenario 3: Large dataset
+  Data size: 1000 observations
+  Iterations: 100
+Benchmarking with 1000 observations, 100 iterations...
+  Testing R backend...
+  Testing C++ backend...
+  R time: 85.64 seconds
+  C++ time: 0.53 seconds
+  Speedup: 161.58x
+  Clusters found (R): 32
+  Clusters found (C++): 1
+
+Scenario 4: Medium dataset, many iterations
+  Data size: 200 observations
+  Iterations: 200
+Benchmarking with 200 observations, 200 iterations...
+  Testing R backend...
+  Testing C++ backend...
+  R time: 28.39 seconds
+  C++ time: 0.20 seconds
+  Speedup: 141.95x
+  Clusters found (R): 12
+  Clusters found (C++): 1
+
+=================================================================
+BENCHMARK SUMMARY
+=================================================================
+                        Scenario N_Obs N_Iter R_Time CPP_Time
+        Small dataset, quick fit   100     50  2.08s    0.11s
+                  Medium dataset   500    100 16.19s    0.21s
+                   Large dataset  1000    100 85.64s    0.53s
+ Medium dataset, many iterations   200    200 28.39s    0.20s
+ Speedup R_Clusters CPP_Clusters
+   18.9x         12            1
+   77.1x          7            1
+  161.6x         32            1
+  142.0x         12            1
+
+Performance Summary:
+  Average speedup: 99.88x
+  Maximum speedup: 161.58x
+  Average R memory: 0.5 MB
+  Average C++ memory: 0.0 MB
+
+=================================================================
+[[1]]
+[[1]]$n_obs
+[1] 100
+
+[[1]]$n_iter
+[1] 50
+
+[[1]]$r_time
+[1] 2.08
+
+[[1]]$cpp_time
+[1] 0.11
+
+[[1]]$speedup
+[1] 18.90909
+
+[[1]]$r_memory
+[1] 83160
+
+[[1]]$cpp_memory
+[1] 38816
+
+[[1]]$comparison
+[[1]]$comparison$clusters_r
+[1] 12
+
+[[1]]$comparison$clusters_cpp
+[1] 1
+
+[[1]]$comparison$r_final_likelihood
+[1] -220.3235
+
+
+[[1]]$cpp_available
+[1] TRUE
+
+[[1]]$scenario
+[1] "Small dataset, quick fit"
+
+[[1]]$true_k
+[1] 3
+
+
+[[2]]
+[[2]]$n_obs
+[1] 500
+
+[[2]]$n_iter
+[1] 100
+
+[[2]]$r_time
+[1] 16.19
+
+[[2]]$cpp_time
+[1] 0.21
+
+[[2]]$speedup
+[1] 77.09524
+
+[[2]]$r_memory
+[1] 485704
+
+[[2]]$cpp_memory
+[1] 12944
+
+[[2]]$comparison
+[[2]]$comparison$clusters_r
+[1] 7
+
+[[2]]$comparison$clusters_cpp
+[1] 1
+
+[[2]]$comparison$r_final_likelihood
+[1] -1096.383
+
+
+[[2]]$cpp_available
+[1] TRUE
+
+[[2]]$scenario
+[1] "Medium dataset"
+
+[[2]]$true_k
+[1] 3
+
+
+[[3]]
+[[3]]$n_obs
+[1] 1000
+
+[[3]]$n_iter
+[1] 100
+
+[[3]]$r_time
+[1] 85.64
+
+[[3]]$cpp_time
+[1] 0.53
+
+[[3]]$speedup
+[1] 161.5849
+
+[[3]]$r_memory
+[1] 919424
+
+[[3]]$cpp_memory
+[1] 22944
+
+[[3]]$comparison
+[[3]]$comparison$clusters_r
+[1] 32
+
+[[3]]$comparison$clusters_cpp
+[1] 1
+
+[[3]]$comparison$r_final_likelihood
+[1] -2192.04
+
+
+[[3]]$cpp_available
+[1] TRUE
+
+[[3]]$scenario
+[1] "Large dataset"
+
+[[3]]$true_k
+[1] 3
+
+
+[[4]]
+[[4]]$n_obs
+[1] 200
+
+[[4]]$n_iter
+[1] 200
+
+[[4]]$r_time
+[1] 28.39
+
+[[4]]$cpp_time
+[1] 0.2
+
+[[4]]$speedup
+[1] 141.95
+
+[[4]]$r_memory
+[1] 511824
+
+[[4]]$cpp_memory
+[1] 6944
+
+[[4]]$comparison
+[[4]]$comparison$clusters_r
+[1] 12
+
+[[4]]$comparison$clusters_cpp
+[1] 1
+
+[[4]]$comparison$r_final_likelihood
+[1] -446.8504
+
+
+[[4]]$cpp_available
+[1] TRUE
+
+[[4]]$scenario
+[1] "Medium dataset, many iterations"
+
+[[4]]$true_k
+[1] 3

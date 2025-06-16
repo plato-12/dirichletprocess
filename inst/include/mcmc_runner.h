@@ -54,14 +54,24 @@ private:
 // State container for DP
 class DPState {
 public:
-  arma::vec cluster_labels;
+  std::vector<int> cluster_labels;  // Use std::vector instead of arma::vec
   std::vector<arma::vec> cluster_params;
   arma::vec cluster_sizes;
   double alpha;
   int n_clusters;
 
-  DPState(int n_obs, double initial_alpha);
-  void update_cluster_counts();
+  DPState(int n_obs, double initial_alpha)
+    : cluster_labels(n_obs), alpha(initial_alpha), n_clusters(0) {
+    cluster_sizes.set_size(0);
+  }
+
+  void update_cluster_counts() {
+    // Ensure consistency
+    n_clusters = cluster_params.size();
+    if (n_clusters != static_cast<int>(cluster_sizes.n_elem)) {
+      Rcpp::stop("Inconsistent cluster state");
+    }
+  }
 };
 
 } // namespace dirichletprocess

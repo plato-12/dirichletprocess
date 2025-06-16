@@ -6,16 +6,31 @@
 
 namespace dirichletprocess {
 
-// Helper function to sample from categorical distribution
 int sample_categorical(const arma::vec& probs) {
-  arma::vec cumprobs = arma::cumsum(probs / arma::sum(probs));
-  double u = R::runif(0, 1);
+  // Check for all zeros or negative probabilities
+  if (arma::all(probs <= 0)) {
+    Rcpp::stop("All probabilities are zero or negative");
+  }
 
-  for (arma::uword i = 0; i < cumprobs.n_elem; ++i) {
-    if (u <= cumprobs[i]) {
+  // Normalize probabilities to avoid numerical issues
+  arma::vec normalized_probs = probs / arma::sum(probs);
+
+  // Check for NaN after normalization
+  if (normalized_probs.has_nan()) {
+    Rcpp::stop("Probability normalization resulted in NaN");
+  }
+
+  double u = R::runif(0, 1);
+  double cumsum = 0.0;
+
+  for (arma::uword i = 0; i < normalized_probs.n_elem; ++i) {
+    cumsum += normalized_probs[i];
+    if (u <= cumsum) {
       return static_cast<int>(i);
     }
   }
+
+  // This should never happen, but return last index as fallback
   return static_cast<int>(probs.n_elem - 1);
 }
 
@@ -201,21 +216,44 @@ void MCMCRunner::update_cluster_assignments() {
     // Probability of joining existing clusters
     for (int k = 0; k < state->n_clusters; ++k) {
       double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
+
+      // Check for invalid log likelihood
+      if (!std::isfinite(log_lik)) {
+        log_lik = -1e10; // Set to very small value
+      }
+
       probs[k] = state->cluster_sizes[k] * std::exp(log_lik);
     }
 
     // Probability of creating new cluster
-    // Compute predictive likelihood by integrating over prior
-    arma::vec prior_sample = mixing_dist->prior_draw();
-    double log_lik_new = mixing_dist->log_likelihood(obs, prior_sample);
-    probs[state->n_clusters] = state->alpha * std::exp(log_lik_new);
+    // Draw multiple auxiliary parameters and average their likelihoods
+    const int n_aux = 5; // Number of auxiliary parameters
+    double avg_log_lik = 0.0;
+
+    for (int aux = 0; aux < n_aux; ++aux) {
+      arma::vec aux_params = mixing_dist->prior_draw();
+      double log_lik = mixing_dist->log_likelihood(obs, aux_params);
+
+      if (std::isfinite(log_lik)) {
+        avg_log_lik += log_lik;
+      } else {
+        avg_log_lik += -1e10;
+      }
+    }
+    avg_log_lik /= n_aux;
+
+    probs[state->n_clusters] = state->alpha * std::exp(avg_log_lik);
+
+    // Add small epsilon to avoid all-zero probabilities
+    probs += 1e-10;
 
     // Sample new cluster assignment
     int new_cluster = sample_categorical(probs);
 
     if (new_cluster == state->n_clusters) {
-      // Create new cluster
-      state->cluster_params.push_back(prior_sample);
+      // Create new cluster with proper parameter initialization
+      arma::vec new_params = mixing_dist->prior_draw();
+      state->cluster_params.push_back(new_params);
       state->cluster_sizes.resize(state->n_clusters + 1);
       state->cluster_sizes[state->n_clusters] = 1;
       state->cluster_labels[i] = state->n_clusters;
@@ -234,27 +272,24 @@ void MCMCRunner::update_cluster_assignments() {
 void MCMCRunner::update_cluster_parameters() {
   for (int k = 0; k < state->n_clusters; ++k) {
     // Get data points in cluster k
-    arma::mat cluster_data;
-    int count = 0;
+    std::vector<arma::uword> cluster_indices;
 
-    for (arma::uword j = 0; j < data.n_rows; j++) {
-      if (state->cluster_labels[j] == k) {
-        count++;
+    for (arma::uword i = 0; i < data.n_rows; i++) {
+      if (state->cluster_labels[i] == k) {
+        cluster_indices.push_back(i);
       }
     }
 
-    if (count > 0) {
-      cluster_data.set_size(count, data.n_cols);
-      int idx = 0;
-      for (arma::uword i = 0; i < data.n_rows; i++) {
-        if (state->cluster_labels[i] == k) {
-          cluster_data.row(idx++) = data.row(i);
-        }
+    if (cluster_indices.size() > 0) {
+      // Extract cluster data
+      arma::mat cluster_data(cluster_indices.size(), data.n_cols);
+
+      for (size_t idx = 0; idx < cluster_indices.size(); ++idx) {
+        cluster_data.row(idx) = data.row(cluster_indices[idx]);
       }
 
-      // Draw from posterior
-      arma::vec prior_params = mixing_dist->prior_draw();
-      state->cluster_params[k] = mixing_dist->posterior_draw(cluster_data, prior_params);
+      // Draw from posterior (don't use prior_params here)
+      state->cluster_params[k] = mixing_dist->posterior_draw(cluster_data, state->cluster_params[k]);
     }
   }
 }
