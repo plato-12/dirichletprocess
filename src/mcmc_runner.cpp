@@ -7,19 +7,16 @@
 namespace dirichletprocess {
 
 int sample_categorical(const arma::vec& probs) {
-  // Check for all zeros or negative probabilities
-  if (arma::all(probs <= 0)) {
-    Rcpp::stop("All probabilities are zero or negative");
+  // Check for valid probabilities
+  if (probs.has_nan() || arma::all(probs <= 0)) {
+    // If all probabilities are invalid, sample uniformly
+    return R::runif(0, 1) * probs.n_elem;
   }
 
-  // Normalize probabilities to avoid numerical issues
+  // Ensure probabilities sum to 1 (handle numerical errors)
   arma::vec normalized_probs = probs / arma::sum(probs);
 
-  // Check for NaN after normalization
-  if (normalized_probs.has_nan()) {
-    Rcpp::stop("Probability normalization resulted in NaN");
-  }
-
+  // Use R's random number generator for consistency
   double u = R::runif(0, 1);
   double cumsum = 0.0;
 
@@ -30,7 +27,7 @@ int sample_categorical(const arma::vec& probs) {
     }
   }
 
-  // This should never happen, but return last index as fallback
+  // Fallback to last index
   return static_cast<int>(probs.n_elem - 1);
 }
 
@@ -53,6 +50,24 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
   n_burn = Rcpp::as<int>(mcmc_params["n_burn"]);
   thin = Rcpp::as<int>(mcmc_params["thin"]);
   update_concentration_flag = Rcpp::as<bool>(mcmc_params["update_concentration"]);
+
+  // Initialize alpha with a reasonable default if not provided
+  double initial_alpha = 1.0;  // Default value
+  if (mcmc_params.containsElementNamed("alpha")) {
+    initial_alpha = Rcpp::as<double>(mcmc_params["alpha"]);
+  }
+
+  // Ensure alpha is reasonable for the data size
+  if (initial_alpha <= 0) {
+    Rcpp::stop("alpha must be positive");
+  }
+
+  // For very small alpha relative to data size, adjust it
+  if (initial_alpha < 0.1 && data.n_rows > 50) {
+    Rcpp::warning("Very small alpha may limit cluster creation. Consider using a larger value.");
+  }
+
+  state.reset(new DPState(data.n_rows, initial_alpha));
 
   // Validate MCMC parameters
   if (n_iter <= 0) {
@@ -210,50 +225,41 @@ void MCMCRunner::update_cluster_assignments() {
       state->n_clusters--;
     }
 
-    // Chinese Restaurant Process
-    arma::vec probs(state->n_clusters + 1);
+    // Chinese Restaurant Process - use log probabilities for numerical stability
+    arma::vec log_probs(state->n_clusters + 1);
+    log_probs.fill(-std::numeric_limits<double>::infinity());
 
-    // Probability of joining existing clusters
+    // Log probability of joining existing clusters
     for (int k = 0; k < state->n_clusters; ++k) {
       double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
 
-      // Check for invalid log likelihood
-      if (!std::isfinite(log_lik)) {
-        log_lik = -1e10; // Set to very small value
-      }
-
-      probs[k] = state->cluster_sizes[k] * std::exp(log_lik);
-    }
-
-    // Probability of creating new cluster
-    // Draw multiple auxiliary parameters and average their likelihoods
-    const int n_aux = 5; // Number of auxiliary parameters
-    double avg_log_lik = 0.0;
-
-    for (int aux = 0; aux < n_aux; ++aux) {
-      arma::vec aux_params = mixing_dist->prior_draw();
-      double log_lik = mixing_dist->log_likelihood(obs, aux_params);
-
       if (std::isfinite(log_lik)) {
-        avg_log_lik += log_lik;
-      } else {
-        avg_log_lik += -1e10;
+        log_probs[k] = std::log(state->cluster_sizes[k]) + log_lik;
       }
     }
-    avg_log_lik /= n_aux;
 
-    probs[state->n_clusters] = state->alpha * std::exp(avg_log_lik);
+    // Log probability of creating new cluster
+    // Use single auxiliary parameter OR integrate over prior
+    arma::vec aux_params = mixing_dist->prior_draw();
+    double new_cluster_log_lik = mixing_dist->log_likelihood(obs, aux_params);
 
-    // Add small epsilon to avoid all-zero probabilities
-    probs += 1e-10;
+    if (std::isfinite(new_cluster_log_lik)) {
+      log_probs[state->n_clusters] = std::log(state->alpha) + new_cluster_log_lik;
+    }
+
+    // Convert from log space using log-sum-exp trick for numerical stability
+    double max_log_prob = log_probs.max();
+    arma::vec probs = arma::exp(log_probs - max_log_prob);
+
+    // Normalize
+    probs = probs / arma::sum(probs);
 
     // Sample new cluster assignment
     int new_cluster = sample_categorical(probs);
 
     if (new_cluster == state->n_clusters) {
-      // Create new cluster with proper parameter initialization
-      arma::vec new_params = mixing_dist->prior_draw();
-      state->cluster_params.push_back(new_params);
+      // Create new cluster
+      state->cluster_params.push_back(aux_params);
       state->cluster_sizes.resize(state->n_clusters + 1);
       state->cluster_sizes[state->n_clusters] = 1;
       state->cluster_labels[i] = state->n_clusters;

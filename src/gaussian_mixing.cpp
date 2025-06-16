@@ -10,11 +10,28 @@ GaussianMixing::GaussianMixing(double mu0, double kappa0,
 
 double GaussianMixing::log_likelihood(const arma::vec& data_point,
                                       const arma::vec& params) const {
+  if (params.n_elem < 2) {
+    return -std::numeric_limits<double>::infinity();
+  }
+
   double mean = params[0];
   double variance = params[1];
 
-  return -0.5 * std::log(2 * M_PI * variance) -
-    0.5 * std::pow(data_point[0] - mean, 2) / variance;
+  // Ensure variance is positive
+  if (variance <= 0) {
+    return -std::numeric_limits<double>::infinity();
+  }
+
+  // Compute log likelihood with numerical stability
+  double standardized = (data_point[0] - mean) / std::sqrt(variance);
+  double log_lik = -0.5 * (std::log(2 * M_PI) + std::log(variance) + standardized * standardized);
+
+  // Check for numerical issues
+  if (!std::isfinite(log_lik)) {
+    return -std::numeric_limits<double>::infinity();
+  }
+
+  return log_lik;
 }
 
 arma::vec GaussianMixing::posterior_draw(const arma::mat& cluster_data,

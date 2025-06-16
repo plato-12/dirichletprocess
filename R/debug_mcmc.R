@@ -35,3 +35,29 @@ debug_mcmc_cpp <- function(data, n_iter = 10, verbose = TRUE) {
 
   return(result)
 }
+
+#' Debug MCMC clustering behavior
+#' @export
+diagnose_clustering <- function(data, n_iter = 100, alpha = 1.0) {
+  data_matrix <- matrix(data, ncol = 1)
+
+  result <- run_mcmc_cpp(
+    data = data_matrix,
+    mixing_dist_params = create_gaussian_params(),
+    mcmc_params = list(
+      n_iter = n_iter,
+      n_burn = 0,
+      thin = 1,
+      update_concentration = TRUE,
+      alpha = alpha
+    )
+  )
+
+  # Print diagnostic information
+  cat("Cluster evolution:\n")
+  cat("Iterations 1-10:", result$n_clusters[1:min(10, length(result$n_clusters))], "\n")
+  cat("Final clusters:", tail(result$n_clusters, 1), "\n")
+  cat("Alpha evolution:", round(result$alpha[c(1, length(result$alpha))], 3), "\n")
+
+  invisible(result)
+}
