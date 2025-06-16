@@ -327,27 +327,4 @@ void MCMCRunner::store_iteration(int iter) {
   theta_samples.push_back(params_copy);
 }
 
-// DPState implementation
-DPState::DPState(int n_obs, double initial_alpha)
-  : cluster_labels(n_obs), alpha(initial_alpha), n_clusters(1) {
-  cluster_sizes.set_size(1);
-  cluster_sizes[0] = n_obs;
-  std::fill(cluster_labels.begin(), cluster_labels.end(), 0);
-}
-
-void DPState::update_cluster_counts() {
-  // Count unique clusters and update sizes
-  std::set<int> unique_labels;
-  for (arma::uword i = 0; i < cluster_labels.n_elem; ++i) {
-    unique_labels.insert(cluster_labels[i]);
-  }
-  n_clusters = unique_labels.size();
-
-  // Recompute cluster sizes
-  cluster_sizes.zeros(n_clusters);
-  for (arma::uword i = 0; i < cluster_labels.n_elem; ++i) {
-    cluster_sizes[cluster_labels[i]]++;
-  }
-}
-
 } // namespace dirichletprocess
