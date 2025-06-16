@@ -10,6 +10,7 @@ fit_r_implementation(
   n_burn = 0,
   thin = 1,
   update_concentration = TRUE,
+  progressBar = TRUE,
   ...
 )
 }

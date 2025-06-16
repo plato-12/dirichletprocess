@@ -132,14 +132,41 @@ Rcpp::List MCMCRunner::run() {
   int final_iter = n_iter - 1;
   arma::vec final_labels = arma::conv_to<arma::vec>::from(cluster_samples[final_iter]) + 1;
 
+  // Extract final cluster parameters
+  std::vector<arma::vec> final_theta = theta_samples[final_iter];
+
+  // Convert theta_chain to List for R
+  Rcpp::List theta_chain_list(n_stored);
+  for (int i = 0; i < n_stored; ++i) {
+    Rcpp::List iter_params(theta_chain[i].size());
+    for (size_t j = 0; j < theta_chain[i].size(); ++j) {
+      iter_params[j] = theta_chain[i][j];
+    }
+    theta_chain_list[i] = iter_params;
+  }
+
+  // Convert final theta to List
+  Rcpp::List final_theta_list(final_theta.size());
+  for (size_t i = 0; i < final_theta.size(); ++i) {
+    final_theta_list[i] = final_theta[i];
+  }
+
   // Return results with proper structure
   return Rcpp::List::create(
+    // Primary results
     Rcpp::Named("cluster_labels") = labels_matrix,      // Matrix of labels (each row is an iteration)
     Rcpp::Named("alpha") = alpha_vector,                // Vector of alpha values
-    Rcpp::Named("theta") = theta_chain,                 // List of cluster parameters
+    Rcpp::Named("theta") = final_theta_list,            // FINAL cluster parameters (not chain!)
     Rcpp::Named("n_clusters") = n_clusters_chain,       // Vector of cluster counts
+
+    // Additional fields for compatibility
     Rcpp::Named("final_labels") = final_labels,         // Final cluster assignments
-    Rcpp::Named("final_n_clusters") = state->n_clusters // Final number of clusters
+    Rcpp::Named("final_n_clusters") = state->n_clusters,// Final number of clusters
+
+    // Chain fields that R code expects
+    Rcpp::Named("alpha_chain") = alpha_vector,          // Same as alpha for compatibility
+    Rcpp::Named("labels_chain") = labels_matrix,        // Same as cluster_labels
+    Rcpp::Named("theta_chain") = theta_chain_list       // Chain of cluster parameters
   );
 }
 

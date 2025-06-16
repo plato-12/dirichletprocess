@@ -117,55 +117,137 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
 }
 
 #' @export
-Fit.dirichletprocess <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
-                                 update_concentration = TRUE, ...) {
-
-  if (getOption("dirichletprocess.use_cpp", FALSE) &&
-      can_use_cpp(dp_obj)) {
-
-    # Prepare parameters for C++
-    mixing_params <- prepare_mixing_dist_params(dp_obj)
-    mcmc_params <- list(
-      n_iter = n_iter,
-      n_burn = n_burn,
-      thin = thin,
-      update_concentration = update_concentration,
-      alpha = dp_obj$alpha
-    )
-
-    # Run C++ MCMC
-    results <- run_mcmc_cpp(dp_obj$data, mixing_params, mcmc_params)
-
-    # Update dp_obj with results
-    dp_obj$cluster_labels <- results$cluster_labels
-    dp_obj$alpha <- results$alpha
-    dp_obj$theta <- results$theta
-    dp_obj$n_clusters <- results$n_clusters
-
-  } else {
-    # FIXED: Use correct R implementation that doesn't confuse update_concentration with updatePrior
-    dp_obj <- fit_r_implementation(dp_obj, n_iter, n_burn, thin,
-                                   update_concentration, ...)
+Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
+  # Validate inputs
+  if (!inherits(dpObj, "dirichletprocess")) {
+    stop("dpObj must be a dirichletprocess object")
+  }
+  if (its <= 0) {
+    stop("Number of iterations must be positive")
   }
 
-  return(dp_obj)
+  # Extract additional parameters
+  dots <- list(...)
+  n_burn <- ifelse(is.null(dots$n_burn), 0, dots$n_burn)
+  thin <- ifelse(is.null(dots$thin), 1, dots$thin)
+
+  # Check if we should use C++ implementation
+  use_cpp <- getOption("dirichletprocess.use_cpp", FALSE) && can_use_cpp(dpObj)
+
+  if (use_cpp) {
+    tryCatch({
+      # Ensure dpObj has all required fields
+      if (is.null(dpObj$data) || is.null(dpObj$alpha)) {
+        stop("Invalid dirichletprocess object: missing data or alpha")
+      }
+
+      # Prepare parameters for C++
+      mixing_params <- prepare_mixing_dist_params(dpObj)
+
+      mcmc_params <- list(
+        n_iter = as.integer(its),
+        n_burn = as.integer(n_burn),
+        thin = as.integer(thin),
+        update_concentration = as.logical(updatePrior),
+        alpha = as.numeric(dpObj$alpha),
+        progressBar = as.logical(progressBar)
+      )
+
+      # Initialize cluster labels if not present
+      if (is.null(dpObj$clusterLabels)) {
+        dpObj$clusterLabels <- rep(1L, length(dpObj$data))
+      }
+
+      # Run C++ MCMC
+      results <- run_mcmc_cpp(
+        data = as.matrix(dpObj$data),
+        mixing_dist_params = mixing_params,
+        mcmc_params = mcmc_params
+      )
+
+      # Update dpObj with results
+      if (!is.null(results$cluster_labels)) {
+        # Get the final cluster labels (last iteration)
+        final_labels <- if (is.matrix(results$cluster_labels)) {
+          results$cluster_labels[nrow(results$cluster_labels), ]
+        } else {
+          results$cluster_labels
+        }
+        dpObj$clusterLabels <- as.integer(final_labels)
+      }
+
+      if (!is.null(results$alpha)) {
+        # Get the final alpha value
+        dpObj$alpha <- if (length(results$alpha) > 1) {
+          tail(results$alpha, 1)
+        } else {
+          results$alpha
+        }
+      }
+
+      # Update cluster parameters and related fields
+      if (!is.null(results$theta)) {
+        dpObj$clusterParameters <- results$theta
+      }
+
+      # Calculate cluster statistics
+      if (!is.null(dpObj$clusterLabels)) {
+        dpObj$pointsPerCluster <- as.integer(table(dpObj$clusterLabels))
+        dpObj$numberClusters <- length(unique(dpObj$clusterLabels))
+        dpObj$weights <- dpObj$pointsPerCluster / length(dpObj$data)
+      }
+
+      # Store chains if available
+      if (!is.null(results$alpha_chain)) {
+        dpObj$alphaChain <- results$alpha_chain
+      } else if (!is.null(results$alpha) && length(results$alpha) > 1) {
+        dpObj$alphaChain <- results$alpha
+      }
+
+      if (!is.null(results$likelihood_chain)) {
+        dpObj$likelihoodChain <- results$likelihood_chain
+      }
+
+      if (!is.null(results$labels_chain)) {
+        dpObj$labelsChain <- results$labels_chain
+      }
+
+      if (!is.null(results$theta_chain)) {
+        dpObj$clusterParametersChain <- results$theta_chain
+      }
+
+    }, error = function(e) {
+      warning("C++ implementation failed: ", e$message, ". Falling back to R implementation.")
+      dpObj <- Fit.default(dpObj = dpObj, its = its,
+                           updatePrior = updatePrior,
+                           progressBar = progressBar)
+    })
+  } else {
+    # Use R implementation
+    dpObj <- Fit.default(dpObj = dpObj, its = its,
+                         updatePrior = updatePrior,
+                         progressBar = progressBar)
+  }
+
+  # Set the iterations count for the print method
+  dpObj$iterations <- its
+
+  return(dpObj)
 }
 
 #' R implementation function for backward compatibility and testing
 #' @keywords internal
 fit_r_implementation <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
-                                 update_concentration = TRUE, ...) {
-
+                                 update_concentration = TRUE, progressBar = TRUE, ...) {
   # FIXED: Extract and handle parameters properly to avoid conflicts
   dots <- list(...)
-
   # Remove updatePrior from dots if it exists to avoid conflict
   if ("updatePrior" %in% names(dots)) {
     updatePrior <- dots$updatePrior
     dots$updatePrior <- NULL
   } else {
     # For conjugate models, we typically don't update prior parameters
-    updatePrior <- FALSE
+    updatePrior <- update_concentration
   }
 
   # If this is a non-conjugate model, we might want to update prior parameters
@@ -177,8 +259,10 @@ fit_r_implementation <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
   }
 
   # Call the standard R implementation with correct parameters
-  # Pass remaining arguments from dots
-  do.call(Fit.default, c(list(dpObj = dp_obj, its = n_iter, updatePrior = updatePrior), dots))
+  # Pass progressBar and remaining arguments from dots
+  do.call(Fit.default, c(list(dpObj = dp_obj, its = n_iter,
+                              updatePrior = updatePrior,
+                              progressBar = progressBar), dots))
 }
 
 #' Check if C++ implementation is available for this model

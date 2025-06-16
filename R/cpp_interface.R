@@ -197,42 +197,84 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 prepare_mixing_dist_params <- function(dp_obj) {
   md <- dp_obj$mixingDistribution
 
-  if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
-    # Handle both old and new parameter structures
+  # Handle normal/gaussian distributions
+  if (inherits(md, c("normal", "normal_inverse_gamma", "gaussian", "conjugate"))) {
+    # Check for different parameter structures
     if (!is.null(md$priors)) {
-      # New structure
-      list(
+      # New structure with named priors
+      return(list(
         type = "gaussian",
-        mu0 = md$priors$mu_0,
-        kappa0 = md$priors$kappa_0,
-        alpha0 = md$priors$alpha_0,
-        beta0 = md$priors$beta_0
-      )
-    } else {
-      # Old structure with priorParameters
-      list(
-        type = "gaussian",
-        mu0 = md$priorParameters[1],
-        kappa0 = md$priorParameters[2],
-        alpha0 = md$priorParameters[3],
-        beta0 = md$priorParameters[4]
-      )
+        mu0 = as.numeric(md$priors$mu_0),
+        kappa0 = as.numeric(md$priors$kappa_0),
+        alpha0 = as.numeric(md$priors$alpha_0),
+        beta0 = as.numeric(md$priors$beta_0)
+      ))
+    } else if (!is.null(md$priorParameters)) {
+      # Old structure with priorParameters vector
+      params <- md$priorParameters
+      if (is.list(params)) {
+        # If it's a list, extract values
+        return(list(
+          type = "gaussian",
+          mu0 = as.numeric(params[[1]]),
+          kappa0 = as.numeric(params[[2]]),
+          alpha0 = as.numeric(params[[3]]),
+          beta0 = as.numeric(params[[4]])
+        ))
+      } else if (is.numeric(params) && length(params) == 4) {
+        # If it's a numeric vector
+        return(list(
+          type = "gaussian",
+          mu0 = as.numeric(params[1]),
+          kappa0 = as.numeric(params[2]),
+          alpha0 = as.numeric(params[3]),
+          beta0 = as.numeric(params[4])
+        ))
+      }
     }
-  } else {
-    stop("Mixing distribution not yet implemented in C++: ", class(md))
+
+    # Default parameters if none found
+    warning("Using default prior parameters for normal distribution")
+    return(list(
+      type = "gaussian",
+      mu0 = 0.0,
+      kappa0 = 1.0,
+      alpha0 = 1.0,
+      beta0 = 1.0
+    ))
   }
+
+  stop("Mixing distribution not yet implemented in C++: ", class(md))
 }
 
 #' Check if C++ implementation is available for this model
 #' @keywords internal
 can_use_cpp <- function(dp_obj) {
-  # For now, only return TRUE if we actually have the C++ implementation
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+  # Check if C++ function exists in multiple ways
+  cpp_available <- exists("run_mcmc_cpp", where = asNamespace("dirichletprocess"),
+                          mode = "function") ||
+    exists("_dirichletprocess_run_mcmc_cpp",
+           where = asNamespace("dirichletprocess")) ||
+    exists("_dirichletprocess_run_mcmc_cpp")
+
+  if (!cpp_available) {
     return(FALSE)
   }
 
-  supported_types <- c("normal_inverse_gamma", "normal")
-  inherits(dp_obj$mixingDistribution, supported_types)
+  # Check if the mixing distribution is supported
+  supported_types <- c("normal", "normal_inverse_gamma", "gaussian", "conjugate")
+
+  if (inherits(dp_obj$mixingDistribution, supported_types)) {
+    return(TRUE)
+  }
+
+  # Additional check for normal distribution with different class structures
+  if (!is.null(dp_obj$mixingDistribution$priorParameters) &&
+      length(dp_obj$mixingDistribution$priorParameters) == 4) {
+    return(TRUE)
+  }
+
+  return(FALSE)
 }
 
 #' Enable/disable cpp hierarchical samplers
