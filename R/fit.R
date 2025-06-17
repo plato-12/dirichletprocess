@@ -143,15 +143,7 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 
       # Prepare parameters for C++
       mixing_params <- prepare_mixing_dist_params(dpObj)
-
-      mcmc_params <- list(
-        n_iter = as.integer(its),
-        n_burn = as.integer(n_burn),
-        thin = as.integer(thin),
-        update_concentration = as.logical(updatePrior),
-        alpha = as.numeric(dpObj$alpha),
-        progressBar = as.logical(progressBar)
-      )
+      mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, n_burn, thin)
 
       # Initialize cluster labels if not present
       if (is.null(dpObj$clusterLabels)) {
@@ -167,60 +159,39 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 
       # Update dpObj with results
       if (!is.null(results$cluster_labels)) {
-        # Get the final cluster labels (last iteration)
-        final_labels <- if (is.matrix(results$cluster_labels)) {
-          results$cluster_labels[nrow(results$cluster_labels), ]
-        } else {
-          results$cluster_labels
-        }
-        dpObj$clusterLabels <- as.integer(final_labels)
+        # Get the final cluster labels
+        dpObj$clusterLabels <- results$cluster_labels[[length(results$cluster_labels)]]
       }
 
       if (!is.null(results$alpha)) {
         # Get the final alpha value
-        dpObj$alpha <- if (length(results$alpha) > 1) {
-          tail(results$alpha, 1)
-        } else {
-          results$alpha
-        }
+        dpObj$alpha <- tail(results$alpha, 1)[[1]][1]
       }
 
-      # Update cluster parameters and related fields
-      if (!is.null(results$theta)) {
-        dpObj$clusterParameters <- results$theta
+      # Store chains
+      dpObj$labelsChain <- results$labelsChain
+      dpObj$alphaChain <- results$alphaChain
+      dpObj$likelihoodChain <- results$likelihoodChain
+
+      # Update cluster parameters
+      if (!is.null(results$theta) && length(results$theta) > 0) {
+        final_theta <- results$theta[[length(results$theta)]]
+        dpObj$clusterParameters <- final_theta
       }
 
-      # Calculate cluster statistics
-      if (!is.null(dpObj$clusterLabels)) {
-        dpObj$pointsPerCluster <- as.integer(table(dpObj$clusterLabels))
-        dpObj$numberClusters <- length(unique(dpObj$clusterLabels))
-        dpObj$weights <- dpObj$pointsPerCluster / length(dpObj$data)
-      }
+      # Update number of clusters
+      dpObj$numberClusters <- length(unique(dpObj$clusterLabels))
 
-      # Store chains if available
-      if (!is.null(results$alpha_chain)) {
-        dpObj$alphaChain <- results$alpha_chain
-      } else if (!is.null(results$alpha) && length(results$alpha) > 1) {
-        dpObj$alphaChain <- results$alpha
-      }
+      # Update points per cluster
+      dpObj$pointsPerCluster <- as.numeric(table(dpObj$clusterLabels))
 
-      if (!is.null(results$likelihood_chain)) {
-        dpObj$likelihoodChain <- results$likelihood_chain
-      }
-
-      if (!is.null(results$labels_chain)) {
-        dpObj$labelsChain <- results$labels_chain
-      }
-
-      if (!is.null(results$theta_chain)) {
-        dpObj$clusterParametersChain <- results$theta_chain
-      }
+      return(dpObj)
 
     }, error = function(e) {
-      warning("C++ implementation failed: ", e$message, ". Falling back to R implementation.")
-      dpObj <- Fit.default(dpObj = dpObj, its = its,
-                           updatePrior = updatePrior,
-                           progressBar = progressBar)
+      if (progressBar) {
+        message("C++ implementation failed, falling back to R: ", e$message)
+      }
+      use_cpp <- FALSE
     })
   } else {
     # Use R implementation

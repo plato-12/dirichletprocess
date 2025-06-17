@@ -5,6 +5,7 @@
 #include <RcppArmadillo.h>
 #include <memory>
 #include <vector>
+#include <map>
 
 namespace dirichletprocess {
 
@@ -31,10 +32,15 @@ private:
   bool update_concentration_flag;
   int m_auxiliary; // Number of auxiliary parameters for Algorithm 8
 
+  // Alpha prior parameters
+  double alpha_prior_shape;
+  double alpha_prior_rate;
+
   // Storage for results
   std::vector<arma::vec> alpha_samples;
   std::vector<std::vector<int>> cluster_samples;
   std::vector<std::vector<arma::vec>> theta_samples;
+  std::vector<double> likelihood_samples;  // For tracking likelihood
 
 public:
   MCMCRunner(const arma::mat& data,
@@ -50,7 +56,10 @@ private:
   void update_cluster_parameters();
   void update_concentration();
   void store_iteration(int iter);
-  void cleanup_empty_clusters();  // ADD THIS LINE
+  void cleanup_empty_clusters();
+
+  // Helper function for categorical sampling
+  int sample_categorical(const std::vector<double>& probs);
 };
 
 // State container for DP
@@ -69,15 +78,19 @@ public:
 
   void update_cluster_counts() {
     // Count actual clusters
-    std::set<int> unique_labels(cluster_labels.begin(), cluster_labels.end());
-    n_clusters = unique_labels.size();
+    std::map<int, int> label_counts;
+    for (int label : cluster_labels) {
+      label_counts[label]++;
+    }
+
+    n_clusters = label_counts.size();
 
     // Update cluster sizes
     cluster_sizes.zeros(n_clusters);
-    for (int label : cluster_labels) {
-      if (label >= 0 && label < n_clusters) {
-        cluster_sizes[label]++;
-      }
+    int idx = 0;
+    for (const auto& pair : label_counts) {
+      cluster_sizes[idx] = pair.second;
+      idx++;
     }
   }
 };
