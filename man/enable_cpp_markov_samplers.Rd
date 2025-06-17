@@ -2,7 +2,7 @@
 % Please edit documentation in R/cpp_interface.R, R/cpp_markov_wrappers.R
 \name{enable_cpp_markov_samplers}
 \alias{enable_cpp_markov_samplers}
-\title{Enable/disable cpp markov samplers}
+\title{Enable C++ implementations for Markov models}
 \usage{
 enable_cpp_markov_samplers(use_cpp = TRUE)
 
@@ -15,4 +15,3 @@ enable_cpp_markov_samplers(use_cpp = TRUE)
 This function enables the use of C++ implementations for the Markov
 DP (HMM) sampling algorithms when available.
 }
-\keyword{internal}

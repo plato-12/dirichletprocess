@@ -2,7 +2,7 @@
 % Please edit documentation in R/cpp_interface.R, R/cpp_wrappers.R
 \name{enable_cpp_samplers}
 \alias{enable_cpp_samplers}
-\title{Enable/disable cpp samplers (general)}
+\title{Enable C++ implementations for specific samplers}
 \usage{
 enable_cpp_samplers(use_cpp = TRUE)
 
@@ -15,4 +15,3 @@ enable_cpp_samplers(use_cpp = TRUE)
 This function enables the use of C++ implementations for the core
 sampling algorithms when available.
 }
-\keyword{internal}

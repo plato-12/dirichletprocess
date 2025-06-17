@@ -2,7 +2,7 @@
 % Please edit documentation in R/cpp_interface.R, R/cpp_markov_wrappers.R
 \name{using_cpp_markov_samplers}
 \alias{using_cpp_markov_samplers}
-\title{Check if cpp markov samplers are enabled}
+\title{Check if using C++ Markov samplers}
 \usage{
 using_cpp_markov_samplers()
 
@@ -12,8 +12,7 @@ using_cpp_markov_samplers()
 Logical indicating if C++ Markov samplers are enabled
 }
 \description{
-Check if cpp markov samplers are enabled
+Check if using C++ Markov samplers
 
 Check if C++ Markov samplers are enabled
 }
-\keyword{internal}

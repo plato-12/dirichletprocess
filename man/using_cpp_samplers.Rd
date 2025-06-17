@@ -2,7 +2,7 @@
 % Please edit documentation in R/cpp_interface.R, R/cpp_wrappers.R
 \name{using_cpp_samplers}
 \alias{using_cpp_samplers}
-\title{Check if cpp samplers are enabled (general)}
+\title{Check if using C++ samplers}
 \usage{
 using_cpp_samplers()
 
@@ -12,8 +12,7 @@ using_cpp_samplers()
 Logical indicating if C++ samplers are enabled
 }
 \description{
-Check if cpp samplers are enabled (general)
+Check if using C++ samplers
 
 Check if C++ samplers are enabled
 }
-\keyword{internal}

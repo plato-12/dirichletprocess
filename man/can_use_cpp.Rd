@@ -2,14 +2,20 @@
 % Please edit documentation in R/cpp_interface.R, R/fit.R
 \name{can_use_cpp}
 \alias{can_use_cpp}
-\title{Check if C++ implementation is available for this model}
+\title{Check if C++ can be used for a given DP object}
 \usage{
 can_use_cpp(dp_obj)
 
 can_use_cpp(dp_obj)
 }
+\arguments{
+\item{dp_obj}{Dirichlet process object}
+}
+\value{
+Logical indicating whether C++ implementation is available
+}
 \description{
-Check if C++ implementation is available for this model
+Check if C++ can be used for a given DP object
 
 Check if C++ implementation is available for this model
 }

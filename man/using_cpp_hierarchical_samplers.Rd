@@ -15,6 +15,5 @@ Logical indicating if C++ hierarchical samplers are enabled
 \description{
 Check if C++ hierarchical samplers are enabled
 
-Check if cpp hierarchical samplers are enabled
+Check if using C++ hierarchical samplers
 }
-\keyword{internal}

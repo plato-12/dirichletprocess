@@ -3,7 +3,7 @@
 %   R/zzz.R
 \name{using_cpp}
 \alias{using_cpp}
-\title{Check if C++ implementations are enabled}
+\title{Check if using C++ implementations}
 \usage{
 using_cpp()
 
@@ -12,7 +12,7 @@ using_cpp()
 using_cpp()
 }
 \value{
-Logical indicating if C++ implementations are enabled
+Logical indicating whether C++ implementations are being used
 
 Logical indicating if C++ implementations are being used
 }

@@ -2,13 +2,13 @@
 % Please edit documentation in R/cpp_interface.R
 \name{get_cpp_status}
 \alias{get_cpp_status}
-\title{Get C++ Implementation Status}
+\title{Get C++ implementation status}
 \usage{
 get_cpp_status()
 }
 \value{
-A named logical vector indicating which C++ implementations are available
+List showing which C++ implementations are available
 }
 \description{
-Check which C++ implementations are available
+Get C++ implementation status
 }

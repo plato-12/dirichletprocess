@@ -97,7 +97,8 @@ void MCMCRunner::cleanup_empty_clusters() {
 
   // Update labels
   for (size_t i = 0; i < state->cluster_labels.size(); ++i) {
-    if (old_to_new.find(state->cluster_labels[i]) != old_to_new.end()) {
+    // Changed old_to_new.find(key) != old_to_new.end() to old_to_new.count(key)
+    if (old_to_new.count(state->cluster_labels[i])) {
       new_labels[i] = old_to_new[state->cluster_labels[i]];
     } else {
       // This shouldn't happen, but handle gracefully
@@ -202,7 +203,8 @@ Rcpp::List MCMCRunner::run() {
 void MCMCRunner::update_cluster_assignments_algorithm8() {
   cleanup_empty_clusters();  // First clean up any empty clusters
 
-  for (int i = 0; i < data.n_rows; ++i) {
+  // Changed loop counter from 'int' to 'size_t' to avoid signed/unsigned comparison warnings
+  for (size_t i = 0; i < data.n_rows; ++i) {
     arma::vec obs = data.row(i).t();
     int current_cluster = state->cluster_labels[i];
 
@@ -285,7 +287,16 @@ void MCMCRunner::update_cluster_assignments_algorithm8() {
         // Create entirely new cluster
         new_cluster_idx = state->n_clusters;
         state->cluster_params.push_back(candidate_params[chosen_idx]);
-        state->cluster_sizes.conservativeResize(state->n_clusters + 1);
+
+        // Fix for 'arma::vec' not having 'conservativeResize'
+        // Manually resize by creating a new, larger vector and copying elements.
+        arma::vec new_cluster_sizes(state->cluster_sizes.n_elem + 1);
+        if (state->cluster_sizes.n_elem > 0) {
+          new_cluster_sizes.head(state->cluster_sizes.n_elem) = state->cluster_sizes;
+        }
+        new_cluster_sizes(state->cluster_sizes.n_elem) = 0; // Initialize new element
+        state->cluster_sizes = new_cluster_sizes;
+
         state->n_clusters++;
       }
 
@@ -300,9 +311,9 @@ void MCMCRunner::update_cluster_assignments_algorithm8() {
 void MCMCRunner::update_cluster_parameters() {
   for (int k = 0; k < state->n_clusters; ++k) {
     if (state->cluster_sizes[k] > 0) {
-      // Get indices of observations in this cluster
+      // Changed loop counter from 'int' to 'size_t' to avoid signed/unsigned comparison warnings
       std::vector<int> cluster_indices;
-      for (int i = 0; i < data.n_rows; ++i) {
+      for (size_t i = 0; i < data.n_rows; ++i) {
         if (state->cluster_labels[i] == k) {
           cluster_indices.push_back(i);
         }
@@ -383,7 +394,8 @@ void MCMCRunner::store_iteration(int iter) {
 
   // Calculate and store likelihood
   double log_lik = 0.0;
-  for (int i = 0; i < data.n_rows; ++i) {
+  // Changed loop counter from 'int' to 'size_t' to avoid signed/unsigned comparison warnings
+  for (size_t i = 0; i < data.n_rows; ++i) {
     arma::vec obs = data.row(i).t();
     int cluster = state->cluster_labels[i];
     if (cluster >= 0 && cluster < static_cast<int>(state->cluster_params.size())) {

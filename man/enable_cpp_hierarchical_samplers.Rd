@@ -5,9 +5,9 @@
 \alias{enable_cpp_hierarchical_samplers}
 \title{Enable C++ implementations for hierarchical samplers}
 \usage{
-enable_cpp_hierarchical_samplers(use_cpp = TRUE)
+enable_cpp_hierarchical_samplers()
 
-enable_cpp_hierarchical_samplers(use_cpp = TRUE)
+enable_cpp_hierarchical_samplers()
 }
 \arguments{
 \item{use_cpp}{Logical indicating whether to use C++ implementations}
@@ -16,4 +16,3 @@ enable_cpp_hierarchical_samplers(use_cpp = TRUE)
 This function enables the use of C++ implementations for the hierarchical
 Beta DP sampling algorithms when available.
 }
-\keyword{internal}
