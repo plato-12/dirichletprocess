@@ -110,57 +110,30 @@ has_cpp_implementation <- function(func_name) {
 #' Run MCMC using C++ implementation with proper chain handling
 #' @keywords internal
 run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
-  # Check for the actual Rcpp exported function name
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
-    stop("C++ MCMC implementation not available. Make sure the package is compiled with C++ support.")
+  # Ensure mcmc_params has all required fields
+  if (!"m_auxiliary" %in% names(mcmc_params)) {
+    mcmc_params$m_auxiliary <- 3  # Default value matching R implementation
   }
 
-  # Convert data to matrix format if needed
-  if (!is.matrix(data)) {
-    data <- as.matrix(data)
+  if (!"alpha" %in% names(mcmc_params)) {
+    mcmc_params$alpha <- 1.0  # Default starting value
   }
 
-  # Ensure all required MCMC parameters are present
-  if (!all(c("n_iter", "n_burn", "thin", "alpha") %in% names(mcmc_params))) {
-    stop("Missing required MCMC parameters")
-  }
-
-  # Ensure update_concentration is set
   if (!"update_concentration" %in% names(mcmc_params)) {
     mcmc_params$update_concentration <- TRUE
   }
 
-  # Ensure m_auxiliary is passed for non-conjugate cases (NEW ADDITION)
-  if (!("m_auxiliary" %in% names(mcmc_params))) {
-    mcmc_params$m_auxiliary <- 3  # Default value from Neal's Algorithm 8
-  }
-
-  # Standardize types
-  mcmc_params$n_iter <- as.integer(mcmc_params$n_iter)
-  mcmc_params$n_burn <- as.integer(mcmc_params$n_burn)
-  mcmc_params$thin <- as.integer(mcmc_params$thin)
-  mcmc_params$alpha <- as.numeric(mcmc_params$alpha)
-  mcmc_params$update_concentration <- as.logical(mcmc_params$update_concentration)
-  mcmc_params$m_auxiliary <- as.integer(mcmc_params$m_auxiliary)  # NEW ADDITION
-
   # Call C++ implementation
-  result <- .Call(`_dirichletprocess_run_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+  result <- .Call("_dirichletprocess_run_mcmc_cpp",
+                  data, mixing_dist_params, mcmc_params,
+                  PACKAGE = "dirichletprocess")
 
-  # Post-process results to match expected format
-  # The C++ implementation returns raw results that need formatting
+  # Convert results to match R format
+  result$labelsChain <- lapply(1:nrow(result$labels_chain), function(i) {
+    result$labels_chain[i,]
+  })
 
-  # Ensure cluster_labels is properly formatted
-  if (!is.null(result$cluster_labels) && is.matrix(result$cluster_labels)) {
-    # Already in the right format
-  } else if (!is.null(result$labels_chain)) {
-    result$cluster_labels <- result$labels_chain
-  }
-
-  # Ensure we have the expected fields for compatibility
-  if (is.null(result$n_clusters) && !is.null(result$cluster_labels)) {
-    # Calculate n_clusters from labels if not provided
-    result$n_clusters <- apply(result$cluster_labels, 1, function(x) length(unique(x)))
-  }
+  result$alphaChain <- as.numeric(result$alpha_chain)
 
   return(result)
 }

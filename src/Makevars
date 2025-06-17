@@ -1,2 +1,12 @@
-PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CXXFLAGS)
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+# src/Makevars
+PKG_CPPFLAGS = -I../inst/include
+PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+
+SOURCES = mcmc_runner.cpp \
+          mcmc_runner_alpha_update.cpp \
+          mixing_distribution_base.cpp \
+          gaussian_mixing.cpp \
+          utilities.cpp \
+          GaussianExports.cpp
+
+OBJECTS = $(SOURCES:.cpp=.o)

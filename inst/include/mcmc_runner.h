@@ -50,6 +50,7 @@ private:
   void update_cluster_parameters();
   void update_concentration();
   void store_iteration(int iter);
+  void cleanup_empty_clusters();  // ADD THIS LINE
 };
 
 // State container for DP
