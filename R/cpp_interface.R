@@ -23,17 +23,13 @@ using_cpp <- function() {
 #' @export
 get_cpp_status <- function() {
   status <- list(
-    mcmc_runner = exists("_dirichletprocess_run_mcmc_cpp", mode = "function"),
-    gaussian_likelihood = exists("_dirichletprocess_run_mcmc_cpp", mode = "function"),
-    likelihood = exists("_dirichletprocess_likelihood_cpp", mode = "function"),
-    normal_likelihood = exists("_dirichletprocess_likelihood_normal_cpp", mode = "function"),
-    exponential_likelihood = exists("_dirichletprocess_exponential_likelihood_cpp", mode = "function"),
-    mvnormal_likelihood = exists("_dirichletprocess_mvnormal_likelihood_cpp", mode = "function"),
-    hierarchical_beta = exists("_dirichletprocess_hierarchical_beta_fit_cpp", mode = "function"),
-    hierarchical_mvnormal = exists("_dirichletprocess_hierarchical_mvnormal2_fit_cpp", mode = "function"),
-    markov_dp = exists("_dirichletprocess_markov_dp_fit_cpp", mode = "function"),
-    benchmark_components = exists("_dirichletprocess_benchmark_components_cpp", mode = "function"),
-    memory_tracking = exists("_dirichletprocess_get_memory_tracking", mode = "function")
+    mcmc_runner = exists("_dirichletprocess_run_mcmc_cpp"),
+    gaussian_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
+    exponential_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
+    beta_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
+    hierarchical_beta = exists("_dirichletprocess_hierarchical_beta_fit_cpp"),
+    benchmark_components = exists("_dirichletprocess_benchmark_components_cpp"),
+    memory_tracking = exists("_dirichletprocess_get_memory_tracking")
   )
   return(status)
 }
@@ -47,15 +43,9 @@ can_use_cpp <- function(dp_obj) {
     return(FALSE)
   }
 
-  # Check if mixing distribution is supported
-  supported_types <- c("normal", "normal_inverse_gamma", "gaussian", "conjugate",
-                       "exponential", "beta", "mvnormal", "mvnormal2")
-
-  if (!is.null(dp_obj$mixingDistribution)) {
-    return(any(class(dp_obj$mixingDistribution) %in% supported_types))
-  }
-
-  FALSE
+  supported_types <- c("normal_inverse_gamma", "normal", "gaussian",
+                       "exponential", "beta")
+  inherits(dp_obj$mixingDistribution, supported_types)
 }
 
 #' Enable C++ implementations for specific samplers
@@ -211,10 +201,11 @@ prepare_mixing_dist_params <- function(dp_obj) {
       beta0 = md$priorParameters[2]
     )
   } else if (inherits(md, "beta")) {
-    params <- list(
+    list(
       type = "beta",
       alpha0 = md$priorParameters[1],
-      beta0 = md$priorParameters[2]
+      beta0 = md$priorParameters[2],
+      maxT = ifelse(is.null(md$maxT), 1.0, md$maxT)
     )
   } else if (inherits(md, c("mvnormal", "mvnormal2"))) {
     # Handle multivariate normal

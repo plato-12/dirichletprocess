@@ -2,44 +2,36 @@
 % Please edit documentation in R/dirichlet_process_beta.R
 \name{DirichletProcessBeta}
 \alias{DirichletProcessBeta}
-\title{Dirichlet process mixture of the Beta distribution.}
+\title{Create a Dirichlet Process object with Beta mixing distribution}
 \usage{
 DirichletProcessBeta(
   y,
-  maxY,
+  maxY = NULL,
   g0Priors = c(2, 8),
-  alphaPrior = c(2, 4),
-  mhStep = c(1, 1),
+  alphaPriors = c(2, 4),
+  mhStepSize = c(1, 1),
   hyperPriorParameters = c(1, 0.125),
-  verbose = TRUE,
-  mhDraws = 250
+  verbose = TRUE
 )
 }
 \arguments{
-\item{y}{Data for which to be modelled.}
+\item{y}{Data for which to be fitted}
 
-\item{maxY}{End point of the data}
+\item{maxY}{Upper bound for the Beta distribution}
 
-\item{g0Priors}{Prior parameters of the base measure \eqn{(\alpha _0, \beta _0)}.}
+\item{g0Priors}{Prior parameters for the base measure (alpha, beta for the prior)}
 
-\item{alphaPrior}{Prior parameters for the concentration parameter. See also \code{\link{UpdateAlpha}}.}
+\item{alphaPriors}{Alpha prior parameters for the DP concentration parameter}
 
-\item{mhStep}{Step size for Metropolis Hastings sampling algorithm.}
+\item{mhStepSize}{Metropolis-Hastings step size for parameter updates}
 
-\item{hyperPriorParameters}{Hyper-prior parameters for the prior distributions of the base measure parameters \eqn{(a, b)}.}
+\item{hyperPriorParameters}{Hyper prior parameters}
 
-\item{verbose}{Logical, control the level of on screen output.}
-
-\item{mhDraws}{Number of Metropolis-Hastings samples to perform for each cluster update.}
+\item{verbose}{Logical indicating whether to print messages}
 }
 \value{
-Dirichlet process object
+Dirichlet process object with Beta mixing distribution
 }
 \description{
-Create a Dirichlet process object using the mean and scale parameterisation of the Beta distribution bounded on \eqn{(0, maxY)}.
-}
-\details{
-\eqn{G_0 (\mu , \nu | maxY, \alpha _0 , \beta _0) = U(\mu | 0, maxY) \mathrm{Inv-Gamma} (\nu | \alpha _0, \beta _0)}.
-
-The parameter \eqn{\beta _0} also has a prior distribution \eqn{\beta _0 \sim \mathrm{Gamma} (a, b)} if the user selects \code{Fit(...,updatePrior=TRUE)}.
+Create a Dirichlet Process object with Beta mixing distribution
 }

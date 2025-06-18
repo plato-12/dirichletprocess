@@ -1,8 +1,8 @@
 // src/mixing_distribution_base.cpp
-#include <RcppArmadillo.h>
 #include "../inst/include/mixing_distribution_base.h"
 #include "../inst/include/gaussian_mixing.h"
-#include <memory>
+#include "../inst/include/beta_mixing.h"  // ADD THIS LINE
+#include <RcppArmadillo.h>
 
 namespace dirichletprocess {
 
@@ -15,14 +15,20 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
     double kappa0 = Rcpp::as<double>(params["kappa0"]);
     double alpha0 = Rcpp::as<double>(params["alpha0"]);
     double beta0 = Rcpp::as<double>(params["beta0"]);
-
-    // C++11 compatible way to create unique_ptr
     return std::unique_ptr<MixingDistribution>(
       new GaussianMixing(mu0, kappa0, alpha0, beta0));
+  } else if (type == "beta") {
+    double alpha0 = Rcpp::as<double>(params["alpha0"]);
+    double beta0 = Rcpp::as<double>(params["beta0"]);
+    double maxT = 1.0;
+    if (params.containsElementNamed("maxT")) {
+      maxT = Rcpp::as<double>(params["maxT"]);
+    }
+    return std::unique_ptr<MixingDistribution>(
+      new BetaMixing(alpha0, beta0, maxT));
   }
 
   Rcpp::stop("Unknown mixing distribution type: " + type);
-  return nullptr;
 }
 
 } // namespace dirichletprocess
