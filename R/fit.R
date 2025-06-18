@@ -239,11 +239,14 @@ fit_r_implementation <- function(dp_obj, n_iter, n_burn = 0, thin = 1,
 #' Check if C++ implementation is available for this model
 #' @keywords internal
 can_use_cpp <- function(dp_obj) {
-  # For now, only return TRUE if we actually have the C++ implementation
+  # Check if C++ implementation exists
   if (!exists("_dirichletprocess_run_mcmc_cpp")) {
     return(FALSE)
   }
 
-  supported_types <- c("normal_inverse_gamma", "normal")
-  inherits(dp_obj$mixingDistribution, supported_types)
+  # Add beta to supported types
+  supported_types <- c("normal_inverse_gamma", "normal", "gaussian", "beta")
+
+  # Check if the mixing distribution inherits from any supported type
+  return(inherits(dp_obj$mixingDistribution, supported_types))
 }

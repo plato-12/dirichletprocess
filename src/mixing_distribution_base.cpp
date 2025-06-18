@@ -20,13 +20,12 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
   } else if (type == "beta") {
     double alpha0 = Rcpp::as<double>(params["alpha0"]);
     double beta0 = Rcpp::as<double>(params["beta0"]);
-    double maxT = 1.0;
-    if (params.containsElementNamed("maxT")) {
-      maxT = Rcpp::as<double>(params["maxT"]);
-    }
+    double maxT = params.containsElementNamed("maxT") ?
+                  Rcpp::as<double>(params["maxT"]) : 1.0;
+
     return std::unique_ptr<MixingDistribution>(
       new BetaMixing(alpha0, beta0, maxT));
-  }
+    }
 
   Rcpp::stop("Unknown mixing distribution type: " + type);
 }

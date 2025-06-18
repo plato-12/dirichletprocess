@@ -28,14 +28,18 @@ DirichletProcessBeta <- function(y,
     hyperPriorParameters = hyperPriorParameters
   )
 
+  # FIXED: Pass alphaPriorParameters instead of alphaPriors
+  # FIXED: Remove verbose parameter as DirichletProcessCreate doesn't accept it
   dpObj <- DirichletProcessCreate(
     y,
     mdObj,
-    alphaPriors = alphaPriors,
-    verbose = verbose
+    alphaPriorParameters = alphaPriors  # Changed from alphaPriors to alphaPriorParameters
   )
 
-  dpObj <- Initialise(dpObj)
+  # Store verbose for later use if needed
+  dpObj$verbose <- verbose
+
+  dpObj <- Initialise(dpObj, verbose = verbose)
 
   return(dpObj)
 }

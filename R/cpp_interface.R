@@ -152,83 +152,48 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 
 #' Create mixing distribution parameters for C++
 #' @keywords internal
+# Add to prepare_mixing_dist_params function
 prepare_mixing_dist_params <- function(dp_obj) {
   md <- dp_obj$mixingDistribution
 
-  # Handle normal/gaussian distributions
-  if (inherits(md, c("normal", "normal_inverse_gamma", "gaussian", "conjugate"))) {
-    # Check for different parameter structures
-    if (!is.null(md$priors)) {
-      # New structure with named priors
-      params <- list(
-        type = "gaussian",
-        mu0 = as.numeric(md$priors$mu_0),
-        kappa0 = as.numeric(md$priors$kappa_0),
-        alpha0 = as.numeric(md$priors$alpha_0),
-        beta0 = as.numeric(md$priors$beta_0)
-      )
-    } else if (!is.null(md$priorParameters)) {
-      # Old structure with priorParameters vector
-      params_vec <- md$priorParameters
-      if (is.list(params_vec)) {
-        # If it's a list, extract values
-        params <- list(
-          type = "gaussian",
-          mu0 = as.numeric(params_vec[[1]]),
-          kappa0 = as.numeric(params_vec[[2]]),
-          alpha0 = as.numeric(params_vec[[3]]),
-          beta0 = as.numeric(params_vec[[4]])
-        )
-      } else if (is.numeric(params_vec) && length(params_vec) >= 4) {
-        # If it's a numeric vector
-        params <- list(
-          type = "gaussian",
-          mu0 = params_vec[1],
-          kappa0 = params_vec[2],
-          alpha0 = params_vec[3],
-          beta0 = params_vec[4]
-        )
-      } else {
-        stop("Invalid priorParameters structure for normal distribution")
-      }
-    } else {
-      stop("No prior parameters found for normal distribution")
-    }
-  } else if (inherits(md, "exponential")) {
-    params <- list(
-      type = "exponential",
-      alpha0 = md$priorParameters[1],
-      beta0 = md$priorParameters[2]
-    )
-  } else if (inherits(md, "beta")) {
+  if (inherits(md, "beta")) {
+    # Beta distribution parameters
     list(
       type = "beta",
       alpha0 = md$priorParameters[1],
       beta0 = md$priorParameters[2],
-      maxT = ifelse(is.null(md$maxT), 1.0, md$maxT)
+      maxT = ifelse(is.null(md$maxT), 1, md$maxT),
+      mhStepSize = md$mhStepSize,
+      hyperPriorParameters = md$hyperPriorParameters
     )
-  } else if (inherits(md, c("mvnormal", "mvnormal2"))) {
-    # Handle multivariate normal
-    prior_params <- md$priorParameters
-    params <- list(
-      type = "mvnormal",
-      mu0 = prior_params$mu0,
-      lambda0 = prior_params$Lambda,
-      kappa0 = prior_params$kappa,
-      nu0 = prior_params$nu
+  } else if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
+    # Existing Gaussian implementation
+    if (!is.null(md$priors)) {
+      list(
+        type = "gaussian",
+        mu0 = md$priors$mu_0,
+        kappa0 = md$priors$kappa_0,
+        alpha0 = md$priors$alpha_0,
+        beta0 = md$priors$beta_0
+      )
+    } else {
+      list(
+        type = "gaussian",
+        mu0 = md$priorParameters[1],
+        kappa0 = md$priorParameters[2],
+        alpha0 = md$priorParameters[3],
+        beta0 = md$priorParameters[4]
+      )
+    }
+  } else if (inherits(md, "exponential")) {
+    list(
+      type = "exponential",
+      alpha0 = md$priorParameters[1],
+      beta0 = md$priorParameters[2]
     )
   } else {
-    stop("Mixing distribution not yet implemented in C++: ",
-         paste(class(md), collapse = ", "))
+    stop("Mixing distribution not yet implemented in C++: ", class(md))
   }
-
-  # Add alpha prior parameters from the DP object
-  if (!is.null(dp_obj$alphaPriorParameters)) {
-    params$alpha_prior_shape <- dp_obj$alphaPriorParameters[1]
-    params$alpha_prior_rate <- dp_obj$alphaPriorParameters[2]
-  }
-
-  return(params)
 }
 
 #' Create MCMC parameters for C++
