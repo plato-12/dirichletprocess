@@ -32,6 +32,27 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
     mu_dim <- dim(dpObj$clusterParameters$mu)
     sig_dim <- dim(dpObj$clusterParameters$sig)
 
+    # Handle case where mu_dim might not have 3 dimensions (e.g., 1D data)
+    if (is.null(mu_dim) || length(mu_dim) < 3) {
+      # For 1D data, mu might be a vector or 2D array
+      if (is.null(mu_dim)) {
+        # It's a vector, convert to proper 3D array
+        d <- 1
+        n_clusters <- length(dpObj$clusterParameters$mu)
+        dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
+        dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+      } else if (length(mu_dim) == 2) {
+        # It's a 2D array, add the third dimension
+        d <- mu_dim[1]
+        n_clusters <- mu_dim[2]
+        dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
+        dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+      }
+      # Update dimensions
+      mu_dim <- dim(dpObj$clusterParameters$mu)
+      sig_dim <- dim(dpObj$clusterParameters$sig)
+    }
+
     # Ensure we have at least enough slots for the data size or 50, whichever is larger
     min_slots <- max(50, dpObj$n, numInitialClusters * 10)
 
