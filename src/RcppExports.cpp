@@ -499,6 +499,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mvnormal_log_likelihood_cpp
+arma::vec mvnormal_log_likelihood_cpp(arma::mat x, arma::vec mu, arma::mat Sigma);
+RcppExport SEXP _dirichletprocess_mvnormal_log_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Sigma(SigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(mvnormal_log_likelihood_cpp(x, mu, Sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
 // markov_dp_create_cpp
 Rcpp::List markov_dp_create_cpp(Rcpp::List dpObj);
 RcppExport SEXP _dirichletprocess_markov_dp_create_cpp(SEXP dpObjSEXP) {
@@ -802,6 +815,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_hierarchical_mvnormal2_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp, 5},
+    {"_dirichletprocess_mvnormal_log_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_log_likelihood_cpp, 3},
     {"_dirichletprocess_markov_dp_create_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_create_cpp, 1},
     {"_dirichletprocess_markov_dp_fit_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_fit_cpp, 4},
     {"_dirichletprocess_markov_dp_update_states_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_update_states_cpp, 1},

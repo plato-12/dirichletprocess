@@ -1,7 +1,8 @@
 // src/mixing_distribution_base.cpp
 #include "../inst/include/mixing_distribution_base.h"
 #include "../inst/include/gaussian_mixing.h"
-#include "../inst/include/beta_mixing.h"  // ADD THIS LINE
+#include "../inst/include/beta_mixing.h"
+#include "../inst/include/mvnormal_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {
@@ -25,6 +26,14 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
 
     return std::unique_ptr<MixingDistribution>(
       new BetaMixing(alpha0, beta0, maxT));
+    } else if (type == "mvnormal") {  // Add this case
+      arma::vec mu0 = Rcpp::as<arma::vec>(params["mu0"]);
+      double kappa0 = Rcpp::as<double>(params["kappa0"]);
+      arma::mat Lambda = Rcpp::as<arma::mat>(params["Lambda"]);
+      double nu = Rcpp::as<double>(params["nu"]);
+
+      return std::unique_ptr<MixingDistribution>(
+        new MVNormalMixing(mu0, kappa0, Lambda, nu));
     }
 
   Rcpp::stop("Unknown mixing distribution type: " + type);

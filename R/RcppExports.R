@@ -241,6 +241,10 @@ hierarchical_mvnormal2_mixing_create_cpp <- function(n, priorParameters, alphaPr
     .Call(`_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp`, n, priorParameters, alphaPrior, gammaPrior, num_sticks)
 }
 
+mvnormal_log_likelihood_cpp <- function(x, mu, Sigma) {
+    .Call(`_dirichletprocess_mvnormal_log_likelihood_cpp`, x, mu, Sigma)
+}
+
 #' @title Create a Markov DP from R object (C++)
 NULL
 

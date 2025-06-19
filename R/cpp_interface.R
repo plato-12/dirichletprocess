@@ -43,8 +43,7 @@ can_use_cpp <- function(dp_obj) {
     return(FALSE)
   }
 
-  supported_types <- c("normal_inverse_gamma", "normal", "gaussian",
-                       "exponential", "beta")
+  supported_types <- c("normal_inverse_gamma", "normal", "mvnormal")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
 
@@ -156,7 +155,21 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 prepare_mixing_dist_params <- function(dp_obj) {
   md <- dp_obj$mixingDistribution
 
-  if (inherits(md, "beta")) {
+  if (inherits(md, "mvnormal")) {
+    # Extract parameters from the mixing distribution
+    if (!is.null(md$priorParameters)) {
+      pp <- md$priorParameters
+      list(
+        type = "mvnormal",
+        mu0 = as.numeric(pp$mu0),
+        kappa0 = as.numeric(pp$kappa0),
+        Lambda = as.matrix(pp$Lambda),
+        nu = as.numeric(pp$nu)
+      )
+    } else {
+      stop("MVNormal mixing distribution missing prior parameters")
+    }
+  } else if (inherits(md, "beta")) {
     # Beta distribution parameters
     list(
       type = "beta",
