@@ -12,7 +12,7 @@ NULL
 #' @export
 ClusterComponentUpdate.mvnormal.cpp <- function(dpObj) {
   # Ensure we're working with a conjugate MVNormal DP
-  if (!inherits(dpObj, "conjugate") || !inherits(dpObj, "mvnormal")) {
+  if (!inherits(dpObj, "conjugate") || !inherits(dpObj$mixingDistribution, "mvnormal")) {
     stop("This C++ implementation is only for conjugate MVNormal distributions")
   }
 
@@ -21,7 +21,7 @@ ClusterComponentUpdate.mvnormal.cpp <- function(dpObj) {
     stop("MVNormal C++ functions not available")
   }
 
-  # Ensure predictiveArray exists and is properly initialized
+  # Ensure predictiveArray exists
   if (is.null(dpObj$predictiveArray)) {
     dpObj$predictiveArray <- numeric(dpObj$n)
   }
@@ -49,7 +49,7 @@ ClusterComponentUpdate.mvnormal.cpp <- function(dpObj) {
 #' @export
 ClusterParameterUpdate.mvnormal.cpp <- function(dpObj) {
   # Ensure we're working with a conjugate MVNormal DP
-  if (!inherits(dpObj, "conjugate") || !inherits(dpObj, "mvnormal")) {
+  if (!inherits(dpObj, "conjugate") || !inherits(dpObj$mixingDistribution, "mvnormal")) {
     stop("This C++ implementation is only for conjugate MVNormal distributions")
   }
 

@@ -250,3 +250,72 @@ can_use_cpp <- function(dp_obj) {
   # Check if the mixing distribution inherits from any supported type
   return(inherits(dp_obj$mixingDistribution, supported_types))
 }
+
+#' @export
+Fit.conjugate <- function(dpObj, its = 1000, updatePrior = TRUE, progressBar = TRUE, ...) {
+
+  if (its <= 0) {
+    stop("Number of iterations must be positive")
+  }
+
+  # Check if we should use C++ implementation
+  use_cpp <- getOption("dirichletprocess.use_cpp", FALSE) && can_use_cpp(dpObj)
+
+  if (use_cpp && inherits(dpObj$mixingDistribution, "mvnormal")) {
+    # MVNormal has specialized C++ functions
+    return(Fit_mvnormal_cpp(dpObj, its, updatePrior, progressBar))
+  }
+
+  # Otherwise use default implementation
+  return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+}
+
+#' Specialized Fit function for MVNormal with C++
+#' @keywords internal
+Fit_mvnormal_cpp <- function(dpObj, its, updatePrior, progressBar) {
+
+  # Check if MVNormal C++ functions are available
+  if (!exists("conjugate_mvnormal_cluster_component_update_cpp") ||
+      !exists("conjugate_mvnormal_cluster_parameter_update_cpp")) {
+    message("MVNormal C++ functions not available, falling back to R")
+    return(Fit.default(dpObj, its, updatePrior, progressBar))
+  }
+
+  # Initialize chains
+  dpObj$alphaChain <- numeric(its)
+  dpObj$clusterLabelChain <- vector("list", its)
+  dpObj$likelihoodChain <- numeric(its)
+
+  if (progressBar) {
+    pb <- txtProgressBar(min = 0, max = its, style = 3)
+  }
+
+  for (i in seq_len(its)) {
+    # Update cluster assignments using C++
+    dpObj <- ClusterComponentUpdate.mvnormal.cpp(dpObj)
+
+    # Update cluster parameters using C++
+    dpObj <- ClusterParameterUpdate.mvnormal.cpp(dpObj)
+
+    # Update alpha (using R for now)
+    if (updatePrior) {
+      dpObj <- UpdateAlpha(dpObj)
+    }
+
+    # Store iteration results
+    dpObj$alphaChain[i] <- dpObj$alpha
+    dpObj$clusterLabelChain[[i]] <- dpObj$clusterLabels
+    dpObj$likelihoodChain[i] <- sum(log(dpObj$pointsPerCluster))
+
+    if (progressBar) {
+      setTxtProgressBar(pb, i)
+    }
+  }
+
+  if (progressBar) {
+    close(pb)
+  }
+
+  dpObj$iterations <- its
+  return(dpObj)
+}

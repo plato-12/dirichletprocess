@@ -44,7 +44,13 @@ can_use_cpp <- function(dp_obj) {
     return(FALSE)
   }
 
-  supported_types <- c("normal_inverse_gamma", "normal", "mvnormal")
+  # For mvnormal, check for specialized functions
+  if (inherits(dp_obj$mixingDistribution, "mvnormal")) {
+    return(exists("conjugate_mvnormal_cluster_component_update_cpp") &&
+             exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
+  }
+
+  supported_types <- c("normal_inverse_gamma", "normal", "beta")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
 

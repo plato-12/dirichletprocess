@@ -35,6 +35,7 @@ test_that("MVNormal C++ MCMC produces valid results", {
   skip_if(!can_use_cpp(dp), "C++ backend not available for MVNormal")
 
   # Fit model
+  dp <- Initialise(dp)
   dp_cpp <- Fit(dp, 100, progressBar = FALSE)
 
   # Basic validity checks
@@ -73,6 +74,7 @@ test_that("MVNormal C++ vs R implementation equivalence", {
   set_use_cpp(FALSE)
   set.seed(789)
   dp_r <- DirichletProcessMvnormal(y, g0Priors)
+  dp_r <- Initialise(dp_r)
   dp_r <- Fit(dp_r, 50, progressBar = FALSE)
 
   # Test C++ backend
@@ -81,6 +83,7 @@ test_that("MVNormal C++ vs R implementation equivalence", {
 
   set.seed(789)
   dp_cpp <- DirichletProcessMvnormal(y, g0Priors)
+  dp_cpp <- Initialise(dp_cpp)
   dp_cpp <- Fit(dp_cpp, 50, progressBar = FALSE)
 
   # Compare number of clusters (allowing for MCMC variability)
@@ -105,6 +108,7 @@ test_that("MVNormal handles edge cases correctly", {
   dp_1d <- DirichletProcessMvnormal(y_1d, g0_1d)
   skip_if(!can_use_cpp(dp_1d))
 
+  dp_1d <- Initialise(dp_1d)
   expect_silent(dp_1d <- Fit(dp_1d, 10, progressBar = FALSE))
   expect_true(dp_1d$numberClusters >= 1)
 
