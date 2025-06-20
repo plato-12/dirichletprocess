@@ -27,6 +27,7 @@ get_cpp_status <- function() {
     gaussian_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
     exponential_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
     beta_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
+    mvnormal_likelihood = exists("conjugate_mvnormal_cluster_component_update_cpp"),
     hierarchical_beta = exists("_dirichletprocess_hierarchical_beta_fit_cpp"),
     benchmark_components = exists("_dirichletprocess_benchmark_components_cpp"),
     memory_tracking = exists("_dirichletprocess_get_memory_tracking")

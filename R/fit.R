@@ -244,8 +244,8 @@ can_use_cpp <- function(dp_obj) {
     return(FALSE)
   }
 
-  # Add beta to supported types
-  supported_types <- c("normal_inverse_gamma", "normal", "gaussian", "beta")
+  # Add mvnormal to supported types
+  supported_types <- c("normal_inverse_gamma", "normal", "gaussian", "beta", "mvnormal")
 
   # Check if the mixing distribution inherits from any supported type
   return(inherits(dp_obj$mixingDistribution, supported_types))
