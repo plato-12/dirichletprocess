@@ -15,6 +15,13 @@ ClusterParameterUpdate <- function(dpObj) UseMethod("ClusterParameterUpdate", dp
 
 #'@export
 ClusterParameterUpdate.conjugate <- function(dpObj) {
+
+  # Check for C++ implementation for MVNormal
+  if (inherits(dpObj, "mvnormal") && using_cpp() &&
+      exists("conjugate_mvnormal_cluster_parameter_update_cpp")) {
+    return(ClusterParameterUpdate.mvnormal.cpp(dpObj))
+  }
+
   y <- dpObj$data
   numLabels <- dpObj$numberClusters
   clusterLabels <- dpObj$clusterLabels

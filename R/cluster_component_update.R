@@ -17,6 +17,13 @@ ClusterComponentUpdate <- function(dpObj){
 #' @export
 #' @rdname ClusterComponentUpdate
 ClusterComponentUpdate.conjugate <- function(dpObj) {
+
+  # Check for C++ implementation for MVNormal
+  if (inherits(dpObj, "mvnormal") && using_cpp() &&
+      exists("conjugate_mvnormal_cluster_component_update_cpp")) {
+    return(ClusterComponentUpdate.mvnormal.cpp(dpObj))
+  }
+
   y <- dpObj$data
   n <- dpObj$n
   alpha <- dpObj$alpha
