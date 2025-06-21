@@ -28,6 +28,7 @@ get_cpp_status <- function() {
     exponential_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
     beta_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
     mvnormal_likelihood = exists("conjugate_mvnormal_cluster_component_update_cpp"),
+    weibull_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
     hierarchical_beta = exists("_dirichletprocess_hierarchical_beta_fit_cpp"),
     benchmark_components = exists("_dirichletprocess_benchmark_components_cpp"),
     memory_tracking = exists("_dirichletprocess_get_memory_tracking")
@@ -50,7 +51,7 @@ can_use_cpp <- function(dp_obj) {
              exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
   }
 
-  supported_types <- c("normal_inverse_gamma", "normal", "beta")
+  supported_types <- c("normal_inverse_gamma", "normal", "beta", "weibull")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
 
@@ -162,7 +163,25 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 prepare_mixing_dist_params <- function(dp_obj) {
   md <- dp_obj$mixingDistribution
 
-  if (inherits(md, "mvnormal")) {
+  if (inherits(md, "weibull")) {
+    # Extract Weibull parameters
+    list(
+      type = "weibull",
+      phi = md$priorParameters[1],      # Upper bound for alpha
+      alpha0 = md$priorParameters[2],   # Shape for Gamma prior on 1/lambda
+      beta0 = md$priorParameters[3],    # Rate for Gamma prior on 1/lambda
+      hyper_a1 = ifelse(length(md$hyperPriorParameters) >= 1,
+                        md$hyperPriorParameters[1], 6.0),
+      hyper_a2 = ifelse(length(md$hyperPriorParameters) >= 2,
+                        md$hyperPriorParameters[2], 2.0),
+      hyper_b1 = ifelse(length(md$hyperPriorParameters) >= 3,
+                        md$hyperPriorParameters[3], 1.0),
+      hyper_b2 = ifelse(length(md$hyperPriorParameters) >= 4,
+                        md$hyperPriorParameters[4], 0.5),
+      mh_step_alpha = ifelse(!is.null(md$mhStepSize), md$mhStepSize[1], 0.1),
+      mh_draws = ifelse(!is.null(dp_obj$mhDraws), dp_obj$mhDraws, 100)
+    )
+  } else if (inherits(md, "mvnormal")) {
     # Extract parameters from the mixing distribution
     if (!is.null(md$priorParameters)) {
       pp <- md$priorParameters

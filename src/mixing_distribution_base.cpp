@@ -3,6 +3,7 @@
 #include "../inst/include/gaussian_mixing.h"
 #include "../inst/include/beta_mixing.h"
 #include "../inst/include/mvnormal_mixing.h"
+#include "../inst/include/weibull_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {
@@ -34,6 +35,30 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
 
       return std::unique_ptr<MixingDistribution>(
         new MVNormalMixing(mu0, kappa0, Lambda, nu));
+    } else if (type == "weibull") {
+      double phi = Rcpp::as<double>(params["phi"]);
+      double alpha0 = Rcpp::as<double>(params["alpha0"]);
+      double beta0 = Rcpp::as<double>(params["beta0"]);
+
+      // Optional hyperprior parameters
+      double hyper_a1 = params.containsElementNamed("hyper_a1") ?
+      Rcpp::as<double>(params["hyper_a1"]) : 6.0;
+      double hyper_a2 = params.containsElementNamed("hyper_a2") ?
+      Rcpp::as<double>(params["hyper_a2"]) : 2.0;
+      double hyper_b1 = params.containsElementNamed("hyper_b1") ?
+      Rcpp::as<double>(params["hyper_b1"]) : 1.0;
+      double hyper_b2 = params.containsElementNamed("hyper_b2") ?
+      Rcpp::as<double>(params["hyper_b2"]) : 0.5;
+
+      // MH parameters
+      double mh_step_alpha = params.containsElementNamed("mh_step_alpha") ?
+      Rcpp::as<double>(params["mh_step_alpha"]) : 0.1;
+      int mh_draws = params.containsElementNamed("mh_draws") ?
+      Rcpp::as<int>(params["mh_draws"]) : 100;
+
+      return std::unique_ptr<MixingDistribution>(
+        new WeibullMixing(phi, alpha0, beta0, hyper_a1, hyper_a2,
+                          hyper_b1, hyper_b2, mh_step_alpha, mh_draws));
     }
 
   Rcpp::stop("Unknown mixing distribution type: " + type);
