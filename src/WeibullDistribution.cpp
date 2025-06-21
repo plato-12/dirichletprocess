@@ -36,13 +36,29 @@ Rcpp::NumericVector WeibullMixingDistribution::likelihood(const arma::vec& x, co
   double alpha = alpha_array[0];
   double lambda = lambda_array[0];
 
+  // Add better bounds checking
+  if (alpha <= 0 || lambda <= 0 || !std::isfinite(alpha) || !std::isfinite(lambda)) {
+    result.fill(1e-300);
+    return result;
+  }
+
   for (int i = 0; i < n_data; i++) {
-    if (x[i] >= 0 && lambda > 0 && alpha > 0 && !std::isinf(lambda)) {
-      double y = std::pow(lambda, -1.0) * alpha * std::pow(x[i], alpha - 1.0) *
-        std::exp(-std::pow(lambda, -1.0) * std::pow(x[i], alpha));
-      result[i] = (y > 0 && std::isfinite(y)) ? y : 1e-300;
+    if (x[i] < 0) {
+      result[i] = 0.0;
+    } else if (x[i] == 0) {
+      // Handle x=0 case specially
+      result[i] = (alpha == 1.0) ? (1.0 / lambda) : 0.0;
     } else {
-      result[i] = (x[i] < 0) ? 0.0 : 1e-300;
+      // Use log-space computation for numerical stability
+      double log_lik = std::log(alpha) - std::log(lambda) +
+        (alpha - 1.0) * std::log(x[i]) -
+        std::pow(x[i] / lambda, alpha);
+
+      if (std::isfinite(log_lik)) {
+        result[i] = std::exp(log_lik);
+      } else {
+        result[i] = 1e-300;
+      }
     }
   }
 
@@ -55,15 +71,16 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
   Rcpp::NumericVector alpha_values(n);
   Rcpp::NumericVector lambda_values(n);
 
-  // Fix: priorParams indexing (0-based in C++)
-  // priorParams[0] = phi, priorParams[1] = alpha0, priorParams[2] = beta0
+  // Fix indexing - R uses 1-based, C++ uses 0-based
+  // R: priorParameters[1] = phi, priorParameters[2] = alpha0, priorParameters[3] = beta0
+  // C++: priorParams[0] = phi, priorParams[1] = alpha0, priorParams[2] = beta0
   for (int i = 0; i < n; i++) {
     alpha_values[i] = R::runif(0.0, priorParams[0]);
-    // R code: lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
-    // R's rgamma uses shape and rate, but R::rgamma uses shape and scale
-    // Need to convert rate to scale: scale = 1/rate
+    // Fix: R code is lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
+    // But R's rgamma uses shape and rate, while C++ R::rgamma uses shape and scale
+    // So we need scale = 1/rate
     double gamma_draw = R::rgamma(priorParams[1], 1.0 / priorParams[2]);
-    lambda_values[i] = 1.0 / gamma_draw;
+    lambda_values[i] = 1.0 / std::max(1e-10, gamma_draw); // Prevent division by zero
   }
 
   // Convert to 3D arrays

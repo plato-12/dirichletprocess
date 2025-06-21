@@ -23,15 +23,21 @@ double WeibullMixing::log_likelihood(const arma::vec& data_point,
   double lambda = params[1];
 
   // Check bounds
-  if (x <= 0 || alpha <= 0 || lambda <= 0) {
+  if (x < 0 || alpha <= 0 || lambda <= 0) {
     return -std::numeric_limits<double>::infinity();
   }
 
-  // Weibull PDF: f(x|α,λ) = (α/λ) * (x/λ)^(α-1) * exp(-(x/λ)^α)
-  // Log PDF: log(α) - log(λ) + (α-1)*[log(x) - log(λ)] - (x/λ)^α
-  double log_lik = std::log(alpha) - std::log(lambda) +
-    (alpha - 1.0) * (std::log(x) - std::log(lambda)) -
-    std::pow(x / lambda, alpha);
+  // Special case for x = 0
+  if (x == 0) {
+    // For Weibull, when x=0, the density is 0 unless alpha=1 (exponential case)
+    return (alpha == 1.0) ? std::log(1.0 / lambda) : -std::numeric_limits<double>::infinity();
+  }
+
+  // Weibull PDF: f(x|α,λ) = (1/λ) * α * (x)^(α-1) * exp(-(1/λ) * x^α)
+  // Note: This matches the R parameterization where lambda appears as 1/lambda
+  double log_lik = -std::log(lambda) + std::log(alpha) +
+    (alpha - 1.0) * std::log(x) -
+    std::pow(x, alpha) / lambda;
 
   return log_lik;
 }
@@ -43,8 +49,9 @@ arma::vec WeibullMixing::prior_draw() const {
   // alpha ~ Uniform(0, phi)
   params[0] = R::runif(0, phi);
 
-  // 1/lambda ~ Gamma(alpha0, beta0), so lambda = 1/Gamma(alpha0, beta0)
-  double gamma_draw = R::rgamma(alpha0, 1.0/beta0);  // R uses scale parameterization
+  // lambda = 1/Gamma(alpha0, beta0) where beta0 is the rate parameter
+  // R::rgamma uses shape and scale, so we need scale = 1/rate = 1/beta0
+  double gamma_draw = R::rgamma(alpha0, 1.0 / beta0);
   params[1] = 1.0 / std::max(1e-10, gamma_draw);
 
   return params;
@@ -75,15 +82,13 @@ double WeibullMixing::log_prior_density(const arma::vec& params) const {
 arma::vec WeibullMixing::mh_parameter_proposal(const arma::vec& current_params) const {
   arma::vec proposed = current_params;
 
-  // Propose new alpha with reflecting boundary
+  // Propose new alpha (matching R's abs() approach)
   double alpha_current = current_params[0];
-  double alpha_proposal = alpha_current + mh_step_alpha * R::rnorm(0, 1.7);
+  double alpha_proposal = std::abs(alpha_current + mh_step_alpha * R::rnorm(0, 1.7));
 
-  // Reflect at boundaries
-  if (alpha_proposal < 0) {
-    alpha_proposal = -alpha_proposal;
-  } else if (alpha_proposal > phi) {
-    alpha_proposal = 2 * phi - alpha_proposal;
+  // Ensure alpha stays within bounds [0, phi]
+  if (alpha_proposal > phi) {
+    alpha_proposal = phi;
   }
 
   proposed[0] = alpha_proposal;
@@ -104,53 +109,83 @@ arma::vec WeibullMixing::posterior_draw(const arma::mat& cluster_data,
 
   // Initialize with prior draw
   arma::vec current_params = prior_draw();
-  double current_log_lik = 0.0;
-  double current_log_prior = log_prior_density(current_params);
 
-  // Calculate initial log likelihood
-  for (int i = 0; i < n; ++i) {
-    current_log_lik += log_likelihood(cluster_data.row(i).t(), current_params);
-  }
-
-  // Metropolis-Hastings iterations
-  int accept_count = 0;
-
+  // Run Metropolis-Hastings with Gibbs update for lambda
   for (int iter = 0; iter < mh_draws; ++iter) {
+    double alpha_current = current_params[0];
+    double lambda_current = current_params[1];
+
     // Propose new alpha
-    arma::vec proposed_params = mh_parameter_proposal(current_params);
-    double alpha_prop = proposed_params[0];
-
-    // Given alpha, update lambda analytically using MLE
-    double sum_x_alpha = 0.0;
-    arma::vec x = cluster_data.col(0);
-
-    for (int i = 0; i < n; ++i) {
-      sum_x_alpha += std::pow(x[i], alpha_prop);
+    double alpha_prop = std::abs(alpha_current + mh_step_alpha * R::rnorm(0, 1.7));
+    if (alpha_prop > phi) {
+      alpha_prop = phi;
     }
 
-    double lambda_prop = std::pow(sum_x_alpha / n, 1.0 / alpha_prop);
-    proposed_params[1] = lambda_prop;
-
-    // Calculate proposed log likelihood
-    double proposed_log_lik = 0.0;
+    // Given current alpha, update lambda using conjugate posterior
+    // This matches the R implementation in MetropolisHastings.weibull
+    double sum_x_alpha_current = 0.0;
     for (int i = 0; i < n; ++i) {
-      proposed_log_lik += log_likelihood(cluster_data.row(i).t(), proposed_params);
+      double xi = cluster_data(i, 0);
+      if (xi > 0) {
+        sum_x_alpha_current += std::pow(xi, alpha_current);
+      }
     }
 
-    double proposed_log_prior = log_prior_density(proposed_params);
+    // Sample new lambda from inverse gamma (conjugate posterior)
+    // lambda | data, alpha ~ InvGamma(n + alpha0, sum(x^alpha) + beta0)
+    double shape_post = n + alpha0;
+    double rate_post = sum_x_alpha_current + beta0;
+    double gamma_sample = R::rgamma(shape_post, 1.0 / rate_post);
+    lambda_current = 1.0 / std::max(1e-10, gamma_sample);
 
-    // Calculate acceptance ratio
-    double log_ratio = (proposed_log_lik + proposed_log_prior) -
-      (current_log_lik + current_log_prior);
+    // Now compute sum for proposed alpha
+    double sum_x_alpha_prop = 0.0;
+    for (int i = 0; i < n; ++i) {
+      double xi = cluster_data(i, 0);
+      if (xi > 0) {
+        sum_x_alpha_prop += std::pow(xi, alpha_prop);
+      }
+    }
+
+    // Sample lambda for proposed alpha
+    double gamma_sample_prop = R::rgamma(shape_post, 1.0 / (sum_x_alpha_prop + beta0));
+    double lambda_prop = 1.0 / std::max(1e-10, gamma_sample_prop);
+
+    // Compute log likelihoods
+    double log_lik_current = 0.0;
+    double log_lik_prop = 0.0;
+
+    arma::vec params_current = {alpha_current, lambda_current};
+    arma::vec params_prop = {alpha_prop, lambda_prop};
+
+    for (int i = 0; i < n; ++i) {
+      arma::vec xi = cluster_data.row(i).t();
+      log_lik_current += log_likelihood(xi, params_current);
+      log_lik_prop += log_likelihood(xi, params_prop);
+    }
+
+    // Compute log priors (only for alpha since lambda is integrated out)
+    double log_prior_alpha_current = (alpha_current > 0 && alpha_current <= phi) ?
+    -std::log(phi) : -std::numeric_limits<double>::infinity();
+    double log_prior_alpha_prop = (alpha_prop > 0 && alpha_prop <= phi) ?
+    -std::log(phi) : -std::numeric_limits<double>::infinity();
+
+    // Accept/reject for alpha
+    double log_ratio = (log_lik_prop + log_prior_alpha_prop) -
+    (log_lik_current + log_prior_alpha_current);
+
+    if (!std::isfinite(log_ratio)) {
+      log_ratio = -std::numeric_limits<double>::infinity();
+    }
 
     double accept_prob = std::min(1.0, std::exp(log_ratio));
 
-    // Accept or reject
     if (R::runif(0, 1) < accept_prob) {
-      current_params = proposed_params;
-      current_log_lik = proposed_log_lik;
-      current_log_prior = proposed_log_prior;
-      accept_count++;
+      current_params[0] = alpha_prop;
+      current_params[1] = lambda_prop;
+    } else {
+      current_params[0] = alpha_current;
+      current_params[1] = lambda_current;
     }
   }
 
@@ -174,11 +209,17 @@ void WeibullMixing::update_hyperparameters(const std::vector<arma::vec>& all_par
   }
 
   // Update phi using Pareto posterior
+  // The R code uses: rpareto(n, max(clusterParameters[[1]], hyperPriorParameters[1]),
+  //                          hyperPriorParameters[2] + numClusters)
+  double xm = std::max(max_alpha, hyper_a1);
+  double shape = hyper_a2 + K;
   double U = R::runif(0, 1);
-  phi = qpareto(U, max_alpha, K * hyper_a1 + hyper_a2);
+  phi = qpareto(U, xm, shape);
 
   // Update beta0 using Gamma posterior
-  double post_shape = hyper_b1 + K * alpha0;
+  // The R code uses: rgamma(n, hyperPriorParameters[3] + 2 * numClusters,
+  //                        hyperPriorParameters[4] + sum(1/clusterParameters[[2]]))
+  double post_shape = hyper_b1 + 2 * K;
   double post_rate = hyper_b2 + sum_inv_lambda;
   beta0 = R::rgamma(post_shape, 1.0 / post_rate);
 }
