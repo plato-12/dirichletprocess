@@ -3,12 +3,14 @@
 #define WEIBULL_DISTRIBUTION_H
 
 #include "DirichletProcess.h"
+#include <map>
 
 namespace dp {
 
 class WeibullMixingDistribution : public MixingDistribution {
 public:
-  WeibullMixingDistribution(const Rcpp::NumericVector& priorParams, const Rcpp::NumericVector& mhStepSize,
+  WeibullMixingDistribution(const Rcpp::NumericVector& priorParams,
+                            const Rcpp::NumericVector& mhStepSize,
                             const Rcpp::NumericVector& hyperPriorParams = Rcpp::NumericVector::create());
   virtual ~WeibullMixingDistribution();
 
@@ -21,6 +23,7 @@ public:
   Rcpp::NumericVector priorDensity(const Rcpp::List& theta) const;
   Rcpp::List mhParameterProposal(const Rcpp::List& oldParams) const;
   void updatePriorParameters(const Rcpp::List& clusterParameters, int n = 1);
+
 private:
   double qpareto(double p, double xm, double alpha) const;
 };
@@ -32,7 +35,11 @@ public:
 
   WeibullMixingDistribution* mixingDistribution;
 
-  // Cluster information
+  // Data and cluster information
+  arma::mat data;
+  int n;  // Number of data points
+  double alpha;  // Concentration parameter
+  Rcpp::NumericVector alphaPriorParameters;
   arma::uvec clusterLabels;
   arma::uvec pointsPerCluster;
   int numberClusters;
@@ -46,7 +53,6 @@ public:
 
   // Additional methods
   Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel, const Rcpp::List& aux);
-  Rcpp::List metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws);
 };
 
 } // namespace dp

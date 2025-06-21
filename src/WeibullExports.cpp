@@ -2,15 +2,32 @@
 #include <RcppArmadillo.h>
 #include "../inst/include/WeibullDistribution.h"
 #include "../inst/include/RcppConversions.h"
+#include <memory>
 
 // [[Rcpp::export]]
 Rcpp::List weibull_prior_draw_cpp(const Rcpp::NumericVector& priorParams, int n = 1) {
+  // Validate inputs
+  if (priorParams.size() < 3) {
+    Rcpp::stop("priorParams must have at least 3 elements");
+  }
+  if (n <= 0) {
+    Rcpp::stop("n must be positive");
+  }
+
   dp::WeibullMixingDistribution md(priorParams, Rcpp::NumericVector::create(1.0, 1.0));
   return md.priorDraw(n);
 }
 
 // [[Rcpp::export]]
 Rcpp::NumericVector weibull_likelihood_cpp(const Rcpp::NumericVector& x, double alpha, double lambda) {
+  // Validate inputs
+  if (alpha <= 0 || !std::isfinite(alpha)) {
+    Rcpp::stop("alpha must be positive and finite");
+  }
+  if (lambda <= 0 || !std::isfinite(lambda)) {
+    Rcpp::stop("lambda must be positive and finite");
+  }
+
   arma::vec x_arma = Rcpp::as<arma::vec>(x);
 
   Rcpp::NumericVector alpha_arr(1);
@@ -29,6 +46,11 @@ Rcpp::NumericVector weibull_likelihood_cpp(const Rcpp::NumericVector& x, double 
 
 // [[Rcpp::export]]
 double weibull_prior_density_cpp(double alpha, const Rcpp::NumericVector& priorParams) {
+  // Validate inputs
+  if (priorParams.size() < 3) {
+    Rcpp::stop("priorParams must have at least 3 elements");
+  }
+
   dp::WeibullMixingDistribution md(priorParams, Rcpp::NumericVector::create(1.0, 1.0));
 
   Rcpp::NumericVector alpha_arr(1);
@@ -47,6 +69,20 @@ Rcpp::List weibull_posterior_draw_cpp(const Rcpp::NumericVector& priorParams,
                                       const Rcpp::NumericVector& mhStepSize,
                                       const Rcpp::NumericMatrix& x,
                                       int n = 1) {
+  // Validate inputs
+  if (priorParams.size() < 3) {
+    Rcpp::stop("priorParams must have at least 3 elements");
+  }
+  if (mhStepSize.size() < 2) {
+    Rcpp::stop("mhStepSize must have at least 2 elements");
+  }
+  if (x.nrow() == 0) {
+    Rcpp::stop("x must have at least one observation");
+  }
+  if (n <= 0) {
+    Rcpp::stop("n must be positive");
+  }
+
   arma::mat x_arma = Rcpp::as<arma::mat>(x);
   dp::WeibullMixingDistribution md(priorParams, mhStepSize);
   return md.posteriorDraw(x_arma, n);
@@ -57,6 +93,17 @@ Rcpp::NumericMatrix weibull_prior_parameters_update_cpp(const Rcpp::NumericVecto
                                                         const Rcpp::NumericVector& hyperPriorParams,
                                                         const Rcpp::List& clusterParameters,
                                                         int n = 1) {
+  // Validate inputs
+  if (priorParams.size() < 3) {
+    Rcpp::stop("priorParams must have at least 3 elements");
+  }
+  if (hyperPriorParams.size() < 4) {
+    Rcpp::stop("hyperPriorParams must have at least 4 elements");
+  }
+  if (clusterParameters.size() < 2) {
+    Rcpp::stop("clusterParameters must have at least 2 elements");
+  }
+
   dp::WeibullMixingDistribution md(priorParams, Rcpp::NumericVector::create(1.0, 1.0), hyperPriorParams);
   md.updatePriorParameters(clusterParameters, n);
   return Rcpp::as<Rcpp::NumericMatrix>(md.priorParameters);
@@ -64,6 +111,15 @@ Rcpp::NumericMatrix weibull_prior_parameters_update_cpp(const Rcpp::NumericVecto
 
 // [[Rcpp::export]]
 Rcpp::List nonconjugate_weibull_cluster_parameter_update_cpp(Rcpp::List dp_list) {
+  // Validate inputs
+  if (!dp_list.containsElementNamed("data") ||
+      !dp_list.containsElementNamed("clusterLabels") ||
+      !dp_list.containsElementNamed("numberClusters") ||
+      !dp_list.containsElementNamed("mixingDistribution") ||
+      !dp_list.containsElementNamed("clusterParameters")) {
+      Rcpp::stop("Missing required elements in dp_list");
+  }
+
   // Extract necessary components
   arma::mat data = Rcpp::as<arma::mat>(dp_list["data"]);
   arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dp_list["clusterLabels"]);
@@ -77,8 +133,8 @@ Rcpp::List nonconjugate_weibull_cluster_parameter_update_cpp(Rcpp::List dp_list)
   Rcpp::NumericVector mhStepSize = mixingDistribution["mhStepSize"];
   Rcpp::List clusterParameters = dp_list["clusterParameters"];
 
-  // Create C++ DP object
-  dp::NonConjugateWeibullDP* dp_cpp = new dp::NonConjugateWeibullDP();
+  // Create C++ DP object using smart pointer
+  std::unique_ptr<dp::NonConjugateWeibullDP> dp_cpp(new dp::NonConjugateWeibullDP());
   dp_cpp->data = data;
   dp_cpp->n = data.n_rows;
   dp_cpp->clusterLabels = clusterLabels;
@@ -98,16 +154,30 @@ Rcpp::List nonconjugate_weibull_cluster_parameter_update_cpp(Rcpp::List dp_list)
   // Extract results
   Rcpp::List result = dp_cpp->clusterParameters;
 
-  // Clean up
-  delete dp_cpp;
-
   return result;
 }
 
 // [[Rcpp::export]]
 Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list) {
+  // Validate inputs
+  if (!dp_list.containsElementNamed("data") ||
+      !dp_list.containsElementNamed("clusterLabels") ||
+      !dp_list.containsElementNamed("pointsPerCluster") ||
+      !dp_list.containsElementNamed("numberClusters") ||
+      !dp_list.containsElementNamed("alpha") ||
+      !dp_list.containsElementNamed("mixingDistribution") ||
+      !dp_list.containsElementNamed("clusterParameters") ||
+      !dp_list.containsElementNamed("alphaPriorParameters") ||
+      !dp_list.containsElementNamed("m")) {
+      Rcpp::stop("Missing required elements in dp_list");
+  }
+
   // Extract necessary components
   arma::mat data = Rcpp::as<arma::mat>(dp_list["data"]);
+  if (data.n_rows == 0) {
+    Rcpp::stop("Empty data matrix");
+  }
+
   arma::uvec clusterLabels = Rcpp::as<arma::uvec>(dp_list["clusterLabels"]);
 
   // Convert from R's 1-based to C++'s 0-based indexing
@@ -123,8 +193,13 @@ Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list)
   Rcpp::NumericVector alphaPriorParameters = dp_list["alphaPriorParameters"];
   int m = dp_list["m"];
 
-  // Create C++ DP object
-  dp::NonConjugateWeibullDP* dp_cpp = new dp::NonConjugateWeibullDP();
+  // Validate dimensions
+  if (clusterLabels.size() != data.n_rows) {
+    Rcpp::stop("clusterLabels size does not match data rows");
+  }
+
+  // Create C++ DP object using smart pointer
+  std::unique_ptr<dp::NonConjugateWeibullDP> dp_cpp(new dp::NonConjugateWeibullDP());
   dp_cpp->data = data;
   dp_cpp->n = data.n_rows;
   dp_cpp->alpha = alpha;
@@ -156,10 +231,5 @@ Rcpp::List nonconjugate_weibull_cluster_component_update_cpp(Rcpp::List dp_list)
     Rcpp::Named("clusterParameters") = dp_cpp->clusterParameters
   );
 
-  // Clean up
-  delete dp_cpp;
-
   return result;
 }
-
-

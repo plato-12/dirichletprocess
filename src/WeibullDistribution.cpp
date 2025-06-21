@@ -3,6 +3,7 @@
 #include "../inst/include/RcppConversions.h"
 #include <cmath>
 #include <limits>
+#include <memory>
 
 namespace dp {
 
@@ -36,29 +37,25 @@ Rcpp::NumericVector WeibullMixingDistribution::likelihood(const arma::vec& x, co
   double alpha = alpha_array[0];
   double lambda = lambda_array[0];
 
-  // Add better bounds checking
-  if (alpha <= 0 || lambda <= 0 || !std::isfinite(alpha) || !std::isfinite(lambda)) {
-    result.fill(1e-300);
-    return result;
-  }
-
   for (int i = 0; i < n_data; i++) {
     if (x[i] < 0) {
-      result[i] = 0.0;
+      result[i] = 0.0;  // Weibull not defined for negative values
     } else if (x[i] == 0) {
-      // Handle x=0 case specially
-      result[i] = (alpha == 1.0) ? (1.0 / lambda) : 0.0;
-    } else {
-      // Use log-space computation for numerical stability
+      // Special case for x = 0
+      result[i] = (alpha == 1.0) ? lambda : 0.0;
+    } else if (lambda > 0 && alpha > 0 && std::isfinite(lambda) && std::isfinite(alpha)) {
+      // Use log-space calculation for stability
       double log_lik = std::log(alpha) - std::log(lambda) +
         (alpha - 1.0) * std::log(x[i]) -
-        std::pow(x[i] / lambda, alpha);
+        std::pow(x[i] / std::pow(lambda, 1.0/alpha), alpha);
 
-      if (std::isfinite(log_lik)) {
+      if (std::isfinite(log_lik) && log_lik > -700) {  // Prevent underflow
         result[i] = std::exp(log_lik);
       } else {
         result[i] = 1e-300;
       }
+    } else {
+      result[i] = 1e-300;
     }
   }
 
@@ -71,16 +68,12 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
   Rcpp::NumericVector alpha_values(n);
   Rcpp::NumericVector lambda_values(n);
 
-  // Fix indexing - R uses 1-based, C++ uses 0-based
-  // R: priorParameters[1] = phi, priorParameters[2] = alpha0, priorParameters[3] = beta0
-  // C++: priorParams[0] = phi, priorParams[1] = alpha0, priorParams[2] = beta0
+  // priorParams[0] = phi, priorParams[1] = alpha0, priorParams[2] = beta0
   for (int i = 0; i < n; i++) {
     alpha_values[i] = R::runif(0.0, priorParams[0]);
-    // Fix: R code is lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
-    // But R's rgamma uses shape and rate, while C++ R::rgamma uses shape and scale
-    // So we need scale = 1/rate
+    // R's rgamma uses shape and scale, convert rate to scale: scale = 1/rate
     double gamma_draw = R::rgamma(priorParams[1], 1.0 / priorParams[2]);
-    lambda_values[i] = 1.0 / std::max(1e-10, gamma_draw); // Prevent division by zero
+    lambda_values[i] = 1.0 / gamma_draw;
   }
 
   // Convert to 3D arrays
@@ -99,7 +92,6 @@ Rcpp::List WeibullMixingDistribution::priorDraw(int n) const {
     Rcpp::Named("lambda") = lambda_arr
   );
 }
-
 
 Rcpp::NumericVector WeibullMixingDistribution::priorDensity(const Rcpp::List& theta) const {
   Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
@@ -123,7 +115,7 @@ Rcpp::List WeibullMixingDistribution::mhParameterProposal(const Rcpp::List& oldP
   Rcpp::NumericVector old_lambda = oldParams[1];
 
   double alpha_old = old_alpha[0];
-  double new_alpha = std::abs(alpha_old + mhStep[0] * R::rnorm(0.0, 1.7)); // Match R implementation
+  double new_alpha = std::abs(alpha_old + mhStep[0] * R::rnorm(0.0, 1.7));
 
   // Create return arrays
   Rcpp::NumericVector alpha_arr(1);
@@ -141,42 +133,35 @@ Rcpp::List WeibullMixingDistribution::mhParameterProposal(const Rcpp::List& oldP
 }
 
 Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
-  // Use the special Weibull Metropolis-Hastings with analytical lambda update
-  Rcpp::List start_pos = priorDraw(1);
-
-  int mhDraws = 100; // Default number of MH iterations
-  if (priorParameters.hasAttribute("mhDraws")) {
-    mhDraws = Rcpp::as<int>(priorParameters.attr("mhDraws"));
-  }
-
-  // Perform Metropolis-Hastings sampling
-  Rcpp::NumericVector alpha_samples(mhDraws);
-  Rcpp::NumericVector lambda_samples(mhDraws);
-
-  Rcpp::NumericVector current_alpha = start_pos[0];
-  double alpha_current = current_alpha[0];
-
-  // Initialize with analytical lambda update
   Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
-  double sum_x_alpha = 0.0;
-  for (arma::uword j = 0; j < x.n_rows; j++) {
-    sum_x_alpha += std::pow(x(j, 0), alpha_current);
-  }
-  double lambda_current = 1.0 / R::rgamma(x.n_rows + priorParams[1],
-                                          1.0 / (sum_x_alpha + priorParams[2]));
+  Rcpp::NumericVector mhStep = Rcpp::as<Rcpp::NumericVector>(mhStepSize);
 
-  alpha_samples[0] = alpha_current;
-  lambda_samples[0] = lambda_current;
+  int mhDraws = std::max(100, n * 10);  // Ensure enough samples
+  const int MAX_ITER = 10000;  // Maximum iterations to prevent infinite loops
 
-  // Current likelihood and prior
-  Rcpp::NumericVector current_params_alpha(1);
-  Rcpp::NumericVector current_params_lambda(1);
-  current_params_alpha.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-  current_params_lambda.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-  current_params_alpha[0] = alpha_current;
-  current_params_lambda[0] = lambda_current;
-  Rcpp::List current_params = Rcpp::List::create(current_params_alpha, current_params_lambda);
+  // Initialize from prior
+  Rcpp::List initial_draw = priorDraw(1);
+  Rcpp::NumericVector alpha_init = initial_draw[0];
+  Rcpp::NumericVector lambda_init = initial_draw[1];
 
+  double alpha_current = alpha_init[0];
+  double lambda_current = lambda_init[0];
+
+  // Storage for samples
+  std::vector<double> alpha_samples;
+  std::vector<double> lambda_samples;
+  alpha_samples.reserve(mhDraws);
+  lambda_samples.reserve(mhDraws);
+
+  // Create initial parameter list
+  Rcpp::NumericVector alpha_vec(1), lambda_vec(1);
+  alpha_vec.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  lambda_vec.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+  alpha_vec[0] = alpha_current;
+  lambda_vec[0] = lambda_current;
+  Rcpp::List current_params = Rcpp::List::create(alpha_vec, lambda_vec);
+
+  // Calculate initial likelihood and prior
   double current_log_lik = 0.0;
   Rcpp::NumericVector lik_vals = likelihood(arma::vectorise(x), current_params);
   for (int k = 0; k < lik_vals.size(); k++) {
@@ -187,25 +172,55 @@ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) c
       break;
     }
   }
-
   double current_log_prior = std::log(priorDensity(current_params)[0]);
 
   int accept_count = 0;
+  int iter_count = 0;
 
-  // Metropolis-Hastings loop
-  for (int iter = 1; iter < mhDraws; iter++) {
+  for (int iter = 0; iter < mhDraws && iter_count < MAX_ITER; iter++, iter_count++) {
     // Propose new alpha
     Rcpp::List proposed_params = mhParameterProposal(current_params);
     Rcpp::NumericVector prop_alpha = proposed_params[0];
     double alpha_prop = prop_alpha[0];
 
-    // Analytically update lambda given proposed alpha
-    sum_x_alpha = 0.0;
-    for (arma::uword j = 0; j < x.n_rows; j++) {
-      sum_x_alpha += std::pow(x(j, 0), alpha_prop);
+    // Check for numerical stability
+    if (!std::isfinite(alpha_prop) || alpha_prop <= 0 || alpha_prop > priorParams[0]) {
+      alpha_samples.push_back(alpha_current);
+      lambda_samples.push_back(lambda_current);
+      continue;
     }
-    double lambda_prop = 1.0 / R::rgamma(x.n_rows + priorParams[1],
+
+    // Calculate sum(x^alpha) for lambda update
+    double sum_x_alpha = 0.0;
+    bool valid_sum = true;
+    for (int i = 0; i < x.n_rows; i++) {
+      if (x(i, 0) > 0) {
+        double x_alpha = std::pow(x(i, 0), alpha_prop);
+        if (std::isfinite(x_alpha)) {
+          sum_x_alpha += x_alpha;
+        } else {
+          valid_sum = false;
+          break;
+        }
+      }
+    }
+
+    if (!valid_sum || sum_x_alpha <= 0) {
+      alpha_samples.push_back(alpha_current);
+      lambda_samples.push_back(lambda_current);
+      continue;
+    }
+
+    // Update lambda analytically
+    double lambda_prop = 1.0 / R::rgamma(priorParams[1] + x.n_rows,
                                          1.0 / (sum_x_alpha + priorParams[2]));
+
+    // Check lambda validity
+    if (!std::isfinite(lambda_prop) || lambda_prop <= 0 || lambda_prop > 1e10) {
+      alpha_samples.push_back(alpha_current);
+      lambda_samples.push_back(lambda_current);
+      continue;
+    }
 
     // Update proposed params with new lambda
     Rcpp::NumericVector prop_lambda(1);
@@ -245,22 +260,30 @@ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) c
       accept_count++;
     }
 
-    alpha_samples[iter] = alpha_current;
-    lambda_samples[iter] = lambda_current;
+    alpha_samples.push_back(alpha_current);
+    lambda_samples.push_back(lambda_current);
+  }
+
+  if (iter_count >= MAX_ITER) {
+    Rcpp::warning("Weibull posterior draw reached maximum iterations");
   }
 
   // Return the last n samples
+  int actual_samples = alpha_samples.size();
+  int start_idx = std::max(0, actual_samples - n);
+
   Rcpp::NumericVector alpha_final(n);
   Rcpp::NumericVector lambda_final(n);
 
   for (int i = 0; i < n; i++) {
-    int idx = mhDraws - n + i;
-    if (idx >= 0) {
+    int idx = start_idx + i;
+    if (idx < actual_samples) {
       alpha_final[i] = alpha_samples[idx];
       lambda_final[i] = lambda_samples[idx];
     } else {
-      alpha_final[i] = alpha_samples[mhDraws - 1];
-      lambda_final[i] = lambda_samples[mhDraws - 1];
+      // Use last available sample
+      alpha_final[i] = alpha_samples.back();
+      lambda_final[i] = lambda_samples.back();
     }
   }
 
@@ -335,117 +358,102 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
   for (int i = 0; i < n; i++) {
     int currentLabel = clusterLabels[i];
 
-    // Ensure currentLabel is a valid index for pointsPerCluster
+    // Validate current label
     if (currentLabel < 0 || currentLabel >= (int)pointsPerCluster.n_elem) {
-      Rcpp::stop("Invalid cluster label encountered for point %d: %d (max allowed: %d)", i, currentLabel, pointsPerCluster.n_elem - 1);
+      Rcpp::Rcerr << "Warning: Invalid cluster label " << currentLabel
+                  << " for point " << i << ". Resetting to 0.\n";
+      currentLabel = 0;
+      clusterLabels[i] = 0;
     }
 
-    // Create a copy of the current state for probability calculations
-    arma::uvec tempPointsPerCluster = pointsPerCluster;
-    tempPointsPerCluster[currentLabel]--;
-
-    // Generate auxiliary parameters
+    // Create auxiliary parameters
     Rcpp::List aux;
-    if (tempPointsPerCluster[currentLabel] == 0) {
-      // If cluster would be empty, we need m-1 auxiliary parameters
-      aux = mixingDistribution->priorDraw(m - 1);
+    bool needAux = (pointsPerCluster[currentLabel] == 1);
 
-      // Include the current cluster's parameters as one of the auxiliary
-      Rcpp::NumericVector alpha_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
-      Rcpp::NumericVector lambda_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
-
-      Rcpp::NumericVector alpha_aux = aux[0];
-      Rcpp::NumericVector lambda_aux = aux[1];
-
-      // Create new arrays including current cluster params
-      Rcpp::NumericVector alpha_combined(m);
-      Rcpp::NumericVector lambda_combined(m);
-      alpha_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
-      lambda_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
-
-      alpha_combined[0] = alpha_vec[currentLabel];
-      lambda_combined[0] = lambda_vec[currentLabel];
-
-      for (int j = 0; j < m-1; j++) {
-        alpha_combined[j+1] = alpha_aux[j];
-        lambda_combined[j+1] = lambda_aux[j];
-      }
-
-      aux = Rcpp::List::create(alpha_combined, lambda_combined);
-    } else {
+    if (needAux) {
       // Generate m auxiliary parameters
       aux = mixingDistribution->priorDraw(m);
+    } else {
+      // Generate m-1 auxiliary parameters
+      aux = mixingDistribution->priorDraw(m - 1);
     }
 
-    // Calculate probabilities using temporary counts
-    int totalLabels = numberClusters + m;
-    Rcpp::NumericVector probs(totalLabels);
+    // Calculate probabilities for each possible cluster (including auxiliary)
+    int totalOptions = numberClusters + m - 1;
+    if (!needAux) totalOptions = numberClusters + m - 1;
+
+    Rcpp::NumericVector probs(totalOptions);
 
     // Existing clusters
     for (int j = 0; j < numberClusters; j++) {
-      if (tempPointsPerCluster[j] > 0) {
-        // Extract parameters for cluster j
-        Rcpp::NumericVector alpha_vec = clusterParameters[0];
-        Rcpp::NumericVector lambda_vec = clusterParameters[1];
+      double count = (j == currentLabel) ?
+      pointsPerCluster[j] - 1 : pointsPerCluster[j];
 
-        // Create properly formatted parameter arrays
-        Rcpp::NumericVector alpha_j(1);
-        Rcpp::NumericVector lambda_j(1);
-        alpha_j[0] = alpha_vec[j];
-        lambda_j[0] = lambda_vec[j];
+      if (count > 0 || j != currentLabel) {
+        Rcpp::NumericVector alpha_j = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
+        Rcpp::NumericVector lambda_j = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
 
-        // Add dimension attributes
-        alpha_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-        lambda_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        Rcpp::NumericVector alpha_temp(1), lambda_temp(1);
+        alpha_temp.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        lambda_temp.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
 
-        Rcpp::List clusterParam = Rcpp::List::create(
-          Rcpp::Named("alpha") = alpha_j,
-          Rcpp::Named("lambda") = lambda_j
-        );
+        if (j < alpha_j.size() && j < lambda_j.size()) {
+          alpha_temp[0] = alpha_j[j];
+          lambda_temp[0] = lambda_j[j];
 
-        Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
-        probs[j] = tempPointsPerCluster[j] * lik[0]; // Use temp counts
+          Rcpp::List theta_j = Rcpp::List::create(alpha_temp, lambda_temp);
+          arma::vec xi = data.row(i).t();
+          Rcpp::NumericVector lik = mixingDistribution->likelihood(xi, theta_j);
+
+          probs[j] = count * lik[0];
+        } else {
+          probs[j] = 0.0;
+        }
       } else {
         probs[j] = 0.0;
       }
     }
 
     // Auxiliary clusters
-    for (int j = 0; j < m; j++) {
-      Rcpp::NumericVector alpha_aux = aux[0];
-      Rcpp::NumericVector lambda_aux = aux[1];
+    Rcpp::NumericVector aux_alpha = aux[0];
+    Rcpp::NumericVector aux_lambda = aux[1];
 
-      Rcpp::NumericVector alpha_j(1);
-      Rcpp::NumericVector lambda_j(1);
-      alpha_j[0] = alpha_aux[j];
-      lambda_j[0] = lambda_aux[j];
+    for (int j = 0; j < m - 1; j++) {
+      int prob_idx = numberClusters + j;
+      if (prob_idx < probs.size() && j < aux_alpha.size()) {
+        Rcpp::NumericVector alpha_temp(1), lambda_temp(1);
+        alpha_temp.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        lambda_temp.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        alpha_temp[0] = aux_alpha[j];
+        lambda_temp[0] = aux_lambda[j];
 
-      alpha_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-      lambda_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+        Rcpp::List theta_aux = Rcpp::List::create(alpha_temp, lambda_temp);
+        arma::vec xi = data.row(i).t();
+        Rcpp::NumericVector lik = mixingDistribution->likelihood(xi, theta_aux);
 
-      Rcpp::List auxParam = Rcpp::List::create(
-        Rcpp::Named("alpha") = alpha_j,
-        Rcpp::Named("lambda") = lambda_j
-      );
-
-      Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), auxParam);
-      probs[numberClusters + j] = (alpha / m) * lik[0];
-    }
-
-    // Handle edge cases
-    if (Rcpp::is_true(Rcpp::any(Rcpp::is_nan(probs)))) {
-      for (int j = 0; j < probs.size(); j++) {
-        if (std::isnan(probs[j])) probs[j] = 0.0;
+        probs[prob_idx] = (alpha / (m - 1)) * lik[0];
       }
     }
 
-    if (Rcpp::is_true(Rcpp::all(probs == 0))) {
-      probs.fill(1.0 / probs.size());
+    // Handle numerical issues
+    double prob_sum = 0.0;
+    for (int j = 0; j < probs.size(); j++) {
+      if (!std::isfinite(probs[j]) || probs[j] < 0) {
+        probs[j] = 0.0;
+      }
+      prob_sum += probs[j];
+    }
+
+    if (prob_sum <= 0) {
+      // Fallback to uniform
+      for (int j = 0; j < probs.size(); j++) {
+        probs[j] = 1.0 / probs.size();
+      }
+      prob_sum = 1.0;
     }
 
     // Normalize
-    double probSum = Rcpp::sum(probs);
-    probs = probs / probSum;
+    probs = probs / prob_sum;
 
     // Sample new label
     int newLabel = 0;
@@ -459,11 +467,10 @@ void NonConjugateWeibullDP::clusterComponentUpdate() {
       }
     }
 
-    // Now update the actual state
-    // First decrement the count from current cluster
+    // Update the state
     pointsPerCluster[currentLabel]--;
 
-    // Then perform the label change
+    // Perform the label change
     Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel, aux);
 
     // Update state from result
@@ -484,29 +491,19 @@ void NonConjugateWeibullDP::clusterParameterUpdate() {
       Rcpp::NumericVector alpha_params = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
       Rcpp::NumericVector lambda_params = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
 
-      Rcpp::NumericVector alpha_start(1);
-      Rcpp::NumericVector lambda_start(1);
-      alpha_start[0] = alpha_params[k];
-      lambda_start[0] = lambda_params[k];
-      alpha_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-      lambda_start.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
+      if (k < alpha_params.size() && k < lambda_params.size()) {
+        // Draw from posterior
+        Rcpp::List postDraw = mixingDistribution->posteriorDraw(clusterData, 1);
 
-      Rcpp::List start_pos = Rcpp::List::create(
-        Rcpp::Named("alpha") = alpha_start,
-        Rcpp::Named("lambda") = lambda_start
-      );
+        Rcpp::NumericVector new_alpha = postDraw[0];
+        Rcpp::NumericVector new_lambda = postDraw[1];
 
-      // Draw from posterior
-      Rcpp::List postDraw = mixingDistribution->posteriorDraw(clusterData, 1);
+        alpha_params[k] = new_alpha[0];
+        lambda_params[k] = new_lambda[0];
 
-      Rcpp::NumericVector new_alpha = postDraw[0];
-      Rcpp::NumericVector new_lambda = postDraw[1];
-
-      alpha_params[k] = new_alpha[0];
-      lambda_params[k] = new_lambda[0];
-
-      clusterParameters[0] = alpha_params;
-      clusterParameters[1] = lambda_params;
+        clusterParameters[0] = alpha_params;
+        clusterParameters[1] = lambda_params;
+      }
     }
   }
 }
@@ -542,7 +539,7 @@ void NonConjugateWeibullDP::updateAlpha() {
 Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int currentLabel,
                                                      const Rcpp::List& aux) {
   if (newLabel == currentLabel) {
-    // No change needed, but still need to re-increment the count
+    // No change needed
     pointsPerCluster[currentLabel]++;
     return Rcpp::List::create(
       Rcpp::Named("clusterLabels") = clusterLabels,
@@ -552,110 +549,89 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
     );
   }
 
-  // Note: pointsPerCluster[currentLabel] has already been decremented
-
   // Extract current parameters
   Rcpp::NumericVector alpha_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
   Rcpp::NumericVector lambda_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]));
 
-  // Assign to new cluster
+  // Handle new cluster assignment
   if (newLabel < numberClusters) {
     // Existing cluster
     pointsPerCluster[newLabel]++;
     clusterLabels[i] = newLabel;
+  } else {
+    // New cluster from auxiliary
+    int aux_idx = newLabel - numberClusters;
+    Rcpp::NumericVector aux_alpha = aux[0];
+    Rcpp::NumericVector aux_lambda = aux[1];
 
-    // If old cluster is now empty, remove it
-    if (pointsPerCluster[currentLabel] == 0 && currentLabel != newLabel) {
-      numberClusters--;
+    if (aux_idx < aux_alpha.size()) {
+      // Add new cluster
+      numberClusters++;
 
-      // Remove the empty cluster from pointsPerCluster
-      arma::uvec new_points = arma::uvec(numberClusters);
-      int idx = 0;
-      for (int j = 0; j < (int)pointsPerCluster.n_elem; j++) {
-        if (j != currentLabel) {
-          new_points[idx++] = pointsPerCluster[j];
-        }
-      }
-      pointsPerCluster = new_points;
-
-      // Remove from parameter vectors
+      // Extend parameter vectors
       Rcpp::NumericVector new_alpha_vec(numberClusters);
       Rcpp::NumericVector new_lambda_vec(numberClusters);
 
-      idx = 0;
       for (int j = 0; j < alpha_vec.size(); j++) {
-        if (j != currentLabel) {
-          new_alpha_vec[idx] = alpha_vec[j];
-          new_lambda_vec[idx] = lambda_vec[j];
-          idx++;
-        }
-      }
-
-      alpha_vec = new_alpha_vec;
-      lambda_vec = new_lambda_vec;
-
-      // Update all labels that were greater than currentLabel
-      for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
-        if ((int)clusterLabels[j] > currentLabel) {
-          clusterLabels[j]--;
-        }
-      }
-
-      // If the point was assigned to a label that got shifted, update it
-      if (newLabel > currentLabel) {
-        clusterLabels[i] = newLabel - 1;
-      }
-    }
-  } else {
-    // New cluster from auxiliary parameters
-    int auxIndex = newLabel - numberClusters;
-
-    if (pointsPerCluster[currentLabel] == 0) {
-      // Replace empty cluster with auxiliary
-      Rcpp::NumericVector aux_alpha = aux[0];
-      Rcpp::NumericVector aux_lambda = aux[1];
-
-      alpha_vec[currentLabel] = aux_alpha[auxIndex];
-      lambda_vec[currentLabel] = aux_lambda[auxIndex];
-
-      pointsPerCluster[currentLabel] = 1;
-      clusterLabels[i] = currentLabel;
-    } else {
-      // Create new cluster
-      Rcpp::NumericVector aux_alpha = aux[0];
-      Rcpp::NumericVector aux_lambda = aux[1];
-
-      // Expand vectors
-      Rcpp::NumericVector new_alpha_vec(numberClusters + 1);
-      Rcpp::NumericVector new_lambda_vec(numberClusters + 1);
-
-      for (int j = 0; j < numberClusters; j++) {
         new_alpha_vec[j] = alpha_vec[j];
         new_lambda_vec[j] = lambda_vec[j];
       }
 
-      new_alpha_vec[numberClusters] = aux_alpha[auxIndex];
-      new_lambda_vec[numberClusters] = aux_lambda[auxIndex];
+      new_alpha_vec[numberClusters - 1] = aux_alpha[aux_idx];
+      new_lambda_vec[numberClusters - 1] = aux_lambda[aux_idx];
 
       alpha_vec = new_alpha_vec;
       lambda_vec = new_lambda_vec;
 
-      // Expand pointsPerCluster
-      arma::uvec new_points = arma::uvec(numberClusters + 1);
-      for (int j = 0; j < numberClusters; j++) {
+      // Extend pointsPerCluster
+      arma::uvec new_points = arma::zeros<arma::uvec>(numberClusters);
+      for (int j = 0; j < (int)pointsPerCluster.n_elem; j++) {
         new_points[j] = pointsPerCluster[j];
       }
-      new_points[numberClusters] = 1;
+      new_points[numberClusters - 1] = 1;
       pointsPerCluster = new_points;
 
-      clusterLabels[i] = numberClusters;
-      numberClusters++;
+      clusterLabels[i] = numberClusters - 1;
     }
   }
 
+  // Clean up empty clusters
+  if (pointsPerCluster[currentLabel] == 0 && numberClusters > 1) {
+    // Remove empty cluster
+    numberClusters--;
+
+    // Create new vectors without the empty cluster
+    Rcpp::NumericVector new_alpha_vec(numberClusters);
+    Rcpp::NumericVector new_lambda_vec(numberClusters);
+    arma::uvec new_points = arma::zeros<arma::uvec>(numberClusters);
+
+    int new_idx = 0;
+    std::map<int, int> label_map;
+
+    for (int j = 0; j < alpha_vec.size(); j++) {
+      if (j != currentLabel && j < (int)pointsPerCluster.n_elem) {
+        new_alpha_vec[new_idx] = alpha_vec[j];
+        new_lambda_vec[new_idx] = lambda_vec[j];
+        new_points[new_idx] = pointsPerCluster[j];
+        label_map[j] = new_idx;
+        new_idx++;
+      }
+    }
+
+    // Update all cluster labels
+    for (int k = 0; k < (int)clusterLabels.size(); k++) {
+      if (label_map.find(clusterLabels[k]) != label_map.end()) {
+        clusterLabels[k] = label_map[clusterLabels[k]];
+      }
+    }
+
+    alpha_vec = new_alpha_vec;
+    lambda_vec = new_lambda_vec;
+    pointsPerCluster = new_points;
+  }
+
   // Update cluster parameters
-  clusterParameters[0] = alpha_vec;
-  clusterParameters[1] = lambda_vec;
+  clusterParameters = Rcpp::List::create(alpha_vec, lambda_vec);
 
   return Rcpp::List::create(
     Rcpp::Named("clusterLabels") = clusterLabels,
@@ -663,10 +639,6 @@ Rcpp::List NonConjugateWeibullDP::clusterLabelChange(int i, int newLabel, int cu
     Rcpp::Named("clusterParameters") = clusterParameters,
     Rcpp::Named("numberClusters") = numberClusters
   );
-}
-
-Rcpp::List NonConjugateWeibullDP::metropolisHastings(const arma::mat& x, const Rcpp::List& startPos, int noDraws) {
-  return mixingDistribution->posteriorDraw(x, noDraws);
 }
 
 } // namespace dp
