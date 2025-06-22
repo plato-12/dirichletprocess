@@ -62,10 +62,11 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
                         hyper_b1, hyper_b2, mh_step_alpha, mh_draws));
   } else if (type == "exponential") {
     // Extract prior parameters
-    double alpha0 = params["alpha0"];
-    double beta0 = params["beta0"];
+    double alpha0 = Rcpp::as<double>(params["alpha0"]);
+    double beta0 = Rcpp::as<double>(params["beta0"]);
 
-    return std::make_unique<ExponentialMixing>(alpha0, beta0);
+    return std::unique_ptr<MixingDistribution>(
+      new ExponentialMixing(alpha0, beta0));
   }
 
 
