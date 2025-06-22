@@ -27,7 +27,7 @@ get_cpp_status <- function() {
   status <- list(
     mcmc_runner = has_cpp,
     gaussian_likelihood = has_cpp,
-    exponential_likelihood = has_cpp,
+    exponential_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
     beta_likelihood = has_cpp,
     mvnormal_likelihood = exists("conjugate_mvnormal_cluster_component_update_cpp"),
     weibull_likelihood = has_cpp,
@@ -61,7 +61,8 @@ can_use_cpp <- function(dp_obj) {
   }
 
   # Supported types for unified MCMCRunner
-  supported_types <- c("normal_inverse_gamma", "normal", "beta", "weibull", "exponential")
+  supported_types <- c("normal_inverse_gamma", "normal", "beta",
+                       "weibull", "exponential")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
 
@@ -108,7 +109,13 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 prepare_mixing_dist_params <- function(dp_obj) {
   md <- dp_obj$mixingDistribution
 
-  if (inherits(md, "weibull")) {
+  if (inherits(md, "exponential")) {
+    list(
+      type = "exponential",
+      alpha0 = md$priorParameters[1],
+      beta0 = md$priorParameters[2]
+    )
+  } else if (inherits(md, "weibull")) {
     # Extract Weibull parameters
     list(
       type = "weibull",

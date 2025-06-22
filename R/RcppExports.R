@@ -351,6 +351,22 @@ nonconjugate_weibull_cluster_component_update_cpp <- function(dp_list) {
     .Call(`_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp`, dp_list)
 }
 
+exponential_log_likelihood_cpp <- function(x, lambda) {
+    .Call(`_dirichletprocess_exponential_log_likelihood_cpp`, x, lambda)
+}
+
+exponential_posterior_parameters_cpp <- function(prior_params, data) {
+    .Call(`_dirichletprocess_exponential_posterior_parameters_cpp`, prior_params, data)
+}
+
+exponential_posterior_draw_cpp <- function(prior_params, data) {
+    .Call(`_dirichletprocess_exponential_posterior_draw_cpp`, prior_params, data)
+}
+
+exponential_prior_draw_cpp <- function(prior_params) {
+    .Call(`_dirichletprocess_exponential_prior_draw_cpp`, prior_params)
+}
+
 normal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_normal_likelihood_cpp`, x, mu, sigma)
 }

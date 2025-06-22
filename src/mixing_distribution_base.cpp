@@ -4,6 +4,7 @@
 #include "../inst/include/beta_mixing.h"
 #include "../inst/include/mvnormal_mixing.h"
 #include "../inst/include/weibull_mixing.h"
+#include "../inst/include/exponential_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {
@@ -59,8 +60,14 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
     return std::unique_ptr<MixingDistribution>(
       new WeibullMixing(phi, alpha0, beta0, hyper_a1, hyper_a2,
                         hyper_b1, hyper_b2, mh_step_alpha, mh_draws));
+  } else if (type == "exponential") {
+    // Extract prior parameters
+    double alpha0 = params["alpha0"];
+    double beta0 = params["beta0"];
+
+    return std::make_unique<ExponentialMixing>(alpha0, beta0);
   }
-  // Remove any ExponentialMixing case that might be here
+
 
   Rcpp::stop("Unknown mixing distribution type: " + type);
 }
