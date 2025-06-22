@@ -343,7 +343,7 @@ run_and_report <- function() {
   # 1. Run comprehensive benchmarks
   bench_results <- benchmark_weibull_comprehensive(
     n_obs_vec = c(100),
-    n_iter_vec = c(100, 500),
+    n_iter_vec = c(500),
     n_clusters_vec = c(2, 3, 5),
     n_reps = 3
   )

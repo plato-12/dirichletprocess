@@ -22,17 +22,26 @@ using_cpp <- function() {
 #' @return List showing which C++ implementations are available
 #' @export
 get_cpp_status <- function() {
+  has_cpp <- exists("_dirichletprocess_run_mcmc_cpp")
+
   status <- list(
-    mcmc_runner = exists("_dirichletprocess_run_mcmc_cpp"),
-    gaussian_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
-    exponential_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
-    beta_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
+    mcmc_runner = has_cpp,
+    gaussian_likelihood = has_cpp,
+    exponential_likelihood = has_cpp,
+    beta_likelihood = has_cpp,
     mvnormal_likelihood = exists("conjugate_mvnormal_cluster_component_update_cpp"),
-    weibull_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
+    weibull_likelihood = has_cpp,
     hierarchical_beta = exists("_dirichletprocess_hierarchical_beta_fit_cpp"),
-    benchmark_components = exists("_dirichletprocess_benchmark_components_cpp"),
-    memory_tracking = exists("_dirichletprocess_get_memory_tracking")
+    markov = exists("_dirichletprocess_markov_dp_fit_cpp"),
+    available = has_cpp
   )
+
+  attr(status, "message") <- if (has_cpp) {
+    "C++ backend is available with all distributions"
+  } else {
+    "C++ backend is not available - using R implementation"
+  }
+
   return(status)
 }
 
@@ -45,96 +54,31 @@ can_use_cpp <- function(dp_obj) {
     return(FALSE)
   }
 
-  # For mvnormal, check for specialized functions
+  # Special case for mvnormal - needs specific functions
   if (inherits(dp_obj$mixingDistribution, "mvnormal")) {
     return(exists("conjugate_mvnormal_cluster_component_update_cpp") &&
              exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
   }
 
-  supported_types <- c("normal_inverse_gamma", "normal", "beta", "weibull")
+  # Supported types for unified MCMCRunner
+  supported_types <- c("normal_inverse_gamma", "normal", "beta", "weibull", "exponential")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
 
-#' Enable C++ implementations for specific samplers
-#' @export
-enable_cpp_samplers <- function() {
-  invisible(exists("_dirichletprocess_run_mcmc_cpp", mode = "function"))
-}
-
-#' Check if using C++ samplers
-#' @export
-using_cpp_samplers <- function() {
-  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", mode = "function")
-}
-
-#' Enable C++ implementations for hierarchical models
-#' @export
-enable_cpp_hierarchical_samplers <- function() {
-  invisible(exists("_dirichletprocess_hierarchical_beta_fit_cpp", mode = "function"))
-}
-
-#' Check if using C++ hierarchical samplers
-#' @export
-using_cpp_hierarchical_samplers <- function() {
-  using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", mode = "function")
-}
-
-#' Enable C++ implementations for Markov models
-#' @export
-enable_cpp_markov_samplers <- function() {
-  invisible(exists("_dirichletprocess_markov_dp_fit_cpp", mode = "function"))
-}
-
-#' Check if using C++ Markov samplers
-#' @export
-using_cpp_markov_samplers <- function() {
-  using_cpp() && exists("_dirichletprocess_markov_dp_fit_cpp", mode = "function")
-}
-
-#' Initialize C++ availability check
-#' @keywords internal
-.onLoad <- function(libname, pkgname) {
-  # Set default options
-  options(dirichletprocess.use_cpp = FALSE)
-  options(dirichletprocess.verbose = FALSE)
-}
-
-#' Package startup message
-#' @keywords internal
-.onAttach <- function(libname, pkgname) {
-  # Check if C++ implementations are available
-  cpp_status <- tryCatch({
-    get_cpp_status()
-  }, error = function(e) {
-    list(mcmc_runner = FALSE)
-  })
-
-  available_count <- sum(unlist(cpp_status))
-
-  if (available_count > 0) {
-    if (getOption("dirichletprocess.verbose", FALSE)) {
-      packageStartupMessage(
-        sprintf("dirichletprocess: %d C++ implementations available", available_count)
-      )
-      packageStartupMessage("Use set_use_cpp(TRUE) to enable C++ implementations")
-    }
-  } else {
-    if (getOption("dirichletprocess.verbose", FALSE)) {
-      packageStartupMessage("dirichletprocess: Using R implementations (C++ not available)")
-    }
-  }
-}
-
-#' Run MCMC using C++ implementation with proper chain handling
+#' Run MCMC using C++ implementation
+#' @param data Data matrix
+#' @param mixing_dist_params Mixing distribution parameters
+#' @param mcmc_params MCMC parameters
+#' @return List with MCMC results
 #' @keywords internal
 run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
-  # Ensure mcmc_params has all required fields
+  # Ensure required parameters
   if (!"m_auxiliary" %in% names(mcmc_params)) {
-    mcmc_params$m_auxiliary <- 3  # Default value matching R implementation
+    mcmc_params$m_auxiliary <- 3  # Default for Algorithm 8
   }
 
   if (!"alpha" %in% names(mcmc_params)) {
-    mcmc_params$alpha <- 1.0  # Default starting value
+    mcmc_params$alpha <- 1.0
   }
 
   if (!"update_concentration" %in% names(mcmc_params)) {
@@ -158,8 +102,9 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 }
 
 #' Create mixing distribution parameters for C++
+#' @param dp_obj Dirichlet process object
+#' @return List of parameters formatted for C++
 #' @keywords internal
-# Add to prepare_mixing_dist_params function
 prepare_mixing_dist_params <- function(dp_obj) {
   md <- dp_obj$mixingDistribution
 
@@ -182,7 +127,7 @@ prepare_mixing_dist_params <- function(dp_obj) {
       mh_draws = ifelse(!is.null(dp_obj$mhDraws), dp_obj$mhDraws, 100)
     )
   } else if (inherits(md, "mvnormal")) {
-    # Extract parameters from the mixing distribution
+    # Extract MVNormal parameters
     if (!is.null(md$priorParameters)) {
       pp <- md$priorParameters
       list(
@@ -206,7 +151,7 @@ prepare_mixing_dist_params <- function(dp_obj) {
       hyperPriorParameters = md$hyperPriorParameters
     )
   } else if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
-    # Existing Gaussian implementation
+    # Gaussian parameters
     if (!is.null(md$priors)) {
       list(
         type = "gaussian",
@@ -236,6 +181,12 @@ prepare_mixing_dist_params <- function(dp_obj) {
 }
 
 #' Create MCMC parameters for C++
+#' @param dp_obj Dirichlet process object
+#' @param its Number of iterations
+#' @param updatePrior Whether to update prior parameters
+#' @param n_burn Burn-in iterations
+#' @param thin Thinning interval
+#' @return List of MCMC parameters
 #' @keywords internal
 prepare_mcmc_params <- function(dp_obj, its, updatePrior, n_burn = 0, thin = 1) {
   mcmc_params <- list(
@@ -258,4 +209,16 @@ prepare_mcmc_params <- function(dp_obj, its, updatePrior, n_burn = 0, thin = 1) 
   }
 
   return(mcmc_params)
+}
+
+#' Enable C++ implementations for specific samplers
+#' @export
+enable_cpp_samplers <- function() {
+  invisible(exists("_dirichletprocess_run_mcmc_cpp", mode = "function"))
+}
+
+#' Check if using C++ samplers
+#' @export
+using_cpp_samplers <- function() {
+  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", mode = "function")
 }
