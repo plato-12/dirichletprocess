@@ -735,53 +735,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// exponential_log_likelihood_cpp
-Rcpp::NumericVector exponential_log_likelihood_cpp(Rcpp::NumericVector x, double lambda);
-RcppExport SEXP _dirichletprocess_exponential_log_likelihood_cpp(SEXP xSEXP, SEXP lambdaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(exponential_log_likelihood_cpp(x, lambda));
-    return rcpp_result_gen;
-END_RCPP
-}
-// exponential_posterior_parameters_cpp
-Rcpp::List exponential_posterior_parameters_cpp(Rcpp::NumericVector prior_params, Rcpp::NumericMatrix data);
-RcppExport SEXP _dirichletprocess_exponential_posterior_parameters_cpp(SEXP prior_paramsSEXP, SEXP dataSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type prior_params(prior_paramsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type data(dataSEXP);
-    rcpp_result_gen = Rcpp::wrap(exponential_posterior_parameters_cpp(prior_params, data));
-    return rcpp_result_gen;
-END_RCPP
-}
-// exponential_posterior_draw_cpp
-double exponential_posterior_draw_cpp(Rcpp::NumericVector prior_params, Rcpp::NumericMatrix data);
-RcppExport SEXP _dirichletprocess_exponential_posterior_draw_cpp(SEXP prior_paramsSEXP, SEXP dataSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type prior_params(prior_paramsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type data(dataSEXP);
-    rcpp_result_gen = Rcpp::wrap(exponential_posterior_draw_cpp(prior_params, data));
-    return rcpp_result_gen;
-END_RCPP
-}
-// exponential_prior_draw_cpp
-double exponential_prior_draw_cpp(Rcpp::NumericVector prior_params);
-RcppExport SEXP _dirichletprocess_exponential_prior_draw_cpp(SEXP prior_paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type prior_params(prior_paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(exponential_prior_draw_cpp(prior_params));
-    return rcpp_result_gen;
-END_RCPP
-}
 // normal_likelihood_cpp
 Rcpp::NumericVector normal_likelihood_cpp(const Rcpp::NumericVector& x, double mu, double sigma);
 RcppExport SEXP _dirichletprocess_normal_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
@@ -882,10 +835,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_weibull_prior_parameters_update_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_parameters_update_cpp, 4},
     {"_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp, 1},
-    {"_dirichletprocess_exponential_log_likelihood_cpp", (DL_FUNC) &_dirichletprocess_exponential_log_likelihood_cpp, 2},
-    {"_dirichletprocess_exponential_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_exponential_posterior_parameters_cpp, 2},
-    {"_dirichletprocess_exponential_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_exponential_posterior_draw_cpp, 2},
-    {"_dirichletprocess_exponential_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_exponential_prior_draw_cpp, 1},
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
