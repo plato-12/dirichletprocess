@@ -6,6 +6,12 @@
 \usage{
 prepare_mixing_dist_params(dp_obj)
 }
+\arguments{
+\item{dp_obj}{Dirichlet process object}
+}
+\value{
+List of parameters formatted for C++
+}
 \description{
 Create mixing distribution parameters for C++
 }
