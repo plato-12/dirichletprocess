@@ -11,7 +11,7 @@ DirichletProcessWeibull(
   mhStepSize = c(1, 1),
   hyperPriorParameters = c(6, 2, 1, 0.5),
   verbose = FALSE,
-  mhDraws = 250
+  mhDraws = 100
 )
 }
 \arguments{

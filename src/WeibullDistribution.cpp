@@ -37,25 +37,34 @@ Rcpp::NumericVector WeibullMixingDistribution::likelihood(const arma::vec& x, co
   double alpha = alpha_array[0];
   double lambda = lambda_array[0];
 
+  // Quick validation
+  if (alpha <= 0 || lambda <= 0 || !std::isfinite(alpha) || !std::isfinite(lambda)) {
+    std::fill(result.begin(), result.end(), 1e-300);
+    return result;
+  }
+
+  // Pre-compute constants
+  double log_const = std::log(alpha) - std::log(lambda);
+  double inv_lambda = 1.0 / lambda;
+
+  // Vectorized computation
   for (int i = 0; i < n_data; i++) {
     if (x[i] < 0) {
-      result[i] = 0.0;  // Weibull not defined for negative values
+      result[i] = 0.0;
     } else if (x[i] == 0) {
-      // Special case for x = 0
-      result[i] = (alpha == 1.0) ? lambda : 0.0;
-    } else if (lambda > 0 && alpha > 0 && std::isfinite(lambda) && std::isfinite(alpha)) {
-      // Use log-space calculation for stability
-      double log_lik = std::log(alpha) - std::log(lambda) +
-        (alpha - 1.0) * std::log(x[i]) -
-        std::pow(x[i] / std::pow(lambda, 1.0/alpha), alpha);
+      result[i] = (alpha == 1.0) ? inv_lambda : 0.0;
+    } else {
+      // Standard Weibull likelihood
+      double log_x = std::log(x[i]);
+      double x_alpha = std::exp(alpha * log_x);
 
-      if (std::isfinite(log_lik) && log_lik > -700) {  // Prevent underflow
+      double log_lik = log_const + (alpha - 1.0) * log_x - inv_lambda * x_alpha;
+
+      if (log_lik > -700) {  // Prevent underflow
         result[i] = std::exp(log_lik);
       } else {
         result[i] = 1e-300;
       }
-    } else {
-      result[i] = 1e-300;
     }
   }
 
@@ -136,10 +145,19 @@ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) c
   Rcpp::NumericVector priorParams = Rcpp::as<Rcpp::NumericVector>(priorParameters);
   Rcpp::NumericVector mhStep = Rcpp::as<Rcpp::NumericVector>(mhStepSize);
 
-  int mhDraws = std::max(100, n * 10);  // Ensure enough samples
-  const int MAX_ITER = 10000;  // Maximum iterations to prevent infinite loops
+  // Match R implementation - only n draws needed
+  if (x.n_rows == 0) {
+    return priorDraw(n);
+  }
 
-  // Initialize from prior
+  int n_data = x.n_rows;
+  arma::vec x_vec = x.col(0);
+
+  // Storage for samples
+  Rcpp::NumericVector alpha_samples(n);
+  Rcpp::NumericVector lambda_samples(n);
+
+  // Initialize
   Rcpp::List initial_draw = priorDraw(1);
   Rcpp::NumericVector alpha_init = initial_draw[0];
   Rcpp::NumericVector lambda_init = initial_draw[1];
@@ -147,57 +165,52 @@ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) c
   double alpha_current = alpha_init[0];
   double lambda_current = lambda_init[0];
 
-  // Storage for samples
-  std::vector<double> alpha_samples;
-  std::vector<double> lambda_samples;
-  alpha_samples.reserve(mhDraws);
-  lambda_samples.reserve(mhDraws);
-
-  // Create initial parameter list
-  Rcpp::NumericVector alpha_vec(1), lambda_vec(1);
-  alpha_vec.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-  lambda_vec.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-  alpha_vec[0] = alpha_current;
-  lambda_vec[0] = lambda_current;
-  Rcpp::List current_params = Rcpp::List::create(alpha_vec, lambda_vec);
-
-  // Calculate initial likelihood and prior
-  double current_log_lik = 0.0;
-  Rcpp::NumericVector lik_vals = likelihood(arma::vectorise(x), current_params);
-  for (int k = 0; k < lik_vals.size(); k++) {
-    if (lik_vals[k] > 1e-300) {
-      current_log_lik += std::log(lik_vals[k]);
-    } else {
-      current_log_lik = -std::numeric_limits<double>::infinity();
-      break;
+  // Pre-compute sum(x^alpha) for current alpha and sample initial lambda
+  double sum_x_alpha_current = 0.0;
+  for (int i = 0; i < n_data; i++) {
+    if (x_vec[i] > 0) {
+      sum_x_alpha_current += std::pow(x_vec[i], alpha_current);
     }
   }
-  double current_log_prior = std::log(priorDensity(current_params)[0]);
+
+  // Sample lambda given current alpha (Gibbs step)
+  double shape_post = priorParams[1] + n_data;
+  double rate_post_current = sum_x_alpha_current + priorParams[2];
+  lambda_current = 1.0 / R::rgamma(shape_post, 1.0 / rate_post_current);
+
+  // Compute initial log likelihood and prior
+  double current_log_lik = 0.0;
+  for (int i = 0; i < n_data; i++) {
+    if (x_vec[i] > 0) {
+      current_log_lik += std::log(alpha_current) - std::log(lambda_current) +
+        (alpha_current - 1.0) * std::log(x_vec[i]) -
+        std::pow(x_vec[i], alpha_current) / lambda_current;
+    }
+  }
+  double current_log_prior = (alpha_current > 0 && alpha_current <= priorParams[0]) ?
+  -std::log(priorParams[0]) : -std::numeric_limits<double>::infinity();
 
   int accept_count = 0;
-  int iter_count = 0;
+  double adaptive_mh_step = mhStep[0];  // Start with provided step size
 
-  for (int iter = 0; iter < mhDraws && iter_count < MAX_ITER; iter++, iter_count++) {
-    // Propose new alpha
-    Rcpp::List proposed_params = mhParameterProposal(current_params);
-    Rcpp::NumericVector prop_alpha = proposed_params[0];
-    double alpha_prop = prop_alpha[0];
+  // Main MCMC loop - matching R's MetropolisHastings.weibull
+  for (int iter = 0; iter < n; iter++) {
+    // Propose new alpha (matching R's use of abs())
+    double alpha_prop = std::abs(alpha_current + adaptive_mh_step * R::rnorm(0.0, 1.7));
 
-    // Check for numerical stability
-    if (!std::isfinite(alpha_prop) || alpha_prop <= 0 || alpha_prop > priorParams[0]) {
-      alpha_samples.push_back(alpha_current);
-      lambda_samples.push_back(lambda_current);
-      continue;
+    // Bound check
+    if (alpha_prop > priorParams[0]) {
+      alpha_prop = priorParams[0] * R::runif(0.5, 1.0); // Keep within bounds
     }
 
-    // Calculate sum(x^alpha) for lambda update
-    double sum_x_alpha = 0.0;
+    // Compute sum(x^alpha) for proposed alpha
+    double sum_x_alpha_prop = 0.0;
     bool valid_sum = true;
-    for (int i = 0; i < x.n_rows; i++) {
-      if (x(i, 0) > 0) {
-        double x_alpha = std::pow(x(i, 0), alpha_prop);
+    for (int i = 0; i < n_data; i++) {
+      if (x_vec[i] > 0) {
+        double x_alpha = std::pow(x_vec[i], alpha_prop);
         if (std::isfinite(x_alpha)) {
-          sum_x_alpha += x_alpha;
+          sum_x_alpha_prop += x_alpha;
         } else {
           valid_sum = false;
           break;
@@ -205,94 +218,79 @@ Rcpp::List WeibullMixingDistribution::posteriorDraw(const arma::mat& x, int n) c
       }
     }
 
-    if (!valid_sum || sum_x_alpha <= 0) {
-      alpha_samples.push_back(alpha_current);
-      lambda_samples.push_back(lambda_current);
+    if (!valid_sum || sum_x_alpha_prop <= 0) {
+      // Reject this proposal
+      alpha_samples[iter] = alpha_current;
+      lambda_samples[iter] = lambda_current;
       continue;
     }
 
-    // Update lambda analytically
-    double lambda_prop = 1.0 / R::rgamma(priorParams[1] + x.n_rows,
-                                         1.0 / (sum_x_alpha + priorParams[2]));
+    // Sample lambda given proposed alpha (Gibbs step - matching R)
+    double rate_post_prop = sum_x_alpha_prop + priorParams[2];
+    double lambda_prop = 1.0 / R::rgamma(shape_post, 1.0 / rate_post_prop);
 
-    // Check lambda validity
-    if (!std::isfinite(lambda_prop) || lambda_prop <= 0 || lambda_prop > 1e10) {
-      alpha_samples.push_back(alpha_current);
-      lambda_samples.push_back(lambda_current);
-      continue;
-    }
-
-    // Update proposed params with new lambda
-    Rcpp::NumericVector prop_lambda(1);
-    prop_lambda.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
-    prop_lambda[0] = lambda_prop;
-    proposed_params[1] = prop_lambda;
-
-    // Calculate proposed likelihood
+    // Compute proposed log likelihood
     double proposed_log_lik = 0.0;
-    Rcpp::NumericVector prop_lik_vals = likelihood(arma::vectorise(x), proposed_params);
-    for (int k = 0; k < prop_lik_vals.size(); k++) {
-      if (prop_lik_vals[k] > 1e-300) {
-        proposed_log_lik += std::log(prop_lik_vals[k]);
-      } else {
-        proposed_log_lik = -std::numeric_limits<double>::infinity();
-        break;
+    for (int i = 0; i < n_data; i++) {
+      if (x_vec[i] > 0) {
+        proposed_log_lik += std::log(alpha_prop) - std::log(lambda_prop) +
+          (alpha_prop - 1.0) * std::log(x_vec[i]) -
+          std::pow(x_vec[i], alpha_prop) / lambda_prop;
       }
     }
 
-    double proposed_log_prior = std::log(priorDensity(proposed_params)[0]);
+    // Compute proposed log prior
+    double proposed_log_prior = (alpha_prop > 0 && alpha_prop <= priorParams[0]) ?
+    -std::log(priorParams[0]) : -std::numeric_limits<double>::infinity();
 
-    // Accept/reject
+    // MH acceptance ratio
     double log_ratio = (proposed_log_lik + proposed_log_prior) -
-      (current_log_lik + current_log_prior);
+    (current_log_lik + current_log_prior);
 
     double accept_prob = std::min(1.0, std::exp(log_ratio));
     if (!std::isfinite(accept_prob)) {
       accept_prob = 0.0;
     }
 
+    // Accept/reject
     if (R::runif(0, 1) < accept_prob) {
-      current_params = proposed_params;
       alpha_current = alpha_prop;
       lambda_current = lambda_prop;
       current_log_lik = proposed_log_lik;
       current_log_prior = proposed_log_prior;
+      sum_x_alpha_current = sum_x_alpha_prop;
       accept_count++;
     }
 
-    alpha_samples.push_back(alpha_current);
-    lambda_samples.push_back(lambda_current);
-  }
+    // POINT 4: Adaptive step sizing
+    if (iter > 0 && iter % 50 == 0) {
+      double recent_accept_rate = (double)accept_count / 50.0;
 
-  if (iter_count >= MAX_ITER) {
-    Rcpp::warning("Weibull posterior draw reached maximum iterations");
-  }
+      if (recent_accept_rate < 0.15) {
+        adaptive_mh_step *= 0.7;  // Decrease step size if acceptance too low
+      } else if (recent_accept_rate > 0.5) {
+        adaptive_mh_step *= 1.3;  // Increase step size if acceptance too high
+      }
 
-  // Return the last n samples
-  int actual_samples = alpha_samples.size();
-  int start_idx = std::max(0, actual_samples - n);
+      // Reset counter
+      accept_count = 0;
 
-  Rcpp::NumericVector alpha_final(n);
-  Rcpp::NumericVector lambda_final(n);
-
-  for (int i = 0; i < n; i++) {
-    int idx = start_idx + i;
-    if (idx < actual_samples) {
-      alpha_final[i] = alpha_samples[idx];
-      lambda_final[i] = lambda_samples[idx];
-    } else {
-      // Use last available sample
-      alpha_final[i] = alpha_samples.back();
-      lambda_final[i] = lambda_samples.back();
+      // Keep step size in reasonable bounds
+      adaptive_mh_step = std::max(0.01, std::min(5.0, adaptive_mh_step));
     }
+
+    // Store current values
+    alpha_samples[iter] = alpha_current;
+    lambda_samples[iter] = lambda_current;
   }
 
-  alpha_final.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
-  lambda_final.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+  // Format output to match R structure
+  alpha_samples.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+  lambda_samples.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
 
   return Rcpp::List::create(
-    Rcpp::Named("alpha") = alpha_final,
-    Rcpp::Named("lambda") = lambda_final
+    Rcpp::Named("alpha") = alpha_samples,
+    Rcpp::Named("lambda") = lambda_samples
   );
 }
 
