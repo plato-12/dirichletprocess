@@ -5,6 +5,7 @@
 #include "../inst/include/mvnormal_mixing.h"
 #include "../inst/include/weibull_mixing.h"
 #include "../inst/include/exponential_mixing.h"
+#include "../inst/include/hierarchical_beta_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {
@@ -67,6 +68,22 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
 
     return std::unique_ptr<MixingDistribution>(
       new ExponentialMixing(alpha0, beta0));
+  } else if (type == "hierarchical_beta") {
+    double alpha0 = Rcpp::as<double>(params["alpha0"]);
+    double beta0 = Rcpp::as<double>(params["beta0"]);
+    double maxT = Rcpp::as<double>(params["maxT"]);
+
+    double gamma_shape = 2.0;
+    double gamma_rate = 4.0;
+    if (params.containsElementNamed("gamma_prior_shape")) {
+      gamma_shape = Rcpp::as<double>(params["gamma_prior_shape"]);
+    }
+    if (params.containsElementNamed("gamma_prior_rate")) {
+      gamma_rate = Rcpp::as<double>(params["gamma_prior_rate"]);
+    }
+
+    return std::unique_ptr<MixingDistribution>(
+      new HierarchicalBetaMixing(alpha0, beta0, maxT, gamma_shape, gamma_rate));
   }
 
 
