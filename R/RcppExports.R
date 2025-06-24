@@ -358,6 +358,10 @@ nonconjugate_weibull_cluster_component_update_cpp <- function(dp_list) {
     .Call(`_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp`, dp_list)
 }
 
+run_hierarchical_mcmc_cpp <- function(datasets, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocess_run_hierarchical_mcmc_cpp`, datasets, mixing_dist_params, mcmc_params)
+}
+
 normal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_normal_likelihood_cpp`, x, mu, sigma)
 }
