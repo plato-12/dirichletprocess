@@ -44,6 +44,9 @@ nonconjugate_beta_cluster_component_update_cpp <- function(dp_list) {
 #' @title Draw from an Exponential distribution prior (C++)
 NULL
 
+#' @title Calculate Exponential log-likelihood (C++)
+NULL
+
 #' @title Draw from an Exponential distribution posterior (C++)
 NULL
 
@@ -67,6 +70,10 @@ NULL
 
 exponential_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_exponential_prior_draw_cpp`, priorParams, n)
+}
+
+exponential_log_likelihood_cpp <- function(x, lambda) {
+    .Call(`_dirichletprocess_exponential_log_likelihood_cpp`, x, lambda)
 }
 
 exponential_posterior_draw_cpp <- function(priorParams, x, n = 1L) {

@@ -156,6 +156,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// exponential_log_likelihood_cpp
+Rcpp::NumericVector exponential_log_likelihood_cpp(Rcpp::NumericVector x, double lambda);
+RcppExport SEXP _dirichletprocess_exponential_log_likelihood_cpp(SEXP xSEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(exponential_log_likelihood_cpp(x, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
 // exponential_posterior_draw_cpp
 Rcpp::List exponential_posterior_draw_cpp(Rcpp::NumericVector priorParams, Rcpp::NumericMatrix x, int n);
 RcppExport SEXP _dirichletprocess_exponential_posterior_draw_cpp(SEXP priorParamsSEXP, SEXP xSEXP, SEXP nSEXP) {
@@ -170,7 +182,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // exponential_posterior_parameters_cpp
-Rcpp::NumericMatrix exponential_posterior_parameters_cpp(Rcpp::NumericVector priorParams, Rcpp::NumericMatrix x);
+Rcpp::List exponential_posterior_parameters_cpp(Rcpp::NumericVector priorParams, Rcpp::NumericMatrix x);
 RcppExport SEXP _dirichletprocess_exponential_posterior_parameters_cpp(SEXP priorParamsSEXP, SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -787,6 +799,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp, 1},
     {"_dirichletprocess_exponential_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_exponential_prior_draw_cpp, 2},
+    {"_dirichletprocess_exponential_log_likelihood_cpp", (DL_FUNC) &_dirichletprocess_exponential_log_likelihood_cpp, 2},
     {"_dirichletprocess_exponential_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_exponential_posterior_draw_cpp, 3},
     {"_dirichletprocess_exponential_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_exponential_posterior_parameters_cpp, 2},
     {"_dirichletprocess_exponential_likelihood_cpp", (DL_FUNC) &_dirichletprocess_exponential_likelihood_cpp, 2},

@@ -75,14 +75,18 @@ test_that("Exponential prior and posterior draws work correctly", {
   # Test prior draw
   set.seed(123)
   prior_draw <- exponential_prior_draw_cpp(prior_params)
-  expect_true(prior_draw > 0)
-  expect_true(is.finite(prior_draw))
+  # Extract the lambda value from the list
+  lambda_value <- prior_draw$lambda[1,1,1]  # Get the single value from the 3D array
+  expect_true(lambda_value > 0)
+  expect_true(is.finite(lambda_value))
 
   # Test posterior draw
   data <- matrix(rexp(20, rate = 3), ncol = 1)
   post_draw <- exponential_posterior_draw_cpp(prior_params, data)
-  expect_true(post_draw > 0)
-  expect_true(is.finite(post_draw))
+  # Extract the lambda value from the list
+  post_lambda_value <- post_draw$lambda[1,1,1]  # Get the single value from the 3D array
+  expect_true(post_lambda_value > 0)
+  expect_true(is.finite(post_lambda_value))
 })
 
 test_that("Exponential handles edge cases properly", {
@@ -94,7 +98,7 @@ test_that("Exponential handles edge cases properly", {
   expect_true(all(is.finite(log_lik)))
   expect_true(all(log_lik < 0))  # Log likelihood should be negative
 
-  # Test with zero/negative data (should return -Inf)
+  # Test with zero/negative data (should return -Inf for negative)
   x_invalid <- c(-1, 0, 1)
   log_lik_invalid <- exponential_log_likelihood_cpp(x_invalid, 2)
   expect_equal(log_lik_invalid[1], -Inf)  # Negative value

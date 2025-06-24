@@ -15,6 +15,32 @@
    return md.priorDraw(n);
  }
 
+//' @title Calculate Exponential log-likelihood (C++)
+ //' @description C++ implementation for calculating exponential log-likelihood.
+ //' @param x A numeric vector of data points.
+ //' @param lambda The rate parameter.
+ //' @return A numeric vector of log-likelihood values.
+ //' @export
+ // [[Rcpp::export]]
+ Rcpp::NumericVector exponential_log_likelihood_cpp(Rcpp::NumericVector x, double lambda) {
+   if (lambda <= 0) {
+     return Rcpp::NumericVector(x.size(), -std::numeric_limits<double>::infinity());
+   }
+
+   const int n = x.size();
+   Rcpp::NumericVector result(n);
+
+   for (int i = 0; i < n; ++i) {
+     if (x[i] < 0) {
+       result[i] = -std::numeric_limits<double>::infinity();
+     } else {
+       result[i] = std::log(lambda) - lambda * x[i];
+     }
+   }
+
+   return result;
+ }
+
 //' @title Draw from an Exponential distribution posterior (C++)
  //' @description C++ implementation for drawing from the posterior distribution of an
  //'   Exponential/Gamma model.
@@ -37,14 +63,20 @@
  //'   Exponential/Gamma model.
  //' @param priorParams A numeric vector of prior parameters.
  //' @param x A numeric matrix of data.
- //' @return A numeric matrix of posterior parameters.
+ //' @return A list with alpha and beta posterior parameters.
  //' @export
  // [[Rcpp::export]]
- Rcpp::NumericMatrix exponential_posterior_parameters_cpp(Rcpp::NumericVector priorParams,
-                                                          Rcpp::NumericMatrix x) {
+ Rcpp::List exponential_posterior_parameters_cpp(Rcpp::NumericVector priorParams,
+                                                 Rcpp::NumericMatrix x) {
    dp::ExponentialMixingDistribution md(priorParams);
    arma::mat x_arma = Rcpp::as<arma::mat>(x);
-   return md.posteriorParameters(x_arma);
+
+   Rcpp::NumericMatrix post_params = md.posteriorParameters(x_arma);
+
+   return Rcpp::List::create(
+     Rcpp::Named("alpha") = post_params(0, 0),
+     Rcpp::Named("beta") = post_params(0, 1)
+   );
  }
 
 //' @title Calculate Exponential likelihood (C++)
