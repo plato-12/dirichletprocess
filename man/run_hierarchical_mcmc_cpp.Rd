@@ -14,7 +14,7 @@ run_hierarchical_mcmc_cpp(
 )
 }
 \arguments{
-\item{dp_list}{List of DirichletProcessBeta objects}
+\item{dp_list}{Hierarchical DP object (not a list of DirichletProcessBeta objects)}
 
 \item{n_iter}{Number of MCMC iterations}
 

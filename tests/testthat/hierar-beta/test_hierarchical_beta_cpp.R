@@ -51,7 +51,15 @@ test_that("Hierarchical Beta MCMC runs without errors", {
 })
 
 test_that("Hierarchical Beta parameters are updated correctly", {
-  skip_if_not(can_use_hierarchical_cpp(DirichletProcessHierarchicalBeta(list())))
+  # Create dummy data first to check if we can use hierarchical CPP
+  dummy_data <- list(rbeta(10, 2, 8))
+  dummy_dp <- DirichletProcessHierarchicalBeta(
+    dummy_data,
+    maxY = 1,
+    hyperPriorParameters = c(1, 0.01)
+  )
+
+  skip_if_not(can_use_hierarchical_cpp(dummy_dp))
 
   # Create simple test case
   data_list <- list(
@@ -78,7 +86,15 @@ test_that("Hierarchical Beta parameters are updated correctly", {
 
 test_that("Performance improvement over R implementation", {
   skip_if_not_installed("microbenchmark")
-  skip_if_not(can_use_hierarchical_cpp(DirichletProcessHierarchicalBeta(list())))
+
+  # Create dummy data first to check if we can use hierarchical CPP
+  dummy_data <- list(rbeta(10, 2, 5))
+  dummy_dp <- DirichletProcessHierarchicalBeta(
+    dummy_data,
+    maxY = 1
+  )
+
+  skip_if_not(can_use_hierarchical_cpp(dummy_dp))
 
   # Generate test data
   set.seed(42)

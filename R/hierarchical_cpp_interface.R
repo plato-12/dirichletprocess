@@ -1,6 +1,6 @@
 #' Run Hierarchical Beta MCMC using C++ implementation
 #'
-#' @param dp_list List of DirichletProcessBeta objects
+#' @param dp_list Hierarchical DP object (not a list of DirichletProcessBeta objects)
 #' @param n_iter Number of MCMC iterations
 #' @param n_burn Number of burn-in iterations
 #' @param thin Thinning parameter
@@ -13,13 +13,17 @@ run_hierarchical_mcmc_cpp <- function(dp_list, n_iter = 1000, n_burn = 100,
                                       thin = 1, update_prior = FALSE,
                                       progress_bar = TRUE) {
 
-  # Validate inputs
+  # Validate inputs - dp_list should be a hierarchical DP object
+  if (!inherits(dp_list, "hierarchical")) {
+    stop("dp_list must be a hierarchical Dirichlet process object")
+  }
+
   if (!all(sapply(dp_list$indDP, function(x) inherits(x, "beta")))) {
     stop("All individual DPs must be Beta type")
   }
 
   # Extract datasets
-  datasets <- lapply(dp_list$indDP, function(dp) dp$data)
+  datasets <- lapply(dp_list$indDP, function(dp) as.matrix(dp$data))
 
   # Prepare mixing distribution parameters
   first_dp <- dp_list$indDP[[1]]
@@ -32,14 +36,16 @@ run_hierarchical_mcmc_cpp <- function(dp_list, n_iter = 1000, n_burn = 100,
     gamma_prior_rate = dp_list$gammaPriors[2]
   )
 
-  # MCMC parameters
+  # MCMC parameters - use the first alpha value as default
+  # The C++ code expects a single 'alpha' parameter
   mcmc_params <- list(
-    n_iter = n_iter,
-    n_burn = n_burn,
-    thin = thin,
+    n_iter = as.integer(n_iter),
+    n_burn = as.integer(n_burn),
+    thin = as.integer(thin),
     update_prior = update_prior,
     update_concentration = TRUE,
-    m_auxiliary = 3  # For Algorithm 8
+    m_auxiliary = 3L,  # For Algorithm 8
+    alpha = as.numeric(dp_list$indDP[[1]]$alpha)  # Use first DP's alpha as default
   )
 
   # Call C++ implementation
@@ -59,6 +65,11 @@ run_hierarchical_mcmc_cpp <- function(dp_list, n_iter = 1000, n_burn = 100,
   dp_list$globalStick <- result$global_weights
   dp_list$gammaValues <- result$gamma_samples
 
+  # Update gamma if it was sampled
+  if (length(result$gamma_samples) > 0) {
+    dp_list$gamma <- result$gamma_samples[length(result$gamma_samples)]
+  }
+
   return(dp_list)
 }
 
@@ -72,8 +83,42 @@ can_use_hierarchical_cpp <- function(dp_list) {
     return(FALSE)
   }
 
+  # Check if it's a hierarchical object
+  if (!inherits(dp_list, "hierarchical")) {
+    return(FALSE)
+  }
+
   # Check if all individual DPs are supported
   all_beta <- all(sapply(dp_list$indDP, function(x) inherits(x, "beta")))
 
   return(all_beta)
+}
+
+#' Update DP object from MCMC results
+#' @param dp Original DP object
+#' @param mcmc_result MCMC results from C++
+#' @return Updated DP object
+#' @keywords internal
+update_dp_from_mcmc <- function(dp, mcmc_result) {
+  if (!is.null(mcmc_result$cluster_labels)) {
+    dp$clusterLabels <- mcmc_result$cluster_labels
+  }
+
+  if (!is.null(mcmc_result$cluster_params)) {
+    dp$clusterParameters <- mcmc_result$cluster_params
+  }
+
+  if (!is.null(mcmc_result$n_clusters)) {
+    dp$numberClusters <- mcmc_result$n_clusters
+  }
+
+  if (!is.null(mcmc_result$alpha)) {
+    dp$alpha <- mcmc_result$alpha
+  }
+
+  if (!is.null(mcmc_result$weights)) {
+    dp$weights <- mcmc_result$weights
+  }
+
+  return(dp)
 }
