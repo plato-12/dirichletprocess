@@ -10,7 +10,7 @@
 \alias{HierarchicalBetaCreate.cpp}
 \title{C++ Implementation Wrappers for Hierarchical Beta Distribution}
 \usage{
-\method{Fit}{hierarchical.cpp}(dpObj, its, updatePrior = FALSE, progressBar = TRUE)
+\method{Fit}{hierarchical.cpp}(dpObj, its, updatePrior = FALSE, progressBar = interactive())
 
 \method{ClusterComponentUpdate}{hierarchical.cpp}(dpObj)
 

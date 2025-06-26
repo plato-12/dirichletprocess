@@ -196,7 +196,7 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 #' @export
 Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
   # Use C++ implementation if enabled and available
-  if (using_cpp_hierarchical_samplers() && all(sapply(dpObj$indDP, function(x) inherits(x, "beta")))) {
+  if (using_cpp_hierarchical_samplers() && can_use_hierarchical_cpp(dpObj)) {
     return(Fit.hierarchical.cpp(dpObj, its, updatePrior, progressBar))
   }
 
@@ -205,40 +205,175 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
     pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
   }
 
+  # Initialize storage arrays
   gammaValues <- numeric(its)
+  gammaChain <- numeric(its)
+
+  # Initialize alpha chains for each individual DP
+  for (j in seq_along(dpObj$indDP)) {
+    dpObj$indDP[[j]]$alphaChain <- numeric(its)
+    dpObj$indDP[[j]]$likelihoodChain <- numeric(its)
+    dpObj$indDP[[j]]$weightsChain <- vector("list", length = its)
+    dpObj$indDP[[j]]$clusterParametersChain <- vector("list", length = its)
+    dpObj$indDP[[j]]$labelsChain <- vector("list", length = its)
+  }
+
+  # Initialize global parameter storage
+  globalParametersChain <- vector("list", length = its)
+  globalStickChain <- vector("list", length = its)
 
   for (i in seq_len(its)) {
-
+    # Update cluster components for each individual DP
     dpObj <- ClusterComponentUpdate(dpObj)
+
+    # Update alpha for each individual DP
     dpObj <- UpdateAlpha(dpObj)
+
+    # Update global parameters using all data
     dpObj <- GlobalParameterUpdate(dpObj)
+
+    # Update G0 (the base distribution)
     dpObj <- UpdateG0(dpObj)
+
+    # Update gamma (concentration parameter for G0)
     dpObj <- UpdateGamma(dpObj)
 
+    # Store values for this iteration
+    gammaValues[i] <- dpObj$gamma
+    gammaChain[i] <- dpObj$gamma
+    globalParametersChain[[i]] <- dpObj$globalParameters
+    globalStickChain[[i]] <- dpObj$globalStick
+
+    # Store individual DP values
+    for (j in seq_along(dpObj$indDP)) {
+      # Store alpha
+      dpObj$indDP[[j]]$alphaChain[i] <- dpObj$indDP[[j]]$alpha
+
+      # Calculate and store likelihood
+      if (!is.null(dpObj$indDP[[j]]$data) && !is.null(dpObj$indDP[[j]]$clusterLabels)) {
+        dpObj$indDP[[j]]$likelihoodChain[i] <- sum(log(LikelihoodDP(dpObj$indDP[[j]])))
+      }
+
+      # Store weights
+      dpObj$indDP[[j]]$weightsChain[[i]] <- dpObj$indDP[[j]]$pointsPerCluster / dpObj$indDP[[j]]$n
+
+      # Store cluster parameters
+      dpObj$indDP[[j]]$clusterParametersChain[[i]] <- dpObj$indDP[[j]]$clusterParameters
+
+      # Store labels
+      dpObj$indDP[[j]]$labelsChain[[i]] <- dpObj$indDP[[j]]$clusterLabels
+
+      # Update weights
+      dpObj$indDP[[j]]$weights <- dpObj$indDP[[j]]$pointsPerCluster / dpObj$indDP[[j]]$n
+    }
+
+    # Update prior parameters if requested
     if (updatePrior) {
-
-      clustParamLen <- length(unique(lapply(dpObj$indDP, function(x) x$clusterParameters[[1]])))
-
-      clustParam <- lapply(dpObj$globalParameters, function(x) x[, , 1:clustParamLen, drop = FALSE])
-
-      tempMD <- PriorParametersUpdate(dpObj$indDP[[1]]$mixingDistribution, clustParam)
-
+      # Get unique cluster parameters across all DPs
+      allClusterParams <- list()
       for (j in seq_along(dpObj$indDP)) {
-        dpObj$indDP[[j]]$mixingDistribution$priorParameters <- tempMD$priorParameters
+        if (!is.null(dpObj$indDP[[j]]$clusterParameters)) {
+          allClusterParams <- c(allClusterParams,
+                                list(dpObj$indDP[[j]]$clusterParameters))
+        }
+      }
+
+      # Find unique parameters
+      if (length(allClusterParams) > 0) {
+        uniqueParams <- unique(unlist(lapply(allClusterParams, function(x) {
+          if (is.list(x)) x[[1]] else x
+        }), recursive = FALSE))
+
+        clustParamLen <- length(uniqueParams)
+
+        if (clustParamLen > 0) {
+          # Extract global parameters up to the number of unique clusters
+          clustParam <- lapply(dpObj$globalParameters, function(x) {
+            if (is.array(x) && length(dim(x)) >= 3) {
+              x[, , 1:min(clustParamLen, dim(x)[3]), drop = FALSE]
+            } else {
+              x
+            }
+          })
+
+          # Update prior parameters using the first DP's mixing distribution
+          tempMD <- PriorParametersUpdate(dpObj$indDP[[1]]$mixingDistribution, clustParam)
+
+          # Apply updated prior parameters to all individual DPs
+          for (j in seq_along(dpObj$indDP)) {
+            dpObj$indDP[[j]]$mixingDistribution$priorParameters <- tempMD$priorParameters
+          }
+        }
       }
     }
 
     if (progressBar) {
       setTxtProgressBar(pb, i)
     }
-
-    gammaValues[i] <- dpObj$gamma
   }
+
+  # Store all chains in the dpObj
   dpObj$gammaValues <- gammaValues
+  dpObj$gammaChain <- gammaChain
+  dpObj$globalParametersChain <- globalParametersChain
+  dpObj$globalStickChain <- globalStickChain
+
+  # Ensure each individual DP has the correct numberClusters as a scalar
+  for (j in seq_along(dpObj$indDP)) {
+    if (!is.null(dpObj$indDP[[j]]$clusterLabels)) {
+      dpObj$indDP[[j]]$numberClusters <- length(unique(dpObj$indDP[[j]]$clusterLabels))
+    }
+  }
+
   if (progressBar) {
     close(pb)
   }
+
   return(dpObj)
+}
+
+#' @export
+Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()) {
+  if (!can_use_hierarchical_cpp(dpObj)) {
+    stop("C++ implementation not available for this hierarchical DP type")
+  }
+
+  # Use the C++ implementation via run_hierarchical_mcmc_cpp
+  result <- run_hierarchical_mcmc_cpp(
+    dpObj,
+    n_iter = its,
+    n_burn = 0,  # No burn-in for regular Fit
+    thin = 1,
+    update_prior = updatePrior,
+    progress_bar = progressBar
+  )
+
+  # The result from run_hierarchical_mcmc_cpp should already have the updated dpObj
+  # Ensure all fields are properly set
+
+  # Make sure numberClusters is scalar for each individual DP
+  for (j in seq_along(result$indDP)) {
+    if (!is.null(result$indDP[[j]]$clusterLabels)) {
+      result$indDP[[j]]$numberClusters <- as.integer(length(unique(result$indDP[[j]]$clusterLabels)))
+    }
+
+    # Ensure weights are calculated
+    if (!is.null(result$indDP[[j]]$pointsPerCluster) && !is.null(result$indDP[[j]]$n)) {
+      result$indDP[[j]]$weights <- result$indDP[[j]]$pointsPerCluster / result$indDP[[j]]$n
+    }
+  }
+
+  # Ensure gamma is set to the last value if we have samples
+  if (!is.null(result$gammaValues) && length(result$gammaValues) > 0) {
+    result$gamma <- result$gammaValues[length(result$gammaValues)]
+  }
+
+  # Set gammaChain as alias for gammaValues for compatibility
+  if (!is.null(result$gammaValues)) {
+    result$gammaChain <- result$gammaValues
+  }
+
+  return(result)
 }
 
 #' @export

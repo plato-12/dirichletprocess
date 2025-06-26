@@ -37,6 +37,15 @@ test_that("Hierarchical Beta MCMC runs without errors", {
       progress_bar = FALSE
     )
 
+    # Debug what's in the result
+    cat("Result names:", names(result), "\n")
+    cat("indDP length:", length(result$indDP), "\n")
+    if (length(result$indDP) > 0) {
+      cat("First DP names:", names(result$indDP[[1]]), "\n")
+      cat("numberClusters class:", class(result$indDP[[1]]$numberClusters), "\n")
+      cat("numberClusters value:", result$indDP[[1]]$numberClusters, "\n")
+    }
+
     expect_true(is.list(result))
     expect_true(length(result$indDP) == 2)
     expect_true(length(result$gammaValues) > 0)
@@ -79,6 +88,15 @@ test_that("Hierarchical Beta parameters are updated correctly", {
   # Run MCMC
   result <- run_hierarchical_mcmc_cpp(dp_list, n_iter = 50, progress_bar = FALSE)
 
+  # Debug what's in the result
+  cat("Result names:", names(result), "\n")
+  cat("indDP length:", length(result$indDP), "\n")
+  if (length(result$indDP) > 0) {
+    cat("First DP names:", names(result$indDP[[1]]), "\n")
+    cat("numberClusters class:", class(result$indDP[[1]]$numberClusters), "\n")
+    cat("numberClusters value:", result$indDP[[1]]$numberClusters, "\n")
+  }
+
   # Check updates occurred
   expect_true(result$gamma != initial_gamma)
   expect_true(length(result$globalParameters) > 0)
@@ -87,32 +105,41 @@ test_that("Hierarchical Beta parameters are updated correctly", {
 test_that("Performance improvement over R implementation", {
   skip_if_not_installed("microbenchmark")
 
-  # Create dummy data first to check if we can use hierarchical CPP
-  dummy_data <- list(rbeta(10, 2, 5))
-  dummy_dp <- DirichletProcessHierarchicalBeta(
-    dummy_data,
-    maxY = 1
-  )
-
-  skip_if_not(can_use_hierarchical_cpp(dummy_dp))
-
   # Generate test data
   set.seed(42)
   data_list <- lapply(1:3, function(i) rbeta(100, 2, 5))
 
-  dp_list <- DirichletProcessHierarchicalBeta(
-    data_list,
-    maxY = 1
-  )
+  # Test both implementations exist first
+  dummy_dp <- DirichletProcessHierarchicalBeta(list(rbeta(10, 2, 5)), maxY = 1)
+
+  # Ensure it has the right class
+  expect_true(inherits(dummy_dp, "hierarchical"))
+
+  skip_if_not(can_use_hierarchical_cpp(dummy_dp))
 
   # Benchmark
   mb_result <- microbenchmark::microbenchmark(
     R_Backend = {
-      set_use_cpp(FALSE)
+      enable_cpp_hierarchical_samplers(FALSE)
+      dp_list <- DirichletProcessHierarchicalBeta(data_list, maxY = 1)
+      # Ensure alpha is initialized
+      for (i in seq_along(dp_list$indDP)) {
+        if (is.null(dp_list$indDP[[i]]$alpha)) {
+          dp_list$indDP[[i]]$alpha <- 1.0  # Default value
+        }
+      }
       Fit(dp_list, 20, progressBar = FALSE)
     },
     CPP_Backend = {
-      result <- run_hierarchical_mcmc_cpp(dp_list, n_iter = 20, progress_bar = FALSE)
+      enable_cpp_hierarchical_samplers(TRUE)
+      dp_list <- DirichletProcessHierarchicalBeta(data_list, maxY = 1)
+      # Ensure alpha is initialized
+      for (i in seq_along(dp_list$indDP)) {
+        if (is.null(dp_list$indDP[[i]]$alpha)) {
+          dp_list$indDP[[i]]$alpha <- 1.0  # Default value
+        }
+      }
+      Fit(dp_list, 20, progressBar = FALSE)
     },
     times = 3
   )

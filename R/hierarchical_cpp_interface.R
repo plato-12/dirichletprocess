@@ -53,21 +53,53 @@ run_hierarchical_mcmc_cpp <- function(dp_list, n_iter = 1000, n_burn = 100,
                   datasets, mixing_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 
+  # Debug: Check what fields are in the result
+  # cat("Result fields from C++:", names(result), "\n")
+
+  # The C++ returns 'indDP' not 'individual_dps'
   # Update dp_list with results
-  for (i in seq_along(result$individual_dps)) {
-    dp_list$indDP[[i]] <- update_dp_from_mcmc(
-      dp_list$indDP[[i]],
-      result$individual_dps[[i]]
-    )
+  if (!is.null(result$indDP)) {
+    for (i in seq_along(result$indDP)) {
+      # Each indDP[i] should be a list with the DP fields
+      if (is.list(result$indDP[[i]])) {
+        # Copy all fields from result to dp_list
+        for (field in names(result$indDP[[i]])) {
+          dp_list$indDP[[i]][[field]] <- result$indDP[[i]][[field]]
+        }
+
+        # Ensure numberClusters is scalar
+        if (!is.null(dp_list$indDP[[i]]$clusterLabels)) {
+          dp_list$indDP[[i]]$numberClusters <- as.integer(
+            length(unique(dp_list$indDP[[i]]$clusterLabels))
+          )
+        }
+
+        # Calculate weights if needed
+        if (!is.null(dp_list$indDP[[i]]$pointsPerCluster) &&
+            !is.null(dp_list$indDP[[i]]$n)) {
+          dp_list$indDP[[i]]$weights <- dp_list$indDP[[i]]$pointsPerCluster / dp_list$indDP[[i]]$n
+        }
+      }
+    }
   }
 
-  dp_list$globalParameters <- result$global_parameters
-  dp_list$globalStick <- result$global_weights
-  dp_list$gammaValues <- result$gamma_samples
+  # Update global fields
+  if (!is.null(result$globalParameters)) {
+    dp_list$globalParameters <- result$globalParameters
+  }
 
-  # Update gamma if it was sampled
-  if (length(result$gamma_samples) > 0) {
-    dp_list$gamma <- result$gamma_samples[length(result$gamma_samples)]
+  if (!is.null(result$globalStick)) {
+    dp_list$globalStick <- result$globalStick
+  }
+
+  if (!is.null(result$gammaValues)) {
+    dp_list$gammaValues <- result$gammaValues
+    # Update gamma to the last value
+    if (length(result$gammaValues) > 0) {
+      dp_list$gamma <- result$gammaValues[length(result$gammaValues)]
+    }
+  } else if (!is.null(result$gamma)) {
+    dp_list$gamma <- result$gamma
   }
 
   return(dp_list)
@@ -100,6 +132,11 @@ can_use_hierarchical_cpp <- function(dp_list) {
 #' @return Updated DP object
 #' @keywords internal
 update_dp_from_mcmc <- function(dp, mcmc_result) {
+  # Handle the case where mcmc_result might be NULL or not a list
+  if (is.null(mcmc_result) || !is.list(mcmc_result)) {
+    return(dp)
+  }
+
   if (!is.null(mcmc_result$cluster_labels)) {
     dp$clusterLabels <- mcmc_result$cluster_labels
   }
@@ -109,15 +146,32 @@ update_dp_from_mcmc <- function(dp, mcmc_result) {
   }
 
   if (!is.null(mcmc_result$n_clusters)) {
-    dp$numberClusters <- mcmc_result$n_clusters
+    # Ensure it's a scalar - handle both numeric and list inputs
+    if (is.list(mcmc_result$n_clusters)) {
+      dp$numberClusters <- as.integer(mcmc_result$n_clusters[[1]][1])
+    } else {
+      dp$numberClusters <- as.integer(mcmc_result$n_clusters[1])
+    }
   }
 
   if (!is.null(mcmc_result$alpha)) {
-    dp$alpha <- mcmc_result$alpha
+    # Ensure it's a scalar - handle both numeric and list inputs
+    if (is.list(mcmc_result$alpha)) {
+      dp$alpha <- as.numeric(mcmc_result$alpha[[1]][1])
+    } else {
+      dp$alpha <- as.numeric(mcmc_result$alpha[1])
+    }
   }
 
   if (!is.null(mcmc_result$weights)) {
     dp$weights <- mcmc_result$weights
+  }
+
+  # Copy any other fields that might be present
+  other_fields <- setdiff(names(mcmc_result),
+                          c("cluster_labels", "cluster_params", "n_clusters", "alpha", "weights"))
+  for (field in other_fields) {
+    dp[[field]] <- mcmc_result[[field]]
   }
 
   return(dp)
