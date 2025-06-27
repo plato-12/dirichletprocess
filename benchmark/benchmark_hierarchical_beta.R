@@ -9,6 +9,19 @@ library(tidyr)
 library(patchwork)
 library(microbenchmark)
 
+# Add this helper function after the library statements
+enable_cpp_hierarchical_samplers <- function(use_cpp = TRUE) {
+  # Suppress warnings about fallback since we're explicitly controlling this
+  suppressWarnings({
+    if (use_cpp && exists("hierarchical_beta_fit_cpp")) {
+      options(dirichletprocess.use_cpp_hierarchical = TRUE)
+    } else {
+      options(dirichletprocess.use_cpp_hierarchical = FALSE)
+    }
+  })
+  invisible(use_cpp)
+}
+
 #' Generate synthetic hierarchical beta mixture data
 #'
 #' @param n_groups Number of groups/datasets
@@ -174,6 +187,12 @@ profile_hierarchical_beta_components <- function(n_groups = 3, n_per_group = 200
 
   cat("\n=== Hierarchical Beta Component Profiling ===\n\n")
 
+  # Ensure gtools is loaded and attached
+  if (!requireNamespace("gtools", quietly = TRUE)) {
+    stop("Package 'gtools' is required but not installed.")
+  }
+  library(gtools)  # Attach to search path for C++ access
+
   # Generate test data
   set.seed(123)
   dataList <- generate_hierarchical_beta_data(n_groups, n_per_group)
@@ -210,6 +229,32 @@ profile_hierarchical_beta_components <- function(n_groups = 3, n_per_group = 200
       mhStepSize = mhStepSize,
       numSticks = numSticks
     )
+  } else {
+    cat("C++ implementation not available, skipping C++ profiling\n")
+    # Return R-only results
+    time_global_r <- system.time({
+      for (i in 1:50) {
+        dp_temp <- GlobalParameterUpdate(dp_r)
+      }
+    })["elapsed"] / 50 * 1000
+
+    time_g0_r <- system.time({
+      for (i in 1:50) {
+        dp_temp <- UpdateG0(dp_r)
+      }
+    })["elapsed"] / 50 * 1000
+
+    time_gamma_r <- system.time({
+      for (i in 1:50) {
+        dp_temp <- UpdateGamma(dp_r)
+      }
+    })["elapsed"] / 50 * 1000
+
+    return(data.frame(
+      component = c("GlobalParameterUpdate", "UpdateG0", "UpdateGamma"),
+      implementation = "R",
+      mean_time_ms = c(time_global_r, time_g0_r, time_gamma_r)
+    ))
   }
 
   # Time individual components
@@ -241,26 +286,39 @@ profile_hierarchical_beta_components <- function(n_groups = 3, n_per_group = 200
   if (exists("hierarchical_beta_fit_cpp")) {
     cat("Profiling C++ implementation...\n")
 
-    # Global parameter update
-    time_global_cpp <- system.time({
-      for (i in 1:n_timing_reps) {
-        dp_temp <- hierarchical_beta_global_parameter_update_cpp(dp_cpp)
-      }
-    })["elapsed"] / n_timing_reps * 1000
+    # Use tryCatch to handle potential C++ errors gracefully
+    time_global_cpp <- tryCatch({
+      system.time({
+        for (i in 1:n_timing_reps) {
+          dp_temp <- hierarchical_beta_global_parameter_update_cpp(dp_cpp)
+        }
+      })["elapsed"] / n_timing_reps * 1000
+    }, error = function(e) {
+      cat("Error in C++ global parameter update:", e$message, "\n")
+      NA
+    })
 
-    # Update G0
-    time_g0_cpp <- system.time({
-      for (i in 1:n_timing_reps) {
-        dp_temp <- hierarchical_beta_update_g0_cpp(dp_cpp)
-      }
-    })["elapsed"] / n_timing_reps * 1000
+    time_g0_cpp <- tryCatch({
+      system.time({
+        for (i in 1:n_timing_reps) {
+          dp_temp <- hierarchical_beta_update_g0_cpp(dp_cpp)
+        }
+      })["elapsed"] / n_timing_reps * 1000
+    }, error = function(e) {
+      cat("Error in C++ G0 update:", e$message, "\n")
+      NA
+    })
 
-    # Update gamma
-    time_gamma_cpp <- system.time({
-      for (i in 1:n_timing_reps) {
-        dp_temp <- hierarchical_beta_update_gamma_cpp(dp_cpp)
-      }
-    })["elapsed"] / n_timing_reps * 1000
+    time_gamma_cpp <- tryCatch({
+      system.time({
+        for (i in 1:n_timing_reps) {
+          dp_temp <- hierarchical_beta_update_gamma_cpp(dp_cpp)
+        }
+      })["elapsed"] / n_timing_reps * 1000
+    }, error = function(e) {
+      cat("Error in C++ gamma update:", e$message, "\n")
+      NA
+    })
   } else {
     time_global_cpp <- time_g0_cpp <- time_gamma_cpp <- NA
   }
@@ -276,13 +334,15 @@ profile_hierarchical_beta_components <- function(n_groups = 3, n_per_group = 200
   cat("\nComponent timings (milliseconds):\n")
   print(component_results)
 
-  # Calculate speedup
-  speedup_df <- component_results %>%
-    pivot_wider(names_from = implementation, values_from = mean_time_ms) %>%
-    mutate(speedup = R / `C++`)
+  # Calculate speedup only if C++ results are available
+  if (!all(is.na(c(time_global_cpp, time_g0_cpp, time_gamma_cpp)))) {
+    speedup_df <- component_results %>%
+      pivot_wider(names_from = implementation, values_from = mean_time_ms) %>%
+      mutate(speedup = R / `C++`)
 
-  cat("\nSpeedup by component:\n")
-  print(speedup_df)
+    cat("\nSpeedup by component:\n")
+    print(speedup_df)
+  }
 
   return(component_results)
 }
@@ -748,6 +808,18 @@ run_hierarchical_beta_benchmark_report <- function() {
   cat("================================================\n")
   cat("Hierarchical Beta Dirichlet Process Benchmarking\n")
   cat("================================================\n")
+
+  # Ensure required packages are loaded
+  if (!requireNamespace("gtools", quietly = TRUE)) {
+    stop("Package 'gtools' is required but not installed.")
+  }
+  library(gtools)  # Attach to search path
+
+  # Suppress specific warnings about C++ fallback
+  suppressWarnings({
+    # Check if C++ is available
+    cpp_available <- exists("hierarchical_beta_fit_cpp")
+  })
 
   # Check if C++ is available
   cpp_available <- exists("hierarchical_beta_fit_cpp")
