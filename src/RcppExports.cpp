@@ -340,12 +340,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // hierarchical_mvnormal_run
-Rcpp::List hierarchical_mvnormal_run(const std::vector<arma::mat>& data_list, const Rcpp::List& hdp_params, const Rcpp::List& mcmc_params);
+Rcpp::List hierarchical_mvnormal_run(const Rcpp::List& data_list, const Rcpp::List& hdp_params, const Rcpp::List& mcmc_params);
 RcppExport SEXP _dirichletprocess_hierarchical_mvnormal_run(SEXP data_listSEXP, SEXP hdp_paramsSEXP, SEXP mcmc_paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::vector<arma::mat>& >::type data_list(data_listSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type data_list(data_listSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type hdp_params(hdp_paramsSEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type mcmc_params(mcmc_paramsSEXP);
     rcpp_result_gen = Rcpp::wrap(hierarchical_mvnormal_run(data_list, hdp_params, mcmc_params));
