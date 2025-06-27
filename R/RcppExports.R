@@ -150,6 +150,41 @@ hierarchical_beta_mixing_create_cpp <- function(n, priorParameters, hyperPriorPa
     .Call(`_dirichletprocess_hierarchical_beta_mixing_create_cpp`, n, priorParameters, hyperPriorParameters, alphaPrior, maxT, gammaPrior, mhStepSize, num_sticks)
 }
 
+#' @title Run Hierarchical MVNormal MCMC (C++)
+NULL
+
+#' @title Create Hierarchical MVNormal mixing distributions (C++)
+NULL
+
+#' @title Update cluster assignments for Hierarchical MVNormal (C++)
+NULL
+
+#' @title Fit Hierarchical MVNormal DP (C++)
+NULL
+
+#' @title Sample from hierarchical MVNormal posterior (C++)
+NULL
+
+hierarchical_mvnormal_run <- function(data_list, hdp_params, mcmc_params) {
+    .Call(`_dirichletprocess_hierarchical_mvnormal_run`, data_list, hdp_params, mcmc_params)
+}
+
+hierarchical_mvnormal_create_mixing <- function(n_groups, prior_params, alpha_prior, gamma_prior, n_sticks) {
+    .Call(`_dirichletprocess_hierarchical_mvnormal_create_mixing`, n_groups, prior_params, alpha_prior, gamma_prior, n_sticks)
+}
+
+hierarchical_mvnormal_update_clusters <- function(dp_obj, global_params) {
+    .Call(`_dirichletprocess_hierarchical_mvnormal_update_clusters`, dp_obj, global_params)
+}
+
+hierarchical_mvnormal_fit_cpp <- function(dp_list, iterations, update_prior = TRUE, progress_bar = TRUE) {
+    .Call(`_dirichletprocess_hierarchical_mvnormal_fit_cpp`, dp_list, iterations, update_prior, progress_bar)
+}
+
+hierarchical_mvnormal_posterior_sample <- function(hdp_state, n_samples, group_index) {
+    .Call(`_dirichletprocess_hierarchical_mvnormal_posterior_sample`, hdp_state, n_samples, group_index)
+}
+
 #' @title Draw from a Multivariate Normal-Wishart prior (C++)
 NULL
 

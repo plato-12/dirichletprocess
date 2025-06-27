@@ -84,8 +84,17 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
 
     return std::unique_ptr<MixingDistribution>(
       new HierarchicalBetaMixing(alpha0, beta0, maxT, gamma_shape, gamma_rate));
+  } else if (type == "hierarchical_mvnormal") {
+    // Hierarchical MVNormal uses the standard MVNormal as base
+    return std::unique_ptr<MixingDistribution>(
+      new MVNormalMixing(
+          Rcpp::as<arma::vec>(params["mu0"]),
+          Rcpp::as<double>(params["kappa0"]),
+          Rcpp::as<arma::mat>(params["Lambda"]),
+          Rcpp::as<double>(params["nu"])
+      )
+    );
   }
-
 
   Rcpp::stop("Unknown mixing distribution type: " + type);
 }
