@@ -19,7 +19,7 @@ DirichletProcessHierarchicalBeta <- function(dataList, maxY,
 
   mdobj_list <- HierarchicalBetaCreate(n=length(dataList), priorParameters=priorParameters,
                                        hyperPriorParameters=hyperPriorParameters, gammaPrior=gammaPriors,
-                                      alphaPrior = alphaPriors, maxT=maxY, mhStepSize=mhStepSize, num_sticks=numSticks)
+                                       alphaPrior = alphaPriors, maxT=maxY, mhStepSize=mhStepSize, num_sticks=numSticks)
 
   dpobjlist <- list()
   dpobjlist$indDP <- lapply(seq_along(dataList),
@@ -27,6 +27,7 @@ DirichletProcessHierarchicalBeta <- function(dataList, maxY,
 
   dpobjlist$indDP <- lapply(dpobjlist$indDP, Initialise, posterior=FALSE)
 
+  # Ensure alpha is initialized from the mixing distribution
   for(i in seq_along(dpobjlist$indDP)){
     dpobjlist$indDP[[i]]$alpha <- dpobjlist$indDP[[i]]$mixingDistribution$alpha
   }
@@ -35,12 +36,9 @@ DirichletProcessHierarchicalBeta <- function(dataList, maxY,
   dpobjlist$globalStick <- mdobj_list[[1]]$beta_k
   dpobjlist$gamma <- mdobj_list[[1]]$gamma
   dpobjlist$gammaPriors <- gammaPriors
-  class(dpobjlist) <- c("list", "dirichletprocess", "hierarchical")
+
+  # CRITICAL FIX: Put "hierarchical" before "dirichletprocess" for proper S3 dispatch
+  class(dpobjlist) <- c("hierarchical", "dirichletprocess", "list")
 
   return(dpobjlist)
 }
-
-
-
-
-
