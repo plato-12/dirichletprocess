@@ -51,14 +51,17 @@ quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
         # Set up priors
         g0Priors <- list(
           mu0 = rep(0, d),
-          Lambda = diag(d),
-          kappa0 = 1,
-          nu = d + 2
+          phi0 = diag(d),      # Changed from Lambda to phi0
+          sigma0 = diag(d),    # Added sigma0
+          nu0 = d + 2          # Changed from nu to nu0
         )
 
         # Benchmark R implementation
         times_r <- numeric(n_reps)
         for (i in 1:n_reps) {
+          if (exists("enable_cpp_hierarchical_samplers")) {
+            enable_cpp_hierarchical_samplers(FALSE)
+          }
           set_use_cpp(FALSE)
           time_r <- system.time({
             hdp_r <- DirichletProcessHierarchicalMvnormal2(
@@ -79,6 +82,9 @@ quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
         gamma_final <- numeric(n_reps)
 
         for (i in 1:n_reps) {
+          if (exists("enable_cpp_hierarchical_samplers")) {
+            enable_cpp_hierarchical_samplers(TRUE)
+          }
           set_use_cpp(TRUE)
           time_cpp <- system.time({
             # Use C++ version through hierarchical_mvnormal_run
