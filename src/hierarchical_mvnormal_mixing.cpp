@@ -1,6 +1,9 @@
 #include "../inst/include/hierarchical_mvnormal_mixing.h"
 #include "../inst/include/utilities.h"
 #include <RcppArmadillo.h>
+#include <set>
+#include <numeric>
+#include <algorithm>
 
 namespace dirichletprocess {
 
@@ -81,9 +84,9 @@ HierarchicalMVNormalMixing::HierarchicalMVNormalMixing(
     // Sample local weights
     params.pi_k[i] = draw_gj(params.alphas[i], params.stick_weights);
 
-    // Create base distribution
-    base_dists.push_back(std::make_unique<MVNormalMixing>(
-        params.mu0, params.kappa0, params.Lambda, params.nu));
+    // Create base distribution - C++11 compatible
+    base_dists.push_back(std::unique_ptr<MVNormalMixing>(
+        new MVNormalMixing(params.mu0, params.kappa0, params.Lambda, params.nu)));
   }
 }
 
@@ -228,12 +231,13 @@ HierarchicalMVNormalRunner::HierarchicalMVNormalRunner(
   int n_groups = data_list.size();
   int n_sticks = Rcpp::as<int>(hdp_params["n_sticks"]);
 
-  hdp_model = std::make_unique<HierarchicalMVNormalMixing>(
-    n_groups, n_sticks,
-    hdp_params["prior_params"],
-              Rcpp::as<arma::vec>(hdp_params["alpha_prior"]),
-              Rcpp::as<arma::vec>(hdp_params["gamma_prior"])
-  );
+  // C++11 compatible unique_ptr initialization
+  hdp_model = std::unique_ptr<HierarchicalMVNormalMixing>(
+    new HierarchicalMVNormalMixing(
+        n_groups, n_sticks,
+        hdp_params["prior_params"],
+                  Rcpp::as<arma::vec>(hdp_params["alpha_prior"]),
+                  Rcpp::as<arma::vec>(hdp_params["gamma_prior"])));
 
   // Initialize cluster structures
   cluster_labels.resize(n_groups);
@@ -271,7 +275,6 @@ void HierarchicalMVNormalRunner::update_cluster_assignments_algorithm8(int group
 
   for (size_t i = 0; i < data.n_rows; i++) {
     arma::vec obs = data.row(i).t();
-    int current_label = labels[i];
 
     // Remove from current cluster
     std::vector<int> cluster_counts(params.size(), 0);
@@ -337,9 +340,6 @@ Rcpp::List HierarchicalMVNormalRunner::run() {
   Rcpp::Function txtProgressBar("txtProgressBar");
   Rcpp::Function setTxtProgressBar("setTxtProgressBar");
   Rcpp::Environment base("package:utils");
-
-  Rcpp::Environment::Binding txtPB = base["txtProgressBar"];
-  Rcpp::Environment::Binding setPB = base["setTxtProgressBar"];
 
   Rcpp::List pb;
   if (show_progress) {

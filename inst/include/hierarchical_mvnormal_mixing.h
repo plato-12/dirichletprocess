@@ -5,6 +5,7 @@
 #include <RcppArmadillo.h>
 #include <memory>
 #include <vector>
+#include <set>  // Add this include
 
 namespace dirichletprocess {
 
@@ -63,6 +64,9 @@ public:
   // Accessors
   Rcpp::List get_state() const;
   void set_state(const Rcpp::List& state);
+
+  // Friend class declaration to allow access to private members
+  friend class HierarchicalMVNormalRunner;
 };
 
 // MCMCRunner specialized for hierarchical MVNormal
