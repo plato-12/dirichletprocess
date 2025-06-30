@@ -1,30 +1,31 @@
-# benchmark/benchmark_hierarchical_mvnormal.R
-# Comprehensive benchmarking for Hierarchical MVNormal Distribution
-# Compares R vs C++ implementations
+#' Benchmark Hierarchical MVNormal implementations
+#'
+#' This script compares the performance of R and C++ implementations
+#' of hierarchical Dirichlet Process with MVNormal base distributions
 
 library(dirichletprocess)
-library(mvtnorm)
 library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(patchwork)
 library(microbenchmark)
+library(mvtnorm)
+library(dplyr)
+library(gridExtra)
 
-#' Quick Hierarchical MVNormal benchmark for interactive testing
+#' Quick benchmark for hierarchical MVNormal
 #'
-#' @param n_groups Number of groups in hierarchy
+#' @param n_groups Vector of group counts to test
 #' @param n_obs_per_group Vector of observations per group
-#' @param dimensions Vector of data dimensions to test
+#' @param dimensions Vector of data dimensions
 #' @param n_iter Number of MCMC iterations
-#' @param n_reps Number of repetitions for timing
+#' @param n_reps Number of repetitions
 #' @export
-quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
-                                                  n_obs_per_group = c(50, 100),
-                                                  dimensions = c(2, 3),
-                                                  n_iter = 50,
-                                                  n_reps = 3) {
+quick_hierarchical_mvnormal_benchmark <- function(
+    n_groups = c(2, 3),
+    n_obs_per_group = c(30, 50),
+    dimensions = c(2, 3),
+    n_iter = 30,
+    n_reps = 2) {
 
-  cat("\n=== Quick Hierarchical MVNormal Distribution Benchmark ===\n\n")
+  cat("=== Quick Hierarchical MVNormal Distribution Benchmark ===\n")
 
   results <- data.frame()
 
@@ -33,34 +34,29 @@ quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
       for (d in dimensions) {
         cat(sprintf("Testing groups = %d, n/group = %d, d = %d:\n", g, n, d))
 
-        # Generate hierarchical test data
-        set.seed(42)
+        # Generate test data with hierarchical structure
+        set.seed(123 + g * 100 + n * 10 + d)
         dataList <- list()
 
         for (i in 1:g) {
-          # Each group has 2 clusters
-          mu1 <- rep(i * 2 - 5, d)
-          mu2 <- rep(i * 2, d)
-          Sigma <- diag(d) * 0.5
-
-          data1 <- rmvnorm(n/2, mu1, Sigma)
-          data2 <- rmvnorm(n/2, mu2, Sigma)
-          dataList[[i]] <- rbind(data1, data2)
+          # Each group has its own mean
+          mu_group <- rep((i-1) * 3, d)
+          dataList[[i]] <- rmvnorm(n, mu_group, diag(d))
         }
-
-        # Set up priors
-        g0Priors <- list(
-          mu0 = rep(0, d),
-          phi0 = diag(d),
-          sigma0 = diag(d),
-          nu0 = d + 2
-        )
 
         # Benchmark R implementation
         times_r <- numeric(n_reps)
         gamma_final_r <- numeric(n_reps)
 
         for (i in 1:n_reps) {
+          # Set up priors for R implementation
+          g0Priors_R <- list(
+            mu0 = rep(0, d),
+            phi0 = diag(d),
+            sigma0 = diag(d),
+            nu0 = d + 2
+          )
+
           if (exists("enable_cpp_hierarchical_samplers")) {
             enable_cpp_hierarchical_samplers(FALSE)
           }
@@ -70,7 +66,7 @@ quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
           time_r <- system.time({
             hdp_r <- DirichletProcessHierarchicalMvnormal2(
               dataList = dataList,
-              g0Priors = g0Priors,
+              g0Priors = g0Priors_R,
               gammaPriors = c(2, 4),
               alphaPriors = c(2, 4),
               numSticks = 20,
@@ -94,15 +90,24 @@ quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
 
         if (cpp_available) {
           for (i in 1:n_reps) {
+            # Set up priors for C++ implementation
+            g0Priors_CPP <- list(
+              mu0 = rep(0, d),
+              kappa0 = 1.0,
+              Lambda = diag(d),
+              nu = d + 2
+            )
+
             if (exists("enable_cpp_hierarchical_samplers")) {
               enable_cpp_hierarchical_samplers(TRUE)
             }
             set_use_cpp(TRUE)
+            cat("C++ samplers enabled for hierarchical Dirichlet processes\n")
+
             time_cpp <- system.time({
-              # Use C++ version through hierarchical_mvnormal_run
               hdp_params <- list(
                 n_sticks = 20,
-                prior_params = g0Priors,
+                prior_params = g0Priors_CPP,
                 alpha_prior = c(2, 4),
                 gamma_prior = c(2, 4)
               )
@@ -115,25 +120,29 @@ quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
                 show_progress = FALSE
               )
 
-              result_cpp <- hierarchical_mvnormal_run(dataList, hdp_params, mcmc_params)
+              result <- hierarchical_mvnormal_run(dataList, hdp_params, mcmc_params)
             })
             times_cpp[i] <- time_cpp["elapsed"]
-            gamma_final[i] <- result_cpp$final_state$gamma
+            gamma_final[i] <- result$final_state$gamma
           }
         } else {
-          cat("  C++ implementation not available, using mock times\n")
-          times_cpp <- times_r * 0.3  # Mock speedup
-          gamma_final <- gamma_final_r
+          cat("  C++ implementation not available\n")
+          times_cpp <- rep(NA, n_reps)
+          gamma_final <- rep(NA, n_reps)
         }
 
-        # Calculate statistics
-        mean_r <- mean(times_r)
-        mean_cpp <- mean(times_cpp)
-        speedup <- mean_r / mean_cpp
+        # Calculate speedup
+        speedup <- ifelse(!is.na(times_cpp[1]),
+                          mean(times_r) / mean(times_cpp),
+                          NA)
 
-        # Print results
-        cat(sprintf("  R: %.3fs, C++: %.3fs, Speedup: %.1fx, Gamma: %.3f\n",
-                    mean_r, mean_cpp, speedup, mean(gamma_final)))
+        cat(sprintf("  R:   %.3f sec (gamma = %.3f)\n",
+                    mean(times_r), mean(gamma_final_r)))
+        if (!is.na(speedup)) {
+          cat(sprintf("  C++: %.3f sec (gamma = %.3f)\n",
+                      mean(times_cpp), mean(gamma_final)))
+          cat(sprintf("  Speedup: %.1fx\n", speedup))
+        }
 
         # Store results
         results <- rbind(results, data.frame(
@@ -162,7 +171,147 @@ quick_hierarchical_mvnormal_benchmark <- function(n_groups = c(2, 3, 5),
   return(results)
 }
 
-# Continue with the rest of the benchmark functions... (they remain the same)
+#' Comprehensive Hierarchical MVNormal benchmarking
+#'
+#' @param n_groups_vec Vector of group counts
+#' @param n_obs_vec Vector of observations per group
+#' @param dim_vec Vector of dimensions
+#' @param n_iter_vec Vector of iteration counts
+#' @param n_reps Number of repetitions
+#' @export
+benchmark_hierarchical_mvnormal_comprehensive <- function(
+    n_groups_vec = c(2, 3, 5),
+    n_obs_vec = c(30, 50, 100),
+    dim_vec = c(2, 3),
+    n_iter_vec = c(50, 100),
+    n_reps = 3) {
+
+  cat("\n=== Comprehensive Hierarchical MVNormal Benchmarking ===\n\n")
+
+  total_scenarios <- length(n_groups_vec) * length(n_obs_vec) *
+    length(dim_vec) * length(n_iter_vec)
+  cat(sprintf("Testing %d scenarios with %d reps each...\n", total_scenarios, n_reps))
+
+  results <- data.frame()
+  scenario_id <- 0
+
+  for (n_groups in n_groups_vec) {
+    for (n_obs in n_obs_vec) {
+      for (d in dim_vec) {
+        for (n_iter in n_iter_vec) {
+
+          scenario_id <- scenario_id + 1
+          cat(sprintf("\nScenario %d/%d: groups=%d, n/group=%d, d=%d, iter=%d\n",
+                      scenario_id, total_scenarios, n_groups, n_obs, d, n_iter))
+
+          # Generate hierarchical data
+          set.seed(scenario_id)
+          dataList <- list()
+
+          for (g in 1:n_groups) {
+            # Create 2-3 clusters per group
+            n_clusters_g <- sample(2:3, 1)
+            data_g <- matrix(0, n_obs, d)
+            n_per_cluster <- n_obs / n_clusters_g
+
+            for (k in 1:n_clusters_g) {
+              start_idx <- floor((k-1) * n_per_cluster) + 1
+              end_idx <- min(floor(k * n_per_cluster), n_obs)
+
+              mu_k <- rep((g-1) * 5 + k * 3, d)
+              data_g[start_idx:end_idx, ] <- rmvnorm(
+                end_idx - start_idx + 1,
+                mu_k,
+                diag(d) * 0.5
+              )
+            }
+            dataList[[g]] <- data_g
+          }
+
+          # Benchmark both implementations
+          for (impl in c("R", "C++")) {
+
+            times <- numeric(n_reps)
+            gamma_values <- numeric(n_reps)
+
+            for (rep in 1:n_reps) {
+
+              if (impl == "R") {
+                # Set up priors for R implementation
+                g0Priors_R <- list(
+                  mu0 = rep(0, d),
+                  phi0 = diag(d),
+                  sigma0 = diag(d),
+                  nu0 = d + 2
+                )
+
+                set_use_cpp(FALSE)
+                time_taken <- system.time({
+                  hdp <- DirichletProcessHierarchicalMvnormal2(
+                    dataList = dataList,
+                    g0Priors = g0Priors_R,
+                    gammaPriors = c(2, 4),
+                    alphaPriors = c(2, 4),
+                    numSticks = 30
+                  )
+                  hdp <- Fit(hdp, n_iter, progressBar = FALSE)
+                })
+                times[rep] <- time_taken["elapsed"]
+                gamma_values[rep] <- hdp$gamma
+
+              } else {
+                # Set up priors for C++ implementation
+                g0Priors_CPP <- list(
+                  mu0 = rep(0, d),
+                  kappa0 = 0.5,
+                  Lambda = diag(d),
+                  nu = d + 2
+                )
+
+                set_use_cpp(TRUE)
+                hdp_params <- list(
+                  n_sticks = 30,
+                  prior_params = g0Priors_CPP,
+                  alpha_prior = c(2, 4),
+                  gamma_prior = c(2, 4)
+                )
+
+                mcmc_params <- list(
+                  n_iter = n_iter,
+                  n_burn = 0,
+                  thin = 1,
+                  update_prior = TRUE,
+                  show_progress = FALSE
+                )
+
+                time_taken <- system.time({
+                  result <- hierarchical_mvnormal_run(dataList, hdp_params, mcmc_params)
+                })
+                times[rep] <- time_taken["elapsed"]
+                gamma_values[rep] <- result$final_state$gamma
+              }
+            }
+
+            # Store results
+            results <- rbind(results, data.frame(
+              n_groups = n_groups,
+              n_obs_per_group = n_obs,
+              dimension = d,
+              n_iter = n_iter,
+              implementation = impl,
+              time = times,
+              gamma = gamma_values,
+              memory_mb = NA
+            ))
+          }
+        }
+      }
+    }
+  }
+
+  return(results)
+}
+
 #' Profile Hierarchical MVNormal components
 #'
 #' @param n_groups Number of groups
@@ -181,7 +330,8 @@ profile_hierarchical_mvnormal_components <- function(n_groups = 3, n_per_group =
     dataList[[i]] <- rmvnorm(n_per_group, mu_g, diag(d))
   }
 
-  g0Priors <- list(
+  # Set up priors for R implementation
+  g0Priors_R <- list(
     mu0 = rep(0, d),
     phi0 = diag(d),
     sigma0 = diag(d),
@@ -191,7 +341,7 @@ profile_hierarchical_mvnormal_components <- function(n_groups = 3, n_per_group =
   # Create hierarchical DP
   hdp <- DirichletProcessHierarchicalMvnormal2(
     dataList = dataList,
-    g0Priors = g0Priors,
+    g0Priors = g0Priors_R,
     gammaPriors = c(2, 4),
     alphaPriors = c(2, 4),
     numSticks = 20
@@ -275,28 +425,39 @@ test_hierarchical_mvnormal_statistical_equivalence <- function(n_groups = 2,
     dataList[[g]] <- rmvnorm(n_per_group, mu_g, diag(d))
   }
 
-  g0Priors <- list(
-    mu0 = rep(0, d),
-    Lambda = diag(d),
-    kappa0 = 1,
-    nu = d + 2
-  )
-
   # Run R implementation
   set.seed(789)
   set_use_cpp(FALSE)
+
+  # Set up priors for R implementation
+  g0Priors_R <- list(
+    mu0 = rep(0, d),
+    phi0 = diag(d),
+    sigma0 = diag(d),
+    nu0 = d + 2
+  )
+
   hdp_r <- DirichletProcessHierarchicalMvnormal2(
     dataList = dataList,
-    g0Priors = g0Priors
+    g0Priors = g0Priors_R
   )
   hdp_r <- Fit(hdp_r, n_iter, progressBar = FALSE)
 
   # Run C++ implementation
   set.seed(789)
   set_use_cpp(TRUE)
+
+  # Set up priors for C++ implementation
+  g0Priors_CPP <- list(
+    mu0 = rep(0, d),
+    kappa0 = 1.0,
+    Lambda = diag(d),
+    nu = d + 2
+  )
+
   hdp_params <- list(
     n_sticks = 50,
-    prior_params = g0Priors,
+    prior_params = g0Priors_CPP,
     alpha_prior = c(2, 4),
     gamma_prior = c(2, 4)
   )
@@ -338,138 +499,6 @@ test_hierarchical_mvnormal_statistical_equivalence <- function(n_groups = 2,
   return(list(hdp_r = hdp_r, result_cpp = result_cpp))
 }
 
-#' Comprehensive Hierarchical MVNormal benchmarking
-#'
-#' @param n_groups_vec Vector of group counts
-#' @param n_obs_vec Vector of observations per group
-#' @param dim_vec Vector of dimensions
-#' @param n_iter_vec Vector of iteration counts
-#' @param n_reps Number of repetitions
-#' @export
-benchmark_hierarchical_mvnormal_comprehensive <- function(
-    n_groups_vec = c(2, 3, 5),
-    n_obs_vec = c(30, 50, 100),
-    dim_vec = c(2, 3),
-    n_iter_vec = c(50, 100),
-    n_reps = 3) {
-
-  cat("\n=== Comprehensive Hierarchical MVNormal Benchmarking ===\n\n")
-
-  total_scenarios <- length(n_groups_vec) * length(n_obs_vec) *
-    length(dim_vec) * length(n_iter_vec)
-  cat(sprintf("Testing %d scenarios with %d reps each...\n", total_scenarios, n_reps))
-
-  results <- data.frame()
-  scenario_id <- 0
-
-  for (n_groups in n_groups_vec) {
-    for (n_obs in n_obs_vec) {
-      for (d in dim_vec) {
-        for (n_iter in n_iter_vec) {
-
-          scenario_id <- scenario_id + 1
-          cat(sprintf("\nScenario %d/%d: groups=%d, n/group=%d, d=%d, iter=%d\n",
-                      scenario_id, total_scenarios, n_groups, n_obs, d, n_iter))
-
-          # Generate hierarchical data
-          set.seed(scenario_id)
-          dataList <- list()
-
-          for (g in 1:n_groups) {
-            # Create 2-3 clusters per group
-            n_clusters_g <- sample(2:3, 1)
-            data_g <- matrix(0, n_obs, d)
-            n_per_cluster <- n_obs / n_clusters_g
-
-            for (k in 1:n_clusters_g) {
-              start_idx <- floor((k-1) * n_per_cluster) + 1
-              end_idx <- min(floor(k * n_per_cluster), n_obs)
-
-              mu_k <- rep((g-1) * 5 + k * 3, d)
-              data_g[start_idx:end_idx, ] <- rmvnorm(
-                end_idx - start_idx + 1,
-                mu_k,
-                diag(d) * 0.5
-              )
-            }
-            dataList[[g]] <- data_g
-          }
-
-          g0Priors <- list(
-            mu0 = rep(0, d),
-            Lambda = diag(d),
-            kappa0 = 0.5,
-            nu = d + 2
-          )
-
-          # Benchmark both implementations
-          for (impl in c("R", "C++")) {
-
-            times <- numeric(n_reps)
-            gamma_values <- numeric(n_reps)
-
-            for (rep in 1:n_reps) {
-
-              if (impl == "R") {
-                set_use_cpp(FALSE)
-                time_taken <- system.time({
-                  hdp <- DirichletProcessHierarchicalMvnormal2(
-                    dataList = dataList,
-                    g0Priors = g0Priors,
-                    gammaPriors = c(2, 4),
-                    alphaPriors = c(2, 4),
-                    numSticks = 30
-                  )
-                  hdp <- Fit(hdp, n_iter, progressBar = FALSE)
-                })
-                times[rep] <- time_taken["elapsed"]
-                gamma_values[rep] <- hdp$gamma
-
-              } else {
-                set_use_cpp(TRUE)
-                hdp_params <- list(
-                  n_sticks = 30,
-                  prior_params = g0Priors,
-                  alpha_prior = c(2, 4),
-                  gamma_prior = c(2, 4)
-                )
-
-                mcmc_params <- list(
-                  n_iter = n_iter,
-                  n_burn = 0,
-                  thin = 1,
-                  update_prior = TRUE,
-                  show_progress = FALSE
-                )
-
-                time_taken <- system.time({
-                  result <- hierarchical_mvnormal_run(dataList, hdp_params, mcmc_params)
-                })
-                times[rep] <- time_taken["elapsed"]
-                gamma_values[rep] <- result$final_state$gamma
-              }
-            }
-
-            # Store results
-            results <- rbind(results, data.frame(
-              n_groups = n_groups,
-              n_obs_per_group = n_obs,
-              dimension = d,
-              n_iter = n_iter,
-              implementation = impl,
-              time = times,
-              gamma = gamma_values,
-              memory_mb = NA
-            ))
-          }
-        }
-      }
-    }
-  }
-
-  return(results)
-}
-
 #' Visualize Hierarchical MVNormal benchmark results
 #'
 #' @param bench_results Results from comprehensive benchmarking
@@ -507,61 +536,47 @@ visualize_hierarchical_mvnormal_benchmarks <- function(bench_results) {
     ) +
     theme_minimal()
 
-  # 2. Scaling behavior
-  scaling_data <- bench_results %>%
-    filter(dimension == 2, n_iter == 100) %>%
-    group_by(n_groups, n_obs_per_group, implementation) %>%
-    summarise(
-      mean_time = mean(time),
-      se_time = sd(time) / sqrt(n()),
-      .groups = "drop"
-    )
-
-  p_scaling <- ggplot(scaling_data,
-                      aes(x = n_obs_per_group, y = mean_time,
-                          color = implementation,
-                          shape = factor(n_groups))) +
-    geom_point(size = 3) +
-    geom_line(aes(group = interaction(implementation, n_groups))) +
-    geom_errorbar(aes(ymin = mean_time - se_time, ymax = mean_time + se_time),
-                  width = 5) +
-    scale_color_manual(values = impl_colors) +
-    scale_y_log10() +
-    labs(
-      title = "Scaling with Data Size (d=2, iter=100)",
-      x = "Observations per Group",
-      y = "Time (seconds, log scale)",
-      color = "Implementation",
-      shape = "Groups"
-    ) +
-    theme_minimal()
-
-  # 3. Group impact
-  group_impact <- bench_results %>%
-    filter(n_obs_per_group == 50, dimension == 2) %>%
-    group_by(n_groups, implementation) %>%
-    summarise(
-      mean_time = mean(time),
-      se_time = sd(time) / sqrt(n()),
-      .groups = "drop"
-    )
-
-  p_groups <- ggplot(group_impact,
-                     aes(x = n_groups, y = mean_time, fill = implementation)) +
-    geom_col(position = position_dodge(0.8), width = 0.7) +
-    geom_errorbar(aes(ymin = mean_time - se_time, ymax = mean_time + se_time),
-                  position = position_dodge(0.8), width = 0.25) +
+  # 2. Time comparison by scenario
+  p_time <- ggplot(bench_results,
+                   aes(x = factor(n_obs_per_group), y = time,
+                       fill = implementation)) +
+    geom_boxplot(alpha = 0.8) +
+    facet_grid(n_groups ~ dimension,
+               labeller = labeller(n_groups = label_both, dimension = label_both)) +
     scale_fill_manual(values = impl_colors) +
     labs(
-      title = "Impact of Number of Groups (n=50, d=2)",
-      x = "Number of Groups",
+      title = "Execution Time by Scenario",
+      x = "Observations per Group",
       y = "Time (seconds)",
       fill = "Implementation"
     ) +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "bottom")
 
-  # 4. Convergence comparison
-  convergence_data <- bench_results %>%
+  # 3. Scaling analysis
+  scaling_data <- bench_results %>%
+    filter(dimension == 2, n_iter == min(n_iter)) %>%
+    group_by(n_groups, n_obs_per_group, implementation) %>%
+    summarise(mean_time = mean(time), .groups = "drop")
+
+  p_scaling <- ggplot(scaling_data,
+                      aes(x = n_obs_per_group, y = mean_time,
+                          color = implementation, linetype = factor(n_groups))) +
+    geom_line(size = 1) +
+    geom_point(size = 2) +
+    scale_color_manual(values = impl_colors) +
+    labs(
+      title = "Scaling with Data Size",
+      x = "Observations per Group",
+      y = "Mean Time (seconds)",
+      color = "Implementation",
+      linetype = "Groups"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+
+  # 4. Convergence comparison (gamma parameter)
+  gamma_data <- bench_results %>%
     group_by(n_groups, dimension, implementation) %>%
     summarise(
       mean_gamma = mean(gamma),
@@ -569,42 +584,42 @@ visualize_hierarchical_mvnormal_benchmarks <- function(bench_results) {
       .groups = "drop"
     )
 
-  p_convergence <- ggplot(convergence_data,
-                          aes(x = factor(n_groups), y = mean_gamma,
-                              color = implementation,
-                              shape = factor(dimension))) +
-    geom_point(size = 3, position = position_dodge(0.3)) +
+  p_gamma <- ggplot(gamma_data,
+                    aes(x = factor(n_groups), y = mean_gamma,
+                        fill = implementation)) +
+    geom_bar(stat = "identity", position = position_dodge()) +
     geom_errorbar(aes(ymin = mean_gamma - sd_gamma,
                       ymax = mean_gamma + sd_gamma),
-                  position = position_dodge(0.3), width = 0.2) +
-    scale_color_manual(values = impl_colors) +
+                  position = position_dodge(0.9), width = 0.2) +
+    facet_wrap(~dimension, labeller = labeller(dimension = label_both)) +
+    scale_fill_manual(values = impl_colors) +
     labs(
-      title = "Global Concentration Parameter Estimates",
+      title = "Global Concentration Parameter (γ) Estimates",
       x = "Number of Groups",
-      y = "Mean Gamma",
-      color = "Implementation",
-      shape = "Dimension"
+      y = "Mean γ",
+      fill = "Implementation"
     ) +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "bottom")
 
-  # Combine plots
-  dashboard <- (p_speedup | p_scaling) / (p_groups | p_convergence) +
-    plot_annotation(
-      title = "Hierarchical MVNormal Dirichlet Process: R vs C++ Performance",
-      subtitle = sprintf("Based on %d benchmark scenarios",
-                         nrow(bench_results) / (2 * n_distinct(bench_results$time)))
-    )
+  # Create dashboard
+  dashboard <- grid.arrange(
+    p_speedup, p_time,
+    p_scaling, p_gamma,
+    ncol = 2,
+    top = "Hierarchical MVNormal Performance Comparison"
+  )
 
   return(list(
-    dashboard = dashboard,
     speedup = p_speedup,
+    time = p_time,
     scaling = p_scaling,
-    groups = p_groups,
-    convergence = p_convergence
+    gamma = p_gamma,
+    dashboard = dashboard
   ))
 }
 
-#' Run complete Hierarchical MVNormal benchmark suite and generate report
+#' Run complete hierarchical MVNormal benchmark report
 #'
 #' @export
 run_hierarchical_mvnormal_benchmark_report <- function() {
@@ -613,13 +628,6 @@ run_hierarchical_mvnormal_benchmark_report <- function() {
   cat("================================================\n")
   cat("Hierarchical MVNormal Dirichlet Process Benchmarking\n")
   cat("================================================\n")
-
-  # Check if C++ is available
-  cpp_status <- get_cpp_status()
-  if (!exists("hierarchical_mvnormal_run")) {
-    warning("Hierarchical MVNormal C++ implementation not available. Using mock results.")
-    # Continue with R-only benchmarks or return
-  }
 
   # 1. Quick benchmark
   cat("\n1. Running quick benchmark...\n")
