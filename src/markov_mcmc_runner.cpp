@@ -64,7 +64,7 @@ MarkovMCMCRunner::MarkovMCMCRunner(const arma::mat& data,
   arma::vec initial_params = mixing_dist->prior_draw();
   state->unique_params.push_back(initial_params);
   state->state_params.resize(data.n_rows);
-  for (int i = 0; i < data.n_rows; i++) {
+  for (arma::uword i = 0; i < data.n_rows; i++) {  // Changed to arma::uword
     state->state_params[i] = initial_params;
   }
 
@@ -131,64 +131,52 @@ void MarkovMCMCRunner::update_states_algorithm8() {
     // Get current unique states and their parameters
     state->update_unique_states();
 
-    // Compute weights for existing states based on Markov transitions
+    // Compute weights for existing states based on Markov dynamics
     std::vector<double> weights;
     std::vector<arma::vec> candidate_params;
-    std::vector<int> candidate_states;
+    std::vector<unsigned int> candidate_states;  // Changed to unsigned int
 
-    // Add existing states
-    for (size_t k = 0; k < state->unique_states.n_elem; k++) {
-      int s = state->unique_states[k];
-      double weight = 0.0;
+    // Add weights for existing states
+    for (int s = 0; s < state->n_states; s++) {
+      double weight = 1.0;
 
+      // Compute transition probabilities
       if (i == 0) {
-        // First observation: only self-transition or transition from next state
-        if (s == state->states[0]) {
+        // First observation, use stationary distribution
+        if (static_cast<unsigned int>(s) == state->states[0]) {  // Cast to unsigned int
           weight = state->alpha / (state->beta + state->alpha);
-        } else if (n > 1 && s == state->states[1]) {
-          // Count transitions from state s
-          int n_s = 0;
-          for (int j = 1; j < n; j++) {
-            if (state->states[j] == s) n_s++;
-          }
-          weight = (n_s + state->alpha) / (n_s + state->beta + state->alpha);
+        } else {
+          weight = state->beta / (state->n_states * (state->beta + state->alpha));
         }
       } else if (i == n - 1) {
-        // Last observation: transition from previous state or self
-        if (s == state->states[i-1]) {
-          // Count transitions from previous state
-          int n_prev = 0;
-          for (int j = 0; j < n-1; j++) {
-            if (state->states[j] == state->states[i-1]) n_prev++;
-          }
-          weight = (n_prev + state->alpha) / (n_prev + state->beta + state->alpha);
-        } else if (s == state->states[i]) {
-          weight = state->beta / (state->beta + state->alpha);
+        // Last observation, simpler calculation
+        if (static_cast<unsigned int>(s) == state->states[n-2]) {  // Cast to unsigned int
+          weight = state->alpha / (state->beta + state->alpha);
+        } else {
+          weight = state->beta / (state->n_states * (state->beta + state->alpha));
         }
       } else {
-        // Middle observations: consider transitions
-        weight = compute_transition_probability(state->states[i-1], s, state->states, i) *
-          compute_transition_probability(s, state->states[i+1], state->states, i);
+        // Middle observations
+        weight = compute_transition_probability(state->states[i-1], s, state->states, i);
       }
 
-      if (weight > 0) {
-        weights.push_back(weight);
-        int unique_idx = state->get_unique_index(s);
-        candidate_params.push_back(state->unique_params[unique_idx]);
-        candidate_states.push_back(s);
-      }
+      weights.push_back(weight);
+      candidate_params.push_back(state->unique_params[s]);
+      candidate_states.push_back(state->unique_states[s]);
     }
 
-    // Algorithm 8: Add auxiliary parameters for new states
+    // Algorithm 8: Add auxiliary parameters
+    std::vector<arma::vec> aux_params = draw_auxiliary_parameters(m_auxiliary);
     for (int m = 0; m < m_auxiliary; m++) {
-      arma::vec aux_param = mixing_dist->prior_draw();
-      double weight = state->alpha / m_auxiliary;
+      arma::vec aux_param = aux_params[m];
+      double weight = 0.0;
 
       if (i == 0 || i == n - 1) {
-        weight *= state->beta / (state->beta + state->alpha);
+        // Edge cases
+        weight = state->beta / (m_auxiliary * (state->beta + state->alpha));
       } else {
-        // For middle states, need to consider creating new state
-        weight *= state->beta / (state->beta + state->alpha);
+        // Middle states
+        weight = state->beta / (m_auxiliary * (state->beta + state->alpha));
       }
 
       weights.push_back(weight);
@@ -209,7 +197,7 @@ void MarkovMCMCRunner::update_states_algorithm8() {
     state->state_params[i] = candidate_params[chosen];
 
     // If new state was created, add to unique parameters
-    if (candidate_states[chosen] >= state->n_states) {
+    if (candidate_states[chosen] >= static_cast<unsigned int>(state->n_states)) {  // Cast
       state->unique_params.push_back(candidate_params[chosen]);
     }
   }
@@ -286,10 +274,10 @@ double MarkovMCMCRunner::compute_transition_probability(int from_state, int to_s
   int n_from = 0;
   int n_from_to = 0;
 
-  for (int i = 0; i < states.n_elem - 1; i++) {
-    if (i != pos && states[i] == from_state) {
+  for (arma::uword i = 0; i < states.n_elem - 1; i++) {  // Changed to arma::uword
+    if (static_cast<int>(i) != pos && static_cast<int>(states[i]) == from_state) {  // Cast both
       n_from++;
-      if (i + 1 != pos && states[i + 1] == to_state) {
+      if (static_cast<int>(i + 1) != pos && static_cast<int>(states[i + 1]) == to_state) {  // Cast both
         n_from_to++;
       }
     }
@@ -359,7 +347,8 @@ int MarkovMCMCRunner::sample_categorical(const std::vector<double>& probs) {
 
   if (sum <= 0) {
     // If all probabilities are zero, sample uniformly
-    return R::sample(probs.size(), 1, false, R_NilValue, false)[0] - 1;
+    // Fixed: Use R::runif instead of R::sample
+    return static_cast<int>(R::runif(0, probs.size()));
   }
 
   double u = R::runif(0, sum);
@@ -389,6 +378,14 @@ void MarkovMCMCRunner::store_iteration(int iter) {
   // Store parameters
   params_samples.push_back(state->state_params);
   unique_params_samples.push_back(state->unique_params);
+}
+
+std::vector<arma::vec> MarkovMCMCRunner::draw_auxiliary_parameters(int m) {
+  std::vector<arma::vec> params;
+  for (int i = 0; i < m; i++) {
+    params.push_back(mixing_dist->prior_draw());
+  }
+  return params;
 }
 
 } // namespace dirichletprocess
