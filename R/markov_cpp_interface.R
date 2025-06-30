@@ -7,7 +7,7 @@
 #' @param progress_bar Whether to show progress
 #' @return Updated DP object
 #' @keywords internal
-run_markov_mcmc_cpp <- function(dp_obj, its, update_prior = FALSE, progress_bar = TRUE) {
+run_markov_mcmc_cpp_wrapper <- function(dp_obj, its, update_prior = FALSE, progress_bar = TRUE) {
   # Prepare data
   data <- as.matrix(dp_obj$data)
 
@@ -29,7 +29,7 @@ run_markov_mcmc_cpp <- function(dp_obj, its, update_prior = FALSE, progress_bar 
     beta_prior_rate = 1
   )
 
-  # Run C++ MCMC
+  # Run C++ MCMC - Call the actual C++ function
   result <- run_markov_mcmc_cpp(data, mixing_params, mcmc_params)
 
   # Update dp_obj with results

@@ -18,7 +18,7 @@ test_that("Markov MCMC C++ produces valid results", {
 
   # Run C++ implementation
   set_use_cpp(TRUE)
-  dp_cpp <- run_markov_mcmc_cpp(dp, its = 100, update_prior = TRUE)
+  dp_cpp <- run_markov_mcmc_cpp_wrapper(dp, its = 100, update_prior = TRUE)
 
   # Check results
   expect_is(dp_cpp$states, "integer")
@@ -42,12 +42,12 @@ test_that("Markov MCMC handles edge cases", {
   md <- GaussianMixtureCreate()
   dp <- DirichletHMMCreate(data, md, alpha = 1, beta = 1)
 
-  expect_error(run_markov_mcmc_cpp(dp, its = 10), NA)
+  expect_error(run_markov_mcmc_cpp_wrapper(dp, its = 10), NA)
 
   # Two observations
   data <- matrix(rnorm(2), ncol = 1)
   dp <- DirichletHMMCreate(data, md, alpha = 1, beta = 1)
-  result <- run_markov_mcmc_cpp(dp, its = 10)
+  result <- run_markov_mcmc_cpp_wrapper(dp, its = 10)
 
   expect_length(result$states, 2)
 })
