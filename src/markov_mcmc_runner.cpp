@@ -1,6 +1,6 @@
 // src/markov_mcmc_runner.cpp
 #include "../inst/include/markov_mcmc_runner.h"
-#include "../inst/include/mixing_distribution_factory.h"
+#include "../inst/include/mixing_distribution_base.h"
 #include <algorithm>
 #include <numeric>
 
@@ -54,7 +54,8 @@ MarkovMCMCRunner::MarkovMCMCRunner(const arma::mat& data,
   }
 
   // Create mixing distribution
-  mixing_dist = MixingDistributionFactory::create(mixing_dist_params);
+  std::string dist_type = Rcpp::as<std::string>(mixing_dist_params["type"]);
+  mixing_dist = MixingDistribution::create(dist_type, mixing_dist_params);
 
   // Initialize state
   state.reset(new MarkovDPState(data.n_rows, alpha, beta));
