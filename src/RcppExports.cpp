@@ -866,6 +866,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// run_markov_mcmc_cpp
+Rcpp::List run_markov_mcmc_cpp(arma::mat data, Rcpp::List mixing_dist_params, Rcpp::List mcmc_params);
+RcppExport SEXP _dirichletprocess_run_markov_mcmc_cpp(SEXP dataSEXP, SEXP mixing_dist_paramsSEXP, SEXP mcmc_paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mixing_dist_params(mixing_dist_paramsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type mcmc_params(mcmc_paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(run_markov_mcmc_cpp(data, mixing_dist_params, mcmc_params));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_current_memory_usage", (DL_FUNC) &_dirichletprocess_current_memory_usage, 0},
@@ -937,6 +950,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
+    {"_dirichletprocess_run_markov_mcmc_cpp", (DL_FUNC) &_dirichletprocess_run_markov_mcmc_cpp, 3},
     {NULL, NULL, 0}
 };
 

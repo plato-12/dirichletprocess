@@ -409,3 +409,7 @@ likelihood_normal_cpp <- function(mdObj, x, theta) {
     .Call(`_dirichletprocess_likelihood_normal_cpp`, mdObj, x, theta)
 }
 
+run_markov_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocess_run_markov_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
