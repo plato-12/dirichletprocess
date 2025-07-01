@@ -113,7 +113,11 @@ Rcpp::List MarkovMCMCRunner::run() {
   results["states_chain"] = states_samples;
   results["params_chain"] = params_samples;
   results["unique_params_chain"] = unique_params_samples;
-  results["final_states"] = Rcpp::wrap(state->states + 1); // Convert to 1-indexed
+  Rcpp::IntegerVector final_states_vec(state->states.n_elem);
+  for (size_t i = 0; i < state->states.n_elem; i++) {
+    final_states_vec[i] = state->states[i] + 1;  // Convert to 1-indexed
+  }
+  results["final_states"] = final_states_vec; // Convert to 1-indexed
   results["final_params"] = state->state_params;
   results["final_unique_params"] = state->unique_params;
   results["n_states"] = state->n_states;
