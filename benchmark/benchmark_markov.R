@@ -114,6 +114,9 @@ profile_markov_dp_components <- function(n = 500, algorithm = 3) {
   set.seed(123)
   y <- c(rnorm(n/2, -2, 0.5), rnorm(n/2, 2, 0.5))
 
+  # Convert to matrix format for consistency
+  y <- matrix(y, ncol = 1)
+
   # Create DP objects
   set_use_cpp(FALSE)
   dp_r <- DirichletProcessGaussian(y)
@@ -124,86 +127,152 @@ profile_markov_dp_components <- function(n = 500, algorithm = 3) {
   dp_cpp <- Initialise(dp_cpp)
 
   # Component timing results
-  components <- c("ClusterAssignment", "ParameterUpdate", "AlphaUpdate",
-                  "StateTransition", "LikelihoodCalc")
-
   results <- data.frame()
 
-  # Time each component
-  for (comp in components) {
-    cat(sprintf("Profiling %s...\n", comp))
+  # Time Cluster Component Update
+  cat("Profiling ClusterComponentUpdate...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      ClusterComponentUpdate(dp_r)
+    },
+    times = 10
+  )
 
-    # R implementation timing
-    if (comp == "ClusterAssignment") {
-      time_r <- microbenchmark(
-        R = {
-          set_use_cpp(FALSE)
-          for (i in 1:n) {
-            # Neal Algorithm 3 - sample from conditional distribution
-            ClusterAssignment(dp_r, i)
-          }
-        },
-        times = 10
-      )
-    } else if (comp == "ParameterUpdate") {
-      time_r <- microbenchmark(
-        R = {
-          set_use_cpp(FALSE)
-          UpdateTheta(dp_r)
-        },
-        times = 50
-      )
-    } else if (comp == "AlphaUpdate") {
-      time_r <- microbenchmark(
-        R = {
-          set_use_cpp(FALSE)
-          UpdateAlpha(dp_r)
-        },
-        times = 50
-      )
-    } else if (comp == "StateTransition") {
-      time_r <- microbenchmark(
-        R = {
-          set_use_cpp(FALSE)
-          # Markov chain state transition
-          dp_r <- StepDP(dp_r)
-        },
-        times = 20
-      )
-    } else {
-      time_r <- microbenchmark(
-        R = {
-          set_use_cpp(FALSE)
-          Likelihood(dp_r$mixingDistribution,
-                     matrix(y, ncol = 1),
-                     dp_r$clusterParameters)
-        },
-        times = 50
-      )
-    }
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      ClusterComponentUpdate(dp_cpp)
+    },
+    times = 10
+  )
 
-    # C++ implementation timing
-    if (exists("benchmark_cpp_components")) {
-      time_cpp <- benchmark_cpp_components(dp_cpp, comp, times = 50)
-      mean_cpp <- mean(time_cpp$elapsed_ms)
-    } else {
-      mean_cpp <- NA
-    }
+  results <- rbind(results, data.frame(
+    component = "ClusterComponentUpdate",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
+  ))
 
-    results <- rbind(results, data.frame(
-      component = comp,
-      implementation = c("R", "C++"),
-      mean_time_ms = c(mean(time_r$time) / 1e6, mean_cpp),
-      algorithm = algorithm
-    ))
-  }
+  # Time Parameter Update
+  cat("Profiling ClusterParameterUpdate...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      ClusterParameterUpdate(dp_r)
+    },
+    times = 50
+  )
 
-  # Print summary
-  comp_summary <- results %>%
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      ClusterParameterUpdate(dp_cpp)
+    },
+    times = 50
+  )
+
+  results <- rbind(results, data.frame(
+    component = "ClusterParameterUpdate",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
+  ))
+
+  # Time Alpha Update
+  cat("Profiling UpdateAlpha...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      UpdateAlpha(dp_r)
+    },
+    times = 50
+  )
+
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      UpdateAlpha(dp_cpp)
+    },
+    times = 50
+  )
+
+  results <- rbind(results, data.frame(
+    component = "UpdateAlpha",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
+  ))
+
+  # Time Likelihood calculation
+  cat("Profiling Likelihood calculations...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      total_lik <- 0
+      for (i in 1:min(100, n)) {
+        # Extract parameters properly for univariate Gaussian
+        if (length(dim(dp_r$clusterParameters[[1]])) == 3) {
+          mu_val <- dp_r$clusterParameters[[1]][1, 1, 1]
+          sigma_val <- dp_r$clusterParameters[[2]][1, 1, 1]
+        } else {
+          mu_val <- dp_r$clusterParameters[[1]][1]
+          sigma_val <- dp_r$clusterParameters[[2]][1]
+        }
+
+        single_cluster_params <- list(mu_val, sigma_val)
+
+        lik <- Likelihood(dp_r$mixingDistribution,
+                          y[i, , drop = FALSE],
+                          single_cluster_params)
+        total_lik <- total_lik + lik
+      }
+    },
+    times = 10
+  )
+
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      total_lik <- 0
+      for (i in 1:min(100, n)) {
+        # Extract parameters properly for univariate Gaussian
+        if (length(dim(dp_cpp$clusterParameters[[1]])) == 3) {
+          mu_val <- dp_cpp$clusterParameters[[1]][1, 1, 1]
+          sigma_val <- dp_cpp$clusterParameters[[2]][1, 1, 1]
+        } else {
+          mu_val <- dp_cpp$clusterParameters[[1]][1]
+          sigma_val <- dp_cpp$clusterParameters[[2]][1]
+        }
+
+        single_cluster_params <- list(mu_val, sigma_val)
+
+        lik <- Likelihood(dp_cpp$mixingDistribution,
+                          y[i, , drop = FALSE],
+                          single_cluster_params)
+        total_lik <- total_lik + lik
+      }
+    },
+    times = 10
+  )
+
+  results <- rbind(results, data.frame(
+    component = "Likelihood",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
+  ))
+
+  # Calculate speedups
+  cat("\n\nComponent timings (milliseconds):\n")
+  print(results)
+
+  # Calculate speedup for each component
+  library(tidyr)
+  speedups <- results %>%
     pivot_wider(names_from = implementation, values_from = mean_time_ms) %>%
     mutate(speedup = R / `C++`)
 
-  print(comp_summary)
+  cat("\nSpeedup by component:\n")
+  for (i in 1:nrow(speedups)) {
+    cat(sprintf("  %s: %.1fx\n", speedups$component[i], speedups$speedup[i]))
+  }
 
   return(results)
 }
@@ -465,89 +534,158 @@ benchmark_markov_dp_comprehensive <- function(
 #' @param algorithm Algorithm to profile
 #' @return List with memory traces
 #' @export
-profile_markov_dp_memory <- function(n_obs = 1000, n_iter = 500, algorithm = 3) {
+profile_markov_dp_components <- function(n = 500, algorithm = 3) {
 
-  cat("\n=== Markov DP Memory Profiling ===\n")
-  cat(sprintf("Algorithm %d, n = %d\n", algorithm, n_obs))
+  cat("\n=== Markov DP Component Profiling ===\n")
+  cat(sprintf("Algorithm %d components (Neal 2000)\n", algorithm))
 
-  # Generate data
-  set.seed(42)
-  y <- c(rnorm(n_obs/2, -2, 0.5), rnorm(n_obs/2, 2, 0.5))
+  # Generate test data
+  set.seed(123)
+  y <- c(rnorm(n/2, -2, 0.5), rnorm(n/2, 2, 0.5))
 
-  # Profile R implementation
+  # Create DP objects
   set_use_cpp(FALSE)
-  gc(reset = TRUE)
-  mem_trace_r <- list()
-
-  mem_trace_r$start <- as.numeric(gc()[1,2] + gc()[2,2])
-
   dp_r <- DirichletProcessGaussian(y)
-  mem_trace_r$after_init <- as.numeric(gc()[1,2] + gc()[2,2])
+  dp_r <- Initialise(dp_r)
 
-  # Track memory during iterations
-  mem_during_r <- numeric(10)
-  iter_per_check <- n_iter / 10
-
-  for (i in 1:10) {
-    dp_r <- Fit(dp_r, iter_per_check, progressBar = FALSE, updatePrior = FALSE)
-    mem_during_r[i] <- as.numeric(gc()[1,2] + gc()[2,2])
-  }
-
-  mem_trace_r$during_fit <- mem_during_r
-  mem_trace_r$final <- as.numeric(gc()[1,2] + gc()[2,2])
-
-  # Profile C++ implementation
   set_use_cpp(TRUE)
-
-  # Check if memory tracking functions exist
-  if (exists("clear_memory_tracking")) {
-    clear_memory_tracking()
-  }
-
-  gc(reset = TRUE)
-  mem_trace_cpp <- list()
-
-  mem_trace_cpp$start <- as.numeric(gc()[1,2] + gc()[2,2])
-
   dp_cpp <- DirichletProcessGaussian(y)
-  mem_trace_cpp$after_init <- as.numeric(gc()[1,2] + gc()[2,2])
+  dp_cpp <- Initialise(dp_cpp)
 
-  # Track memory and internal C++ allocations
-  mem_during_cpp <- numeric(10)
-  cpp_internal_mem <- list()
+  # Component timing results
+  results <- data.frame()
 
-  for (i in 1:10) {
-    dp_cpp <- Fit(dp_cpp, iter_per_check, progressBar = FALSE, updatePrior = FALSE)
-    mem_during_cpp[i] <- as.numeric(gc()[1,2] + gc()[2,2])
+  # Time Cluster Component Update
+  cat("Profiling ClusterComponentUpdate...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      ClusterComponentUpdate(dp_r)
+    },
+    times = 10
+  )
 
-    if (exists("get_memory_tracking")) {
-      cpp_internal_mem[[i]] <- get_memory_tracking()
-    }
-  }
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      ClusterComponentUpdate(dp_cpp)
+    },
+    times = 10
+  )
 
-  mem_trace_cpp$during_fit <- mem_during_cpp
-  mem_trace_cpp$final <- as.numeric(gc()[1,2] + gc()[2,2])
-  mem_trace_cpp$internal_tracking <- cpp_internal_mem
-
-  # Summary
-  cat("\nMemory usage summary (MB):\n")
-  cat(sprintf("R implementation:\n"))
-  cat(sprintf("  Peak: %.1f MB\n", max(unlist(mem_trace_r))))
-  cat(sprintf("  Growth: %.1f MB\n", mem_trace_r$final - mem_trace_r$start))
-
-  cat(sprintf("\nC++ implementation:\n"))
-  cat(sprintf("  Peak: %.1f MB\n", max(unlist(mem_trace_cpp[1:4]))))
-  cat(sprintf("  Growth: %.1f MB\n", mem_trace_cpp$final - mem_trace_cpp$start))
-
-  if (length(cpp_internal_mem) > 0 && !is.null(cpp_internal_mem[[10]])) {
-    total_cpp_internal <- sum(cpp_internal_mem[[10]]$mb, na.rm = TRUE)
-    cat(sprintf("  Internal C++ allocations: %.1f MB\n", total_cpp_internal))
-  }
-
-  return(list(
-    r_memory = mem_trace_r,
-    cpp_memory = mem_trace_cpp
+  results <- rbind(results, data.frame(
+    component = "ClusterComponentUpdate",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
   ))
+
+  # Time Parameter Update
+  cat("Profiling ClusterParameterUpdate...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      ClusterParameterUpdate(dp_r)
+    },
+    times = 50
+  )
+
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      ClusterParameterUpdate(dp_cpp)
+    },
+    times = 50
+  )
+
+  results <- rbind(results, data.frame(
+    component = "ClusterParameterUpdate",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
+  ))
+
+  # Time Alpha Update
+  cat("Profiling UpdateAlpha...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      UpdateAlpha(dp_r)
+    },
+    times = 50
+  )
+
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      UpdateAlpha(dp_cpp)
+    },
+    times = 50
+  )
+
+  results <- rbind(results, data.frame(
+    component = "UpdateAlpha",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
+  ))
+
+  # Time Likelihood calculation
+  cat("Profiling Likelihood calculations...\n")
+  time_r <- microbenchmark(
+    R = {
+      set_use_cpp(FALSE)
+      total_lik <- 0
+      for (i in 1:min(100, n)) {
+        single_cluster_params <- list(
+          mu = dp_r$clusterParameters[[1]][,,1, drop=FALSE],
+          sigma = dp_r$clusterParameters[[2]][,,1, drop=FALSE]
+        )
+        lik <- Likelihood(dp_r$mixingDistribution,
+                          y[i, , drop = FALSE],
+                          single_cluster_params)
+        total_lik <- total_lik + lik
+      }
+    },
+    times = 10
+  )
+
+  time_cpp <- microbenchmark(
+    Cpp = {
+      set_use_cpp(TRUE)
+      total_lik <- 0
+      for (i in 1:min(100, n)) {
+        single_cluster_params <- list(
+          mu = dp_cpp$clusterParameters[[1]][,,1, drop=FALSE],
+          sigma = dp_cpp$clusterParameters[[2]][,,1, drop=FALSE]
+        )
+        lik <- Likelihood(dp_cpp$mixingDistribution,
+                          y[i, , drop = FALSE],
+                          single_cluster_params)
+        total_lik <- total_lik + lik
+      }
+    },
+    times = 10
+  )
+
+  results <- rbind(results, data.frame(
+    component = "Likelihood",
+    implementation = c("R", "C++"),
+    mean_time_ms = c(mean(time_r$time) / 1e6, mean(time_cpp$time) / 1e6)
+  ))
+
+  # Calculate speedups
+  cat("\n\nComponent timings (milliseconds):\n")
+  print(results)
+
+  # Calculate speedup for each component
+  speedups <- results %>%
+    pivot_wider(names_from = implementation, values_from = mean_time_ms) %>%
+    mutate(speedup = R / `C++`)
+
+  cat("\nSpeedup by component:\n")
+  for (i in 1:nrow(speedups)) {
+    cat(sprintf("  %s: %.1fx\n", speedups$component[i], speedups$speedup[i]))
+  }
+
+  return(results)
 }
 
 #' Visualize Markov DP benchmark results
