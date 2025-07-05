@@ -68,24 +68,42 @@ PosteriorDraw.beta <- function(mdObj, x, n = 1, ...) {
   mh_result <- MetropolisHastings(mdObj, x, start_pos, no_draws = n)
 
   # Extract and return with proper names
-  if (length(mh_result$parameter_samples) >= 2) {
+  if (!is.null(mh_result$parameter_samples) && length(mh_result$parameter_samples) >= 2) {
     mu_samples <- mh_result$parameter_samples[[1]]
     nu_samples <- mh_result$parameter_samples[[2]]
 
-    # Ensure correct dimensions
-    if (length(dim(mu_samples)) < 3) {
-      mu_samples <- array(mu_samples, dim = c(1, 1, n))
-    }
-    if (length(dim(nu_samples)) < 3) {
-      nu_samples <- array(nu_samples, dim = c(1, 1, n))
+    # Extract the actual values from the arrays
+    if (is.array(mu_samples) && length(dim(mu_samples)) >= 3) {
+      mu_values <- mu_samples[1, 1, ]
+    } else {
+      mu_values <- as.numeric(mu_samples)
     }
 
-    return(list(mu = mu_samples, nu = nu_samples))
-  } else {
-    # Fallback to empty arrays
+    if (is.array(nu_samples) && length(dim(nu_samples)) >= 3) {
+      nu_values <- nu_samples[1, 1, ]
+    } else {
+      nu_values <- as.numeric(nu_samples)
+    }
+
+    # Ensure we have the right number of samples
+    if (length(mu_values) < n || length(nu_values) < n) {
+      # If not enough samples, pad with the last value or use prior draws
+      if (length(mu_values) > 0 && length(nu_values) > 0) {
+        mu_values <- rep(mu_values, length.out = n)
+        nu_values <- rep(nu_values, length.out = n)
+      } else {
+        # Fallback to prior draws
+        prior_draws <- PriorDraw(mdObj, n)
+        return(prior_draws)
+      }
+    }
+
     return(list(
-      mu = array(numeric(0), dim = c(1, 1, 0)),
-      nu = array(numeric(0), dim = c(1, 1, 0))
+      mu = mu_values[1:n],
+      nu = nu_values[1:n]
     ))
+  } else {
+    # Fallback to prior draws if MH failed
+    return(PriorDraw(mdObj, n))
   }
 }

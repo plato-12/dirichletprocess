@@ -225,10 +225,61 @@ Rcpp::List BetaMixingDistribution::metropolisHastings(const arma::mat& x_data,
   );
 }
 
-Rcpp::List BetaMixingDistribution::posteriorDraw(const arma::mat& x_data, int n_draws) const {
-  Rcpp::List start_pos = priorDraw(1);
-  Rcpp::List mh_result = metropolisHastings(x_data, start_pos, n_draws);
-  return mh_result;
+Rcpp::List BetaMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+  // Handle empty cluster
+  if (x.n_rows == 0) {
+    return priorDraw(n);
+  }
+
+  // Use Metropolis-Hastings for non-conjugate case
+  Rcpp::List startPos = priorDraw(1);
+
+  // Ensure mhStepSize is properly set
+  Rcpp::NumericVector stepSize = this->mhStepSize;
+  if (stepSize.size() < 2) {
+    stepSize = Rcpp::NumericVector::create(0.1, 0.1);
+  }
+
+  // Create a temporary mdObj for MH sampling
+  Rcpp::List mdObj = Rcpp::List::create(
+    Rcpp::Named("priorParameters") = this->priorParameters,
+    Rcpp::Named("mhStepSize") = stepSize,
+    Rcpp::Named("maxT") = this->maxT
+  );
+  mdObj.attr("class") = Rcpp::CharacterVector::create("beta", "nonconjugate", "list");
+
+  // Run Metropolis-Hastings
+  int mhDraws = std::max(250, n * 10); // Ensure enough draws for thinning
+  Rcpp::List mhResult = metropolisHastings(x, startPos, mhDraws);
+
+  // Extract samples
+  Rcpp::List paramSamples = mhResult["parameter_samples"];
+  if (paramSamples.size() >= 2) {
+    Rcpp::NumericVector muAll = paramSamples[0];
+    Rcpp::NumericVector nuAll = paramSamples[1];
+
+    // Thin samples to get n draws
+    int thin = std::max(1, mhDraws / n);
+    Rcpp::NumericVector muSamples(n);
+    Rcpp::NumericVector nuSamples(n);
+
+    for (int i = 0; i < n; i++) {
+      int idx = std::min(i * thin, mhDraws - 1);
+      muSamples[i] = muAll[idx];
+      nuSamples[i] = nuAll[idx];
+    }
+
+    muSamples.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+    nuSamples.attr("dim") = Rcpp::IntegerVector::create(1, 1, n);
+
+    return Rcpp::List::create(
+      Rcpp::Named("mu") = muSamples,
+      Rcpp::Named("nu") = nuSamples
+    );
+  }
+
+  // Fallback to prior
+  return priorDraw(n);
 }
 
 void BetaMixingDistribution::updatePriorParameters(const Rcpp::List& clusterParametersList, int n_clusters_unused_arg) {

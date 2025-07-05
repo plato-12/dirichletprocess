@@ -26,22 +26,34 @@ Likelihood.beta <- function(mdObj, x, theta) {
   mu <- as.numeric(theta[[1]][, , , drop = TRUE])
   tau <- as.numeric(theta[[2]][, , , drop = TRUE])
 
-  # Validate parameters
-  if (any(mu <= 0) || any(mu >= maxT) || any(tau <= 0)) {
-    return(rep(1e-300, length(x)))
+  # Ensure we have values
+  if (length(mu) == 0 || length(tau) == 0) {
+    return(numeric(length(x)))
   }
 
-  a <- (mu * tau) / maxT
-  b <- (1 - mu/maxT) * tau
-
-  # Ensure valid beta parameters
-  if (any(a <= 0) || any(b <= 0)) {
-    return(rep(1e-300, length(x)))
-  }
+  # Recycle parameters if needed
+  mu <- rep_len(mu, length(x))
+  tau <- rep_len(tau, length(x))
 
   # Calculate likelihood
   y <- numeric(length(x))
   for (i in seq_along(x)) {
+    # Validate parameters
+    if (is.na(mu[i]) || is.na(tau[i]) || mu[i] <= 0 || mu[i] >= maxT || tau[i] <= 0) {
+      y[i] <- 1e-300
+      next
+    }
+
+    a <- (mu[i] * tau[i]) / maxT
+    b <- (1 - mu[i]/maxT) * tau[i]
+
+    # Ensure valid beta parameters
+    if (a <= 0 || b <= 0 || !is.finite(a) || !is.finite(b)) {
+      y[i] <- 1e-300
+      next
+    }
+
+    # Calculate likelihood
     if (x[i] >= 0 && x[i] <= maxT) {
       y[i] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
     } else {
