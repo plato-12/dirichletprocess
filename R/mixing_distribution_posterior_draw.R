@@ -15,7 +15,12 @@ PosteriorDraw.nonconjugate <- function(mdObj, x, n = 1, ...) {
 
   if (missing(...)) {
     ### This might need a try catch for models that don't have a penalised likelihood.
-    start_pos <- PenalisedLikelihood(mdObj, x)
+    start_pos <- tryCatch({
+      PenalisedLikelihood(mdObj, x)
+    }, error = function(e) {
+      # If PenalisedLikelihood fails, use prior draw
+      PriorDraw(mdObj, 1)
+    })
   } else {
     start_pos <- list(...)$start_pos
   }
@@ -26,7 +31,7 @@ PosteriorDraw.nonconjugate <- function(mdObj, x, n = 1, ...) {
 
   for (i in seq_along(mh_result$parameter_samples)) {
     theta[[i]] <- array(mh_result$parameter_samples[[i]],
-                        dim = c(dim(mh_result$parameter_sample[[i]])[1:2], n))
+                        dim = c(dim(mh_result$parameter_samples[[i]])[1:2], n))  # Fixed typo
   }
 
   return(theta)

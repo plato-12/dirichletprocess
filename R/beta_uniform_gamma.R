@@ -95,14 +95,22 @@ MhParameterProposal.beta <- function(mdObj, old_params) {
 
   new_params <- old_params
 
-  new_params[[1]] <- old_params[[1]] + mhStepSize[1] * rnorm(1, 0, 2.4)
+  # Extract current values
+  old_mu <- as.numeric(old_params[[1]])
+  old_nu <- as.numeric(old_params[[2]])
 
-  if (new_params[[1]] > mdObj$maxT | new_params[[1]] < 0) {
-    new_params[[1]] <- old_params[[1]]
+  # Propose new mu
+  new_mu <- old_mu + mhStepSize[1] * rnorm(1, 0, 2.4)
+  if (new_mu > mdObj$maxT || new_mu < 0) {
+    new_mu <- old_mu
   }
 
-  new_params[[2]] <- abs(old_params[[2]] + mhStepSize[2] * rnorm(1, 0, 2.4))
-  if (new_params[[2]] == 0) new_params[[2]] <- 1e-4 # Prevent nu from being exactly zero
+  # Propose new nu (ensure positive)
+  new_nu <- abs(old_nu + mhStepSize[2] * rnorm(1, 0, 2.4))
+
+  # Return in proper format
+  new_params[[1]] <- array(new_mu, dim = c(1, 1, 1))
+  new_params[[2]] <- array(new_nu, dim = c(1, 1, 1))
 
   return(new_params)
 }

@@ -43,3 +43,33 @@ DirichletProcessBeta <- function(y,
 
   return(dpObj)
 }
+
+#' @export
+Initialise.beta <- function(mdObj, dpObj, posterior = TRUE, verbose = TRUE, ...) {
+
+  dpObj <- NextMethod()
+
+  # Ensure proper initialization of cluster components
+  if (dpObj$n > 0) {
+    # Initialize all points to cluster 1
+    dpObj$clusterLabels <- rep(1, dpObj$n)
+    dpObj$pointsPerCluster <- dpObj$n
+    dpObj$numberClusters <- 1
+
+    # Initialize cluster parameters
+    if (posterior) {
+      dpObj$clusterParameters <- PosteriorDraw(dpObj$mixingDistribution,
+                                               dpObj$data,
+                                               dpObj$numberClusters)
+    } else {
+      dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution,
+                                           dpObj$numberClusters)
+    }
+  }
+
+  if (verbose){
+    cat("Initialised Dirichlet process with a", dpObj$mixingDistribution$distribution,
+        "mixing distribution.\n")
+  }
+  return(dpObj)
+}
