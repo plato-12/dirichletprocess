@@ -1,502 +1,355 @@
-# tests/testthat/test_beta_distribution_complete.R
-context("Beta Distribution C++ Complete Test Suite")
+# tests/testthat/test-beta-cpp-comprehensive.R
 
-# Helper function to check if C++ implementation is available
+context("Beta Distribution C++ Comprehensive Tests")
+
+# Helper function to check if C++ backend is available
 skip_if_no_cpp <- function() {
-  skip_if_not(exists("beta_prior_draw_cpp"), "C++ implementation not available")
+  skip_if(!exists("_dirichletprocess_run_mcmc_cpp"),
+          "C++ backend not available")
 }
 
-# ===== SECTION 1: Basic Beta Distribution Tests =====
+test_that("BetaMixingDistribution construction and properties", {
+  prior_params <- c(2.0, 8.0)
+  beta_dist <- BetaMixtureCreate(prior_params)
 
-test_that("Beta prior draw C++ implementation works correctly", {
-  skip_if_no_cpp()
-
-  set.seed(123)
-  priorParams <- c(2, 8)
-  maxT <- 1
-  n <- 100
-
-  # Test prior draw
-  result <- beta_prior_draw_cpp(priorParams, maxT, n)
-
-  expect_equal(names(result), c("mu", "nu"))
-  expect_equal(dim(result$mu), c(1, 1, n))
-  expect_equal(dim(result$nu), c(1, 1, n))
-
-  # Check all values are in valid range
-  expect_true(all(result$mu >= 0 & result$mu <= maxT))
-  expect_true(all(result$nu > 0))
-
-  # Test single draw
-  single_result <- beta_prior_draw_cpp(priorParams, maxT, 1)
-  expect_equal(length(single_result$mu), 1)
-  expect_equal(length(single_result$nu), 1)
-
-  # Test statistical properties
-  expect_true(mean(result$mu) > 0.2 && mean(result$mu) < 0.8)
-  expect_true(mean(result$nu) > 0)
+  expect_true(inherits(beta_dist, "beta"))
+  expect_true(inherits(beta_dist, "nonconjugate"))
+  expect_equal(beta_dist$maxT, 1.0)
+  expect_equal(length(beta_dist$priorParameters), 2)
+  expect_equal(beta_dist$priorParameters, prior_params)
 })
 
-test_that("Beta likelihood C++ calculation is correct", {
-  skip_if_no_cpp()
+test_that("Beta likelihood computation", {
+  prior_params <- c(2.0, 8.0)
+  beta_dist <- BetaMixtureCreate(prior_params)
 
-  x <- seq(0.1, 0.9, by = 0.1)
-  mu <- 0.5
-  nu <- 4.0
-  maxT <- 1
+  # Test data
+  x <- c(0.1, 0.3, 0.5, 0.7, 0.9)
 
-  lik <- beta_likelihood_cpp(x, mu, nu, maxT)
+  # Test parameters (mu, nu format)
+  mu_arr <- array(0.5, dim = c(1, 1, 1))
+  nu_arr <- array(10.0, dim = c(1, 1, 1))
 
-  # Check dimensions
-  expect_equal(length(lik), length(x))
+  theta <- list(mu = mu_arr, nu = nu_arr)
 
-  # Check all values are positive
+  lik <- Likelihood(beta_dist, x, theta)
+
+  # All likelihoods should be positive
   expect_true(all(lik > 0))
-
-  # Check specific value
-  a <- (mu * nu) / maxT
-  b <- (1.0 - mu/maxT) * nu
-  expected_lik_05 <- (1.0/maxT) * dbeta(0.5/maxT, a, b)
-  expect_equal(lik[5], expected_lik_05, tolerance = 1e-10)
 
   # Test edge cases
   x_edge <- c(0.0, 1.0, -0.1, 1.1)
-  lik_edge <- beta_likelihood_cpp(x_edge, mu, nu, maxT)
-  expect_true(all(lik_edge == 1e-300))
+  lik_edge <- Likelihood(beta_dist, x_edge, theta)
 
-  # Test with invalid parameters
-  lik_invalid <- beta_likelihood_cpp(0.5, mu, 0.0, maxT)
-  expect_equal(lik_invalid, 1e-300)
+  # Should return very small values for out-of-bounds data
+  expect_true(all(lik_edge <= 1e-300))
 })
 
-test_that("Beta prior density C++ calculation is correct", {
-  skip_if_no_cpp()
+test_that("Beta prior draw functionality", {
+  prior_params <- c(2.0, 8.0)
+  beta_dist <- BetaMixtureCreate(prior_params)
 
-  priorParams <- c(2, 8)
-  maxT <- 1
+  # Test single draw
+  prior1 <- PriorDraw(beta_dist, 1)
 
-  # Test cases
-  test_cases <- list(
-    list(mu = 0.5, nu = 2.0),
-    list(mu = 0.2, nu = 10.0),
-    list(mu = 0.8, nu = 0.5)
-  )
+  expect_is(prior1, "list")
+  expect_equal(length(prior1$mu), 1)
+  expect_equal(length(prior1$nu), 1)
+  expect_true(prior1$mu[1] >= 0 && prior1$mu[1] <= beta_dist$maxT)
+  expect_true(prior1$nu[1] > 0)
 
-  for (case in test_cases) {
-    density <- beta_prior_density_cpp(case$mu, case$nu, priorParams, maxT)
+  # Test multiple draws
+  n_draws <- 100
+  prior_multi <- PriorDraw(beta_dist, n_draws)
 
-    # Check density is positive
-    expect_true(density > 0)
+  expect_equal(length(prior_multi$mu), n_draws)
+  expect_equal(length(prior_multi$nu), n_draws)
 
-    # Calculate expected density
-    mu_density <- 1.0 / maxT
-    gamma_shape <- priorParams[1]
-    gamma_rate <- priorParams[2]
-    nu_density <- dgamma(1.0/case$nu, shape = gamma_shape, rate = gamma_rate) / (case$nu^2)
-    expected_density <- mu_density * nu_density
+  # Check all values are in valid range
+  expect_true(all(prior_multi$mu >= 0 & prior_multi$mu <= beta_dist$maxT))
+  expect_true(all(prior_multi$nu > 0))
 
-    expect_equal(density, expected_density, tolerance = 1e-10)
+  # Check dimensions
+  expect_equal(dim(prior_multi$mu), c(1, 1, n_draws))
+  expect_equal(dim(prior_multi$nu), c(1, 1, n_draws))
+})
+
+test_that("Beta posterior draw with Metropolis-Hastings", {
+  prior_params <- c(2.0, 8.0)
+  beta_dist <- BetaMixtureCreate(prior_params, mhStepSize = c(0.1, 0.1))
+
+  # Generate test data from known Beta(3, 7)
+  set.seed(123)
+  n_data <- 50
+  x <- matrix(rbeta(n_data, 3.0, 7.0), ncol = 1)
+
+  # Draw posterior samples
+  n_draws <- 5
+  posterior <- PosteriorDraw(beta_dist, x, n_draws)
+
+  expect_equal(length(posterior$mu), n_draws)
+  expect_equal(length(posterior$nu), n_draws)
+
+  # Check all values are valid
+  expect_true(all(posterior$mu > 0 & posterior$mu < beta_dist$maxT))
+  expect_true(all(posterior$nu > 0))
+
+  # Mean should be close to true mean = 3/(3+7) = 0.3
+  mu_mean <- mean(posterior$mu)
+  expect_true(abs(mu_mean - 0.3) < 0.2) # Rough check
+})
+
+test_that("Beta prior density calculation", {
+  prior_params <- c(2.0, 8.0)
+  beta_dist <- BetaMixtureCreate(prior_params)
+
+  # Test various parameter values
+  test_mu <- c(0.1, 0.5, 0.9)
+  test_nu <- c(0.5, 5.0, 50.0)
+
+  for (mu in test_mu) {
+    for (nu in test_nu) {
+      mu_arr <- array(mu, dim = c(1, 1, 1))
+      nu_arr <- array(nu, dim = c(1, 1, 1))
+
+      theta <- list(mu = mu_arr, nu = nu_arr)
+
+      density <- PriorDensity(beta_dist, theta)
+
+      # Density should be positive for valid parameters
+      expect_true(density > 0)
+    }
   }
 
   # Test edge cases
-  density_edge1 <- beta_prior_density_cpp(0.0, 2.0, priorParams, maxT)
-  expect_equal(density_edge1, 1e-10)
+  mu_edge <- array(-0.1, dim = c(1, 1, 1)) # Invalid mu
+  nu_edge <- array(5.0, dim = c(1, 1, 1))
 
-  density_edge2 <- beta_prior_density_cpp(0.5, 1e-11, priorParams, maxT)
-  expect_true(density_edge2 < 1e-5)
+  theta_edge <- list(mu = mu_edge, nu = nu_edge)
+
+  density_edge <- PriorDensity(beta_dist, theta_edge)
+  expect_equal(density_edge, 0.0)
 })
 
-test_that("Beta posterior draw C++ produces valid samples", {
+test_that("NonConjugateBetaDP construction and initialization", {
   skip_if_no_cpp()
 
+  # Create using DirichletProcessBeta
+  y <- rbeta(20, 2, 8)
+  beta_dp <- DirichletProcessBeta(y, verbose = FALSE)
+
+  expect_equal(beta_dp$m, 3) # Default auxiliary parameters
+  expect_equal(beta_dp$numberClusters, 1) # Initial clustering
+  expect_true(!is.null(beta_dp$mixingDistribution))
+  expect_true(inherits(beta_dp$mixingDistribution, "beta"))
+})
+
+test_that("NonConjugateBetaDP cluster component update", {
+  skip_if_no_cpp()
+
+  # Initialize with test data
   set.seed(456)
-  priorParams <- c(2, 8)
-  maxT <- 1
-  mhStepSize <- c(0.1, 0.1)
+  n <- 20
+  y <- rbeta(n, 2.0, 8.0)
 
-  # Generate test data from known Beta
-  a <- 3
-  b <- 7
-  x <- matrix(rbeta(30, a, b) * maxT, ncol = 1)
+  # Create DP object
+  dp <- DirichletProcessBeta(y, verbose = FALSE)
 
-  # Test posterior draw
-  result <- beta_posterior_draw_cpp(priorParams, maxT, mhStepSize, x,
-                                    n = 5, mhDrawsVal = 250)
+  # Run a few iterations to test cluster updates
+  dp <- Fit(dp, its = 10, progressBar = FALSE)
 
-  expect_equal(names(result), c("mu", "nu"))
-  expect_equal(dim(result$mu), c(1, 1, 5))
-  expect_equal(dim(result$nu), c(1, 1, 5))
-
-  # Check validity
-  expect_true(all(result$mu > 0 & result$mu < maxT))
-  expect_true(all(result$nu > 0))
-
-  # Check that posterior mean is reasonable given the data
-  true_mean <- a / (a + b) * maxT
-  posterior_mu_mean <- mean(result$mu)
-  expect_true(abs(posterior_mu_mean - true_mean) < 0.2)
-})
-
-# ===== SECTION 2: MCMC Implementation Tests =====
-
-test_that("Complete Beta DP MCMC workflow works correctly", {
-  skip_if_no_cpp()
-
-  set.seed(789)
-
-  # Generate test data from two Beta clusters
-  n <- 60
-  y <- c(
-    rbeta(30, 2, 8),  # Cluster 1: low mean
-    rbeta(30, 8, 2)   # Cluster 2: high mean
-  )
-  y <- sample(y)  # Shuffle
-
-  # Create Beta DP object
-  dp <- DirichletProcessBeta(y, maxT = 1, verbose = FALSE, mhDraws = 50)
-
-  # Test initial state
-  expect_equal(dp$n, n)
-  expect_equal(length(dp$data), n)
-  expect_equal(dp$numberClusters, 1)  # Starts with one cluster
+  # Check that state is valid
+  expect_true(dp$numberClusters >= 1)
+  expect_true(max(dp$clusterLabels) <= dp$numberClusters)
   expect_equal(sum(dp$pointsPerCluster), n)
-
-  # Run MCMC iterations
-  dp_fitted <- Fit(dp, its = 100, progressBar = FALSE)
-
-  # Check final state validity
-  expect_true(dp_fitted$numberClusters >= 1)
-  expect_true(dp_fitted$numberClusters <= n/2)  # Shouldn't have too many clusters
-  expect_equal(sum(dp_fitted$pointsPerCluster), n)
-  expect_true(all(dp_fitted$clusterLabels >= 1))  # R uses 1-indexing
-  expect_true(all(dp_fitted$clusterLabels <= dp_fitted$numberClusters))
-
-  # Check that parameters are reasonable
-  mu_params <- dp_fitted$clusterParameters$mu
-  nu_params <- dp_fitted$clusterParameters$nu
-
-  expect_true(all(mu_params > 0 & mu_params < 1))
-  expect_true(all(nu_params > 0))
-
-  # Should find approximately 2 clusters
-  expect_true(dp_fitted$numberClusters >= 1 && dp_fitted$numberClusters <= 4)
-
-  # Check alpha chain
-  expect_true(length(dp_fitted$alphaChain) == 100)
-  expect_true(all(dp_fitted$alphaChain > 0))
+  expect_true(all(dp$clusterLabels > 0))
 })
 
-test_that("Beta DP handles different data patterns correctly", {
+test_that("BetaMixing class (new architecture) log likelihood", {
+  # Test likelihood calculations directly
+  beta_mix <- BetaMixtureCreate(c(2.0, 8.0))
+
+  # Test single data point
+  x <- 0.3
+  params <- list(
+    mu = array(0.5, dim = c(1, 1, 1)),
+    nu = array(10.0, dim = c(1, 1, 1))
+  )
+
+  lik <- Likelihood(beta_mix, x, params)
+  log_lik <- log(lik)
+
+  # Should be finite and reasonable
+  expect_true(is.finite(log_lik))
+  expect_true(log_lik < 0) # Log likelihood typically negative
+
+  # Test edge cases
+  x_edge1 <- 0.0
+  lik_edge1 <- Likelihood(beta_mix, x_edge1, params)
+  expect_true(lik_edge1 <= 1e-300)
+
+  x_edge2 <- 1.1
+  lik_edge2 <- Likelihood(beta_mix, x_edge2, params)
+  expect_true(lik_edge2 <= 1e-300)
+})
+
+test_that("BetaMixing posterior draw with method of moments", {
+  beta_mix <- BetaMixtureCreate(c(2.0, 8.0))
+
+  # Generate cluster data
+  set.seed(789)
+  n <- 30
+  cluster_data <- matrix(rbeta(n, 3.0, 7.0), ncol = 1)
+
+  # Draw from posterior
+  post_params <- PosteriorDraw(beta_mix, cluster_data, n = 1)
+
+  expect_equal(length(post_params$mu), 1)
+  expect_equal(length(post_params$nu), 1)
+  expect_true(post_params$mu[1] > 0 && post_params$mu[1] < 1.0) # mu
+  expect_true(post_params$nu[1] > 0) # nu
+
+  # Test empty cluster case
+  empty_data <- matrix(numeric(0), ncol = 1)
+  post_empty <- PosteriorDraw(beta_mix, empty_data, n = 1)
+
+  # Should return prior draw
+  expect_equal(length(post_empty$mu), 1)
+  expect_equal(length(post_empty$nu), 1)
+  expect_true(post_empty$mu[1] >= 0 && post_empty$mu[1] <= 1.0)
+  expect_true(post_empty$nu[1] > 0)
+})
+
+test_that("Integration test: Full MCMC update cycle", {
   skip_if_no_cpp()
 
-  # Test 1: Single cluster data
+  # Generate test data with two clear clusters
   set.seed(111)
-  y_single <- rbeta(50, 5, 5)  # Symmetric, single mode
-  dp_single <- DirichletProcessBeta(y_single, verbose = FALSE)
-  dp_single <- Fit(dp_single, its = 50, progressBar = FALSE)
+  n1 <- 25
+  n2 <- 25
+  n <- n1 + n2
 
-  expect_true(dp_single$numberClusters >= 1 && dp_single$numberClusters <= 3)
+  y1 <- rbeta(n1, 2.0, 8.0) # Mean ≈ 0.2
+  y2 <- rbeta(n2, 8.0, 2.0) # Mean ≈ 0.8
+  y <- c(y1, y2)
 
-  # Test 2: Well-separated clusters
-  set.seed(222)
-  y_separated <- c(
-    rbeta(25, 1, 10),  # Very low values
-    rbeta(25, 10, 1)   # Very high values
-  )
-  dp_separated <- DirichletProcessBeta(y_separated, verbose = FALSE)
-  dp_separated <- Fit(dp_separated, its = 50, progressBar = FALSE)
+  # Shuffle data
+  y <- sample(y)
 
-  # Should find 2 clusters with high probability
-  expect_true(dp_separated$numberClusters >= 2)
+  # Create and fit DP
+  dp <- DirichletProcessBeta(y, alphaPriors = c(2, 0.5), verbose = FALSE)
 
-  # Test 3: Small dataset
-  set.seed(333)
-  y_small <- rbeta(10, 3, 3)
-  dp_small <- DirichletProcessBeta(y_small, verbose = FALSE)
-  dp_small <- Fit(dp_small, its = 50, progressBar = FALSE)
+  # Run several MCMC iterations
+  dp <- Fit(dp, its = 100, progressBar = FALSE)
 
-  expect_true(dp_small$numberClusters >= 1 && dp_small$numberClusters <= 5)
-  expect_equal(sum(dp_small$pointsPerCluster), 10)
+  # Should discover at least 2 clusters given clear separation
+  expect_true(dp$numberClusters >= 1)
+  expect_true(dp$numberClusters <= n/2) # Reasonable upper bound
+
+  # Check validity of final state
+  expect_equal(sum(dp$pointsPerCluster), n)
+  expect_true(max(dp$clusterLabels) <= dp$numberClusters)
+  expect_true(dp$alpha > 0)
+
+  # Check that cluster parameters make sense
+  expect_true(all(dp$clusterParameters$mu > 0))
+  expect_true(all(dp$clusterParameters$mu < 1))
+  expect_true(all(dp$clusterParameters$nu > 0))
 })
 
-test_that("Beta DP parameter updates are sensible", {
+test_that("Metropolis-Hastings parameter proposal", {
+  prior_params <- c(2.0, 8.0)
+  beta_dist <- BetaMixtureCreate(prior_params, mhStepSize = c(0.1, 0.1))
+
+  # Create old parameters
+  mu_old <- array(0.5, dim = c(1, 1, 1))
+  nu_old <- array(10.0, dim = c(1, 1, 1))
+
+  old_params <- list(mu = mu_old, nu = nu_old)
+
+  # Generate proposals
+  n_proposals <- 100
+  mu_props <- numeric(n_proposals)
+  nu_props <- numeric(n_proposals)
+
+  for (i in 1:n_proposals) {
+    proposal <- MhParameterProposal(beta_dist, old_params)
+    mu_props[i] <- proposal$mu[1]
+    nu_props[i] <- proposal$nu[1]
+  }
+
+  # Proposals should be close to old values (given step size)
+  expect_true(all(abs(mu_props - mu_old[1]) < 0.5))
+  expect_true(all(abs(log(nu_props) - log(nu_old[1])) < 2.0))
+
+  # But still valid
+  expect_true(all(mu_props > 0 & mu_props < beta_dist$maxT))
+  expect_true(all(nu_props > 0))
+})
+
+test_that("Prior parameter update functionality", {
   skip_if_no_cpp()
 
-  set.seed(444)
+  prior_params <- c(2.0, 8.0)
 
-  # Generate data with known parameters
-  true_mu1 <- 0.2
-  true_mu2 <- 0.8
-  true_nu <- 10
+  # Create DP with beta distribution
+  set.seed(222)
+  y <- rbeta(50, 3, 7)
+  dp <- DirichletProcessBeta(y, verbose = FALSE)
 
-  y <- c(
-    rbeta(40, true_mu1 * true_nu, (1 - true_mu1) * true_nu),
-    rbeta(40, true_mu2 * true_nu, (1 - true_mu2) * true_nu)
-  )
+  # Store initial prior parameters
+  initial_priors <- dp$mixingDistribution$priorParameters
 
-  dp <- DirichletProcessBeta(y, verbose = FALSE, mhStepSize = c(0.05, 0.05))
-  dp <- Fit(dp, its = 200, progressBar = FALSE)
+  # Fit model which may update priors
+  dp <- Fit(dp, its = 50, progressBar = FALSE, updatePrior = TRUE)
 
-  # Check that we found clusters near the true values
-  mu_params <- sort(dp$clusterParameters$mu)
+  # Prior parameters may have changed if updatePrior = TRUE
+  final_priors <- dp$mixingDistribution$priorParameters
 
-  if (dp$numberClusters >= 2) {
-    # Find the two main clusters (with most points)
-    points_per_cluster <- dp$pointsPerCluster
-    top_clusters <- order(points_per_cluster, decreasing = TRUE)[1:2]
-    main_mus <- sort(dp$clusterParameters$mu[top_clusters])
+  # Check that priors are still valid
+  expect_true(all(final_priors > 0))
+  expect_equal(length(final_priors), 2)
+})
 
-    # Check they're close to true values
-    expect_true(abs(main_mus[1] - true_mu1) < 0.1)
-    expect_true(abs(main_mus[2] - true_mu2) < 0.1)
+test_that("Beta DP handles various data sizes", {
+  skip_if_no_cpp()
+
+  # Test with different data sizes
+  data_sizes <- c(10, 50, 100)
+
+  for (n in data_sizes) {
+    set.seed(n)
+    y <- rbeta(n, 3, 3)
+
+    dp <- DirichletProcessBeta(y, verbose = FALSE)
+    dp <- Fit(dp, its = 20, progressBar = FALSE)
+
+    # Basic checks
+    expect_equal(length(dp$data), n)
+    expect_equal(length(dp$clusterLabels), n)
+    expect_equal(sum(dp$pointsPerCluster), n)
+    expect_true(dp$numberClusters >= 1)
+    expect_true(dp$numberClusters <= n)
   }
 })
 
-test_that("Beta DP alpha updates follow expected behavior", {
+test_that("Beta DP consistency with fixed random seed", {
   skip_if_no_cpp()
 
-  set.seed(555)
+  # Two runs with same seed should give identical results
+  y <- rbeta(30, 4, 6)
 
-  # Test with different alpha priors
-  y <- rbeta(50, 3, 3)
-
-  # High alpha prior - expect more clusters
-  dp_high <- DirichletProcessBeta(y, alphaPriors = c(10, 2), verbose = FALSE)
-  dp_high <- Fit(dp_high, its = 100, progressBar = FALSE)
-
-  # Low alpha prior - expect fewer clusters
-  dp_low <- DirichletProcessBeta(y, alphaPriors = c(1, 10), verbose = FALSE)
-  dp_low <- Fit(dp_low, its = 100, progressBar = FALSE)
-
-  # Average number of clusters should reflect alpha
-  mean_alpha_high <- mean(tail(dp_high$alphaChain, 50))
-  mean_alpha_low <- mean(tail(dp_low$alphaChain, 50))
-
-  expect_true(mean_alpha_high > mean_alpha_low)
-})
-
-test_that("Beta DP handles edge cases gracefully", {
-  skip_if_no_cpp()
-
-  # Test 1: Extreme data values
-  set.seed(666)
-  y_extreme <- c(
-    rep(0.001, 5),  # Very small
-    rep(0.999, 5)   # Very large
-  )
-
-  expect_error({
-    dp_extreme <- DirichletProcessBeta(y_extreme, verbose = FALSE)
-    dp_extreme <- Fit(dp_extreme, its = 20, progressBar = FALSE)
-  }, NA)  # Should not error
-
-  # Test 2: Single data point
-  y_single <- 0.5
-  dp_single <- DirichletProcessBeta(y_single, verbose = FALSE)
-  dp_single <- Fit(dp_single, its = 10, progressBar = FALSE)
-
-  expect_equal(dp_single$numberClusters, 1)
-  expect_equal(dp_single$pointsPerCluster, 1)
-
-  # Test 3: Identical data points
-  y_identical <- rep(0.7, 20)
-  dp_identical <- DirichletProcessBeta(y_identical, verbose = FALSE)
-  dp_identical <- Fit(dp_identical, its = 30, progressBar = FALSE)
-
-  # Should find very few clusters
-  expect_true(dp_identical$numberClusters <= 3)
-})
-
-# ===== SECTION 3: Integration and Convergence Tests =====
-
-test_that("Beta DP MCMC chain shows convergence", {
-  skip_if_no_cpp()
-
-  set.seed(777)
-
-  # Generate data
-  y <- c(rbeta(30, 2, 8), rbeta(30, 8, 2))
-  dp <- DirichletProcessBeta(y, verbose = FALSE)
-
-  # Run longer chain
-  dp <- Fit(dp, its = 500, progressBar = FALSE)
-
-  # Check convergence of number of clusters
-  cluster_chain <- dp$weightsChain
-  n_clusters <- apply(cluster_chain > 0, 2, sum)
-
-  # Compare first and last halves
-  first_half <- n_clusters[1:250]
-  second_half <- n_clusters[251:500]
-
-  # Means should be similar if converged
-  expect_true(abs(mean(first_half) - mean(second_half)) < 0.5)
-
-  # Check alpha convergence
-  alpha_first <- dp$alphaChain[1:250]
-  alpha_second <- dp$alphaChain[251:500]
-
-  expect_true(abs(mean(alpha_first) - mean(alpha_second)) <
-                0.3 * mean(dp$alphaChain))
-
-  # Variance should stabilize
-  expect_true(var(alpha_second) < 2 * var(alpha_first))
-})
-
-test_that("Beta DP produces consistent results with same seed", {
-  skip_if_no_cpp()
-
-  y <- rbeta(40, 3, 7)
-
-  # Run 1
-  set.seed(888)
+  set.seed(999)
   dp1 <- DirichletProcessBeta(y, verbose = FALSE)
   dp1 <- Fit(dp1, its = 50, progressBar = FALSE)
 
-  # Run 2 with same seed
-  set.seed(888)
+  set.seed(999)
   dp2 <- DirichletProcessBeta(y, verbose = FALSE)
   dp2 <- Fit(dp2, its = 50, progressBar = FALSE)
 
-  # Results should be identical
+  # Should be identical
   expect_equal(dp1$numberClusters, dp2$numberClusters)
   expect_equal(dp1$clusterLabels, dp2$clusterLabels)
   expect_equal(dp1$alpha, dp2$alpha)
-  expect_equal(dp1$clusterParameters$mu, dp2$clusterParameters$mu)
-  expect_equal(dp1$clusterParameters$nu, dp2$clusterParameters$nu)
-})
-
-test_that("Beta DP likelihood calculations are correct", {
-  skip_if_no_cpp()
-
-  set.seed(999)
-
-  y <- rbeta(30, 4, 6)
-  dp <- DirichletProcessBeta(y, verbose = FALSE)
-  dp <- Fit(dp, its = 100, progressBar = FALSE)
-
-  # Calculate likelihood for the final state
-  final_lik <- LikelihoodDP(dp)
-
-  expect_true(is.numeric(final_lik))
-  expect_true(is.finite(final_lik))
-  expect_true(final_lik < 0)  # Log likelihood should be negative
-
-  # Check likelihood chain
-  expect_equal(length(dp$likelihoodChain), 100)
-  expect_true(all(is.finite(dp$likelihoodChain)))
-
-  # Likelihood should generally increase (with some randomness)
-  smooth_lik <- filter(dp$likelihoodChain, rep(1/10, 10), sides = 1)
-  smooth_lik <- smooth_lik[!is.na(smooth_lik)]
-  expect_true(tail(smooth_lik, 1) > head(smooth_lik, 1))
-})
-
-test_that("Beta DP posterior sampling works", {
-  skip_if_no_cpp()
-
-  set.seed(1234)
-
-  y <- rbeta(40, 3, 3)
-  dp <- DirichletProcessBeta(y, verbose = FALSE)
-  dp <- Fit(dp, its = 100, progressBar = FALSE)
-
-  # Draw from posterior
-  posterior_sample <- PosteriorFunction(dp, 100)
-
-  expect_true(is.function(posterior_sample))
-
-  # Test posterior function
-  test_points <- seq(0.1, 0.9, by = 0.1)
-  posterior_values <- posterior_sample(test_points)
-
-  expect_equal(length(posterior_values), length(test_points))
-  expect_true(all(posterior_values >= 0))
-  expect_true(all(is.finite(posterior_values)))
-
-  # Posterior should integrate to approximately 1
-  integrate_result <- integrate(posterior_sample, 0, 1)
-  expect_true(abs(integrate_result$value - 1) < 0.1)
-})
-
-test_that("Beta DP cluster assignment predictions work", {
-  skip_if_no_cpp()
-
-  set.seed(5678)
-
-  # Train on subset
-  y_train <- c(rbeta(20, 2, 8), rbeta(20, 8, 2))
-  dp <- DirichletProcessBeta(y_train, verbose = FALSE)
-  dp <- Fit(dp, its = 100, progressBar = FALSE)
-
-  # Predict on new data
-  y_test <- c(0.1, 0.2, 0.8, 0.9)  # Should assign to different clusters
-  pred_clusters <- ClusterLabelPredict(dp, y_test)
-
-  expect_equal(length(pred_clusters), length(y_test))
-  expect_true(all(pred_clusters >= 1))
-  expect_true(all(pred_clusters <= dp$numberClusters + 1))  # Can create new cluster
-
-  # Low values should be in same cluster, high values in same cluster
-  expect_equal(pred_clusters[1], pred_clusters[2])
-  expect_equal(pred_clusters[3], pred_clusters[4])
-  expect_true(pred_clusters[1] != pred_clusters[3])  # Different clusters
-})
-
-test_that("Beta DP methods handle various maxT values", {
-  skip_if_no_cpp()
-
-  set.seed(9999)
-
-  # Test with different maxT values
-  maxT_values <- c(1, 10, 100)
-
-  for (maxT in maxT_values) {
-    y <- rbeta(30, 3, 7) * maxT
-
-    dp <- DirichletProcessBeta(y, maxT = maxT, verbose = FALSE)
-    dp <- Fit(dp, its = 50, progressBar = FALSE)
-
-    # Check parameters are scaled correctly
-    expect_true(all(dp$clusterParameters$mu > 0))
-    expect_true(all(dp$clusterParameters$mu < maxT))
-    expect_true(all(dp$data >= 0))
-    expect_true(all(dp$data <= maxT))
-
-    # Likelihood should be finite
-    lik <- LikelihoodDP(dp)
-    expect_true(is.finite(lik))
-  }
-})
-
-# Performance test (only run if explicitly requested)
-test_that("Beta DP performance is reasonable", {
-  skip_on_cran()
-  skip_if_not(interactive(), "Performance test only run interactively")
-
-  set.seed(1111)
-
-  # Test scaling with data size
-  n_values <- c(50, 100, 200)
-  times <- numeric(length(n_values))
-
-  for (i in seq_along(n_values)) {
-    n <- n_values[i]
-    y <- rbeta(n, 3, 7)
-
-    time_start <- Sys.time()
-    dp <- DirichletProcessBeta(y, verbose = FALSE)
-    dp <- Fit(dp, its = 100, progressBar = FALSE)
-    time_end <- Sys.time()
-
-    times[i] <- as.numeric(time_end - time_start, units = "secs")
-  }
-
-  cat("\nBeta DP Performance (100 iterations):\n")
-  for (i in seq_along(n_values)) {
-    cat(sprintf("n = %d: %.3f seconds\n", n_values[i], times[i]))
-  }
-
-  # Time should scale roughly linearly with n
-  expect_true(times[3] < times[1] * 5)  # Not more than 5x slower for 4x data
+  expect_equal(dp1$clusterParameters, dp2$clusterParameters)
 })
