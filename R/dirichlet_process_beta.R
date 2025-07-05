@@ -26,31 +26,44 @@ DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
 }
 
 #' @export
-Initialise.beta <- function(mdObj, dpObj, posterior = TRUE, verbose = TRUE, ...) {
+Initialise.beta <- function(dpObj, posterior = TRUE, verbose = TRUE, ...) {
 
-  dpObj <- NextMethod()
+  # Ensure all points start in cluster 1
+  dpObj$clusterLabels <- rep(1, dpObj$n)
+  dpObj$numberClusters <- 1
+  dpObj$pointsPerCluster <- numeric(dpObj$n)
+  dpObj$pointsPerCluster[1] <- dpObj$n
 
-  # Ensure proper initialization of cluster components
-  if (dpObj$n > 0) {
-    # Initialize all points to cluster 1
-    dpObj$clusterLabels <- rep(1, dpObj$n)
-    dpObj$pointsPerCluster <- dpObj$n
-    dpObj$numberClusters <- 1
-
-    # Initialize cluster parameters
-    if (posterior) {
-      dpObj$clusterParameters <- PosteriorDraw(dpObj$mixingDistribution,
-                                               dpObj$data,
-                                               dpObj$numberClusters)
-    } else {
-      dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution,
-                                           dpObj$numberClusters)
-    }
+  # Initialize parameters
+  if (posterior) {
+    cluster_data <- matrix(dpObj$data, ncol = 1)
+    post_draws <- PosteriorDraw(dpObj$mixingDistribution, cluster_data, n = 1)
+    dpObj$clusterParameters <- list(
+      mu = as.numeric(post_draws$mu),
+      nu = as.numeric(post_draws$nu)
+    )
+  } else {
+    prior_draws <- PriorDraw(dpObj$mixingDistribution, 1)
+    dpObj$clusterParameters <- list(
+      mu = as.numeric(prior_draws$mu),
+      nu = as.numeric(prior_draws$nu)
+    )
   }
 
-  if (verbose){
-    cat("Initialised Dirichlet process with a", dpObj$mixingDistribution$distribution,
-        "mixing distribution.\n")
+  # Initialize auxiliary parameters for non-conjugate
+  dpObj$m <- 3
+  dpObj$aux <- vector("list", dpObj$m)
+  for (j in seq_len(dpObj$m)) {
+    aux_params <- PriorDraw(dpObj$mixingDistribution, 1)
+    dpObj$aux[[j]] <- list(
+      mu = as.numeric(aux_params$mu),
+      nu = as.numeric(aux_params$nu)
+    )
   }
+
+  if (verbose) {
+    cat("Initialised Dirichlet process with 1 cluster\n")
+  }
+
   return(dpObj)
 }

@@ -49,3 +49,43 @@ PosteriorDraw.nonconjugate <- function(mdObj, x, n = 1, ...) {
 
   return(theta)
 }
+
+#' @export
+PosteriorDraw.beta <- function(mdObj, x, n = 1, ...) {
+
+  if (missing(...) || is.null(list(...)$start_pos)) {
+    # Try PenalisedLikelihood first, fall back to PriorDraw
+    start_pos <- tryCatch({
+      PenalisedLikelihood(mdObj, x)
+    }, error = function(e) {
+      PriorDraw(mdObj, 1)
+    })
+  } else {
+    start_pos <- list(...)$start_pos
+  }
+
+  # Get MCMC samples
+  mh_result <- MetropolisHastings(mdObj, x, start_pos, no_draws = n)
+
+  # Extract and return with proper names
+  if (length(mh_result$parameter_samples) >= 2) {
+    mu_samples <- mh_result$parameter_samples[[1]]
+    nu_samples <- mh_result$parameter_samples[[2]]
+
+    # Ensure correct dimensions
+    if (length(dim(mu_samples)) < 3) {
+      mu_samples <- array(mu_samples, dim = c(1, 1, n))
+    }
+    if (length(dim(nu_samples)) < 3) {
+      nu_samples <- array(nu_samples, dim = c(1, 1, n))
+    }
+
+    return(list(mu = mu_samples, nu = nu_samples))
+  } else {
+    # Fallback to empty arrays
+    return(list(
+      mu = array(numeric(0), dim = c(1, 1, 0)),
+      nu = array(numeric(0), dim = c(1, 1, 0))
+    ))
+  }
+}

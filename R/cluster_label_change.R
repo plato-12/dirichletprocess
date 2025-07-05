@@ -201,3 +201,45 @@ ClusterLabelChange.default <- function(dpObj, i, newLabel, currentLabel, aux=0) 
     stop("ClusterLabelChange not implemented for this object type")
   }
 }
+
+#' @export
+ClusterLabelChange.beta <- function(dpObj, i, newLabel, currentLabel, m = 3) {
+  # Ensure we have valid auxiliary parameters
+  if (is.null(dpObj$aux) || length(dpObj$aux) == 0) {
+    dpObj$aux <- vector("list", m)
+    for (j in seq_len(m)) {
+      aux_params <- PriorDraw(dpObj$mixingDistribution, 1)
+      dpObj$aux[[j]] <- list(
+        mu = as.numeric(aux_params$mu),
+        nu = as.numeric(aux_params$nu)
+      )
+    }
+  }
+
+  # Perform the label change
+  dpObj$clusterLabels[i] <- newLabel
+
+  # Update cluster counts
+  if (currentLabel > 0) {
+    dpObj$pointsPerCluster[currentLabel] <- dpObj$pointsPerCluster[currentLabel] - 1
+    if (dpObj$pointsPerCluster[currentLabel] == 0) {
+      # Remove empty cluster
+      dpObj <- RemoveCluster(dpObj, currentLabel)
+    }
+  }
+
+  if (newLabel > dpObj$numberClusters) {
+    # New cluster
+    dpObj$numberClusters <- newLabel
+    dpObj$pointsPerCluster[newLabel] <- 1
+
+    # Draw new parameters for the new cluster
+    new_params <- PriorDraw(dpObj$mixingDistribution, 1)
+    dpObj$clusterParameters$mu[newLabel] <- as.numeric(new_params$mu)
+    dpObj$clusterParameters$nu[newLabel] <- as.numeric(new_params$nu)
+  } else {
+    dpObj$pointsPerCluster[newLabel] <- dpObj$pointsPerCluster[newLabel] + 1
+  }
+
+  return(dpObj)
+}

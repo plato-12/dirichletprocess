@@ -134,32 +134,44 @@ MhParameterProposal.beta <- function(mdObj, old_params) {
 
 #' @export
 #' @rdname PenalisedLikelihood
-PenalisedLikelihood.beta <- function(mdObj, x){
+PenalisedLikelihood.beta <- function(mdObj, x) {
+  if (length(x) == 0) {
+    return(PriorDraw(mdObj, 1))
+  }
 
-  optimStartParams <- c(mdObj$maxT/2, 2)
+  x <- as.numeric(x)
+  x <- x[x > 0 & x < mdObj$maxT]  # Remove boundary values
 
-  optimParams <- tryCatch(optim(optimStartParams, function(params){
+  if (length(x) == 0) {
+    return(PriorDraw(mdObj, 1))
+  }
 
-    # Ensure params are in a valid range for log calculation
-    params_mu <- params[1]
-    params_nu <- params[2]
-    if(params_mu <= 0 || params_mu >= mdObj$maxT || params_nu <= 0) return(1e30)
+  # Method of moments estimation
+  x_norm <- x / mdObj$maxT
+  x_mean <- mean(x_norm)
+  x_var <- var(x_norm)
 
+  # Handle edge cases
+  if (is.na(x_var) || x_var < 1e-10) {
+    x_var <- 0.01
+  }
 
-    ll <- sum(log(Likelihood(mdObj, x, VectorToArray(params))))
-    # Ensure PriorDensity does not return 0 or negative before taking log
-    prior_dens <- PriorDensity(mdObj, VectorToArray(params))
-    if(prior_dens <= 0) return(1e30)
-    ll <- ll + log(prior_dens)
+  if (x_mean <= 0.01) x_mean <- 0.01
+  if (x_mean >= 0.99) x_mean <- 0.99
 
+  # Calculate parameters
+  common <- x_mean * (1 - x_mean) / x_var - 1
+  if (common <= 0) {
+    # Fallback to prior
+    return(PriorDraw(mdObj, 1))
+  }
 
-    if (is.infinite(ll) || is.na(ll)) ll <- -1e30 # Use a large negative finite number
+  mu_est <- x_mean * mdObj$maxT
+  tau_est <- common
 
-    return(-ll)
-  }, method="L-BFGS-B", lower=c(1e-6,1e-6), upper=c(mdObj$maxT - 1e-6, Inf)), error = function(e) list(par=optimStartParams))
-
-
-  optimParamsRet <- VectorToArray(optimParams$par)
-
-  return(optimParamsRet)
+  # Return in the expected format
+  return(list(
+    mu = array(mu_est, dim = c(1, 1, 1)),
+    nu = array(tau_est, dim = c(1, 1, 1))
+  ))
 }
