@@ -33,35 +33,34 @@ double BetaMixing::log_likelihood(const arma::vec& data_point,
 // Posterior draw - for non-conjugate, we typically use MH or return prior draw
 arma::vec BetaMixing::posterior_draw(const arma::mat& cluster_data,
                                      const arma::vec& prior_params) const {
-  // For non-conjugate Beta, we would typically use Metropolis-Hastings
-  // For now, return a simple approximation based on method of moments
+  // Handle empty cluster case
   if (cluster_data.n_rows == 0) {
     return prior_draw();
   }
 
+  // Use method of moments for initial estimate
   arma::vec x = cluster_data.col(0);
-
-  // Method of moments estimates
   double x_mean = arma::mean(x) / maxT;  // Normalize to [0,1]
   double x_var = arma::var(x) / (maxT * maxT);
 
-  // Prevent division by zero
-  if (x_var < 1e-10) {
-    x_var = 1e-10;
+  // Ensure valid variance
+  if (x_var < 1e-10 || x_mean <= 0 || x_mean >= 1) {
+    return prior_draw();
   }
 
   // Calculate tau (precision) from variance
-  double tau_est = x_mean * (1 - x_mean) / x_var - 1;
-  tau_est = std::max(0.1, tau_est);  // Ensure positive
+  double common = x_mean * (1 - x_mean) / x_var - 1;
+  if (common <= 0) {
+    return prior_draw();
+  }
 
-  // mu is mean * maxT
+  double tau_est = common;
   double mu_est = x_mean * maxT;
 
-  // Add some noise for MCMC
+  // Ensure valid parameters
   arma::vec params(2);
-  params[0] = std::max(0.01, std::min(maxT - 0.01,
-                                      mu_est + 0.1 * R::rnorm(0, 1)));
-  params[1] = std::max(0.1, tau_est + 0.1 * R::rnorm(0, 1));
+  params[0] = std::max(0.01, std::min(maxT - 0.01, mu_est));
+  params[1] = std::max(0.1, tau_est);
 
   return params;
 }

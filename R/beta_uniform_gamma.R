@@ -23,14 +23,31 @@ BetaMixtureCreate <- function(priorParameters = c(2, 8), mhStepSize = c(1, 1), m
 Likelihood.beta <- function(mdObj, x, theta) {
   maxT <- mdObj$maxT
   x <- as.vector(x, "numeric")
-  mu <- theta[[1]][, , , drop = TRUE]
-  tau <- theta[[2]][, , , drop = TRUE]
+  mu <- as.numeric(theta[[1]][, , , drop = TRUE])
+  tau <- as.numeric(theta[[2]][, , , drop = TRUE])
 
+  # Validate parameters
+  if (any(mu <= 0) || any(mu >= maxT) || any(tau <= 0)) {
+    return(rep(1e-300, length(x)))
+  }
 
-  a <- (mu * tau)/maxT
+  a <- (mu * tau) / maxT
   b <- (1 - mu/maxT) * tau
 
-  y <- 1/maxT * dbeta(x/maxT, a, b)
+  # Ensure valid beta parameters
+  if (any(a <= 0) || any(b <= 0)) {
+    return(rep(1e-300, length(x)))
+  }
+
+  # Calculate likelihood
+  y <- numeric(length(x))
+  for (i in seq_along(x)) {
+    if (x[i] >= 0 && x[i] <= maxT) {
+      y[i] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
+    } else {
+      y[i] <- 1e-300
+    }
+  }
 
   return(as.numeric(y))
 }

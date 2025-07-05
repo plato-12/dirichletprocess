@@ -105,42 +105,34 @@ MetropolisHastings.weibull <- function(mixingDistribution, x, start_pos, no_draw
 
 #' @export
 MetropolisHastings.beta <- function(mixingDistribution, x, start_pos, no_draws) {
-  # Initialize
-  current_params <- start_pos
+  # Initialize parameter storage
   parameter_samples <- list()
-
-  # Initialize parameter sample arrays following the pattern from default method
   for (i in seq_along(start_pos)) {
     parameter_samples[[i]] <- array(dim = c(dim(start_pos[[i]])[1:2], no_draws))
     parameter_samples[[i]][, , 1] <- start_pos[[i]][, , 1]
   }
 
   accept_count <- 0
-
-  # Convert data to matrix if needed
-  if (!is.matrix(x)) {
-    x <- matrix(x, ncol = 1)
-  }
-
-  # Current parameters
   old_param <- start_pos
 
-  # Current log-likelihood and prior
+  # Calculate initial log prior and likelihood
   old_prior <- log(PriorDensity(mixingDistribution, old_param))
-  old_Likelihood <- sum(log(Likelihood(mixingDistribution, x[,1], old_param)))
+  old_likelihood <- sum(log(Likelihood(mixingDistribution, x, old_param)))
 
   # MCMC loop
   for (i in seq_len(no_draws - 1)) {
     # Propose new parameters
     prop_param <- MhParameterProposal(mixingDistribution, old_param)
 
-    # Calculate proposed log-likelihood and prior
+    # Calculate new log prior and likelihood
     new_prior <- log(PriorDensity(mixingDistribution, prop_param))
-    new_Likelihood <- sum(log(Likelihood(mixingDistribution, x[,1], prop_param)))
+    new_likelihood <- sum(log(Likelihood(mixingDistribution, x, prop_param)))
 
-    # Calculate acceptance ratio
-    accept_prob <- min(1, exp(new_prior + new_Likelihood - old_prior - old_Likelihood))
+    # Calculate acceptance probability
+    log_ratio <- (new_prior + new_likelihood) - (old_prior + old_likelihood)
+    accept_prob <- min(1, exp(log_ratio))
 
+    # Handle numerical issues
     if (is.na(accept_prob) || !is.finite(accept_prob)) {
       accept_prob <- 0
     }
@@ -149,25 +141,20 @@ MetropolisHastings.beta <- function(mixingDistribution, x, start_pos, no_draws) 
     if (runif(1) < accept_prob) {
       accept_count <- accept_count + 1
       sampled_param <- prop_param
-      old_Likelihood <- new_Likelihood
+      old_likelihood <- new_likelihood
       old_prior <- new_prior
     } else {
       sampled_param <- old_param
     }
 
-    # Update old_param for next iteration
+    # Store parameters
     old_param <- sampled_param
-
-    # Store sample
     for (j in seq_along(start_pos)) {
-      parameter_samples[[j]][, , i + 1] <- sampled_param[[j]]
+      parameter_samples[[j]][, , i + 1] <- sampled_param[[j]][, , 1]
     }
   }
 
   accept_ratio <- accept_count / no_draws
 
-  return(list(
-    parameter_samples = parameter_samples,
-    accept_ratio = accept_ratio
-  ))
+  return(list(parameter_samples = parameter_samples, accept_ratio = accept_ratio))
 }

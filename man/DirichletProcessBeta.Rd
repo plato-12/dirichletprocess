@@ -6,28 +6,25 @@
 \usage{
 DirichletProcessBeta(
   y,
-  maxY = NULL,
-  g0Priors = c(2, 8),
-  alphaPriors = c(2, 4),
-  mhStepSize = c(1, 1),
-  hyperPriorParameters = c(1, 0.125),
+  alphaPriors = c(2, 0.5),
+  mhStepSize = c(0.1, 0.1),
   verbose = TRUE
 )
 }
 \arguments{
 \item{y}{Data for which to be fitted}
 
-\item{maxY}{Upper bound for the Beta distribution}
-
-\item{g0Priors}{Prior parameters for the base measure (alpha, beta for the prior)}
-
 \item{alphaPriors}{Alpha prior parameters for the DP concentration parameter}
 
 \item{mhStepSize}{Metropolis-Hastings step size for parameter updates}
 
-\item{hyperPriorParameters}{Hyper prior parameters}
-
 \item{verbose}{Logical indicating whether to print messages}
+
+\item{maxY}{Upper bound for the Beta distribution}
+
+\item{g0Priors}{Prior parameters for the base measure (alpha, beta for the prior)}
+
+\item{hyperPriorParameters}{Hyper prior parameters}
 }
 \value{
 Dirichlet process object with Beta mixing distribution

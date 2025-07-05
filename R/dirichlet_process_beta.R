@@ -9,37 +9,18 @@
 #' @param verbose Logical indicating whether to print messages
 #' @return Dirichlet process object with Beta mixing distribution
 #' @export
-DirichletProcessBeta <- function(y,
-                                 maxY = NULL,
-                                 g0Priors = c(2, 8),
-                                 alphaPriors = c(2, 4),
-                                 mhStepSize = c(1, 1),
-                                 hyperPriorParameters = c(1, 0.125),
-                                 verbose = TRUE) {
+DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
+                                 mhStepSize = c(0.1, 0.1), verbose = TRUE) {
+  mdObj <- BetaMixtureCreate(priorParameters = c(2, 8),
+                             mhStepSize = mhStepSize,
+                             maxT = 1)
 
-  if (is.null(maxY)) {
-    maxY <- max(y) + 0.01  # Small buffer to ensure all data is included
-  }
-
-  mdObj <- BetaMixtureCreate(
-    priorParameters = g0Priors,
-    mhStepSize = mhStepSize,
-    maxT = maxY,
-    hyperPriorParameters = hyperPriorParameters
-  )
-
-  # FIXED: Pass alphaPriorParameters instead of alphaPriors
-  # FIXED: Remove verbose parameter as DirichletProcessCreate doesn't accept it
-  dpObj <- DirichletProcessCreate(
-    y,
-    mdObj,
-    alphaPriorParameters = alphaPriors  # Changed from alphaPriors to alphaPriorParameters
-  )
-
-  # Store verbose for later use if needed
-  dpObj$verbose <- verbose
-
+  dpObj <- DirichletProcessCreate(y, mdObj, alphaPriors)
   dpObj <- Initialise(dpObj, verbose = verbose)
+
+  # Ensure cluster accounting is correct
+  dpObj$pointsPerCluster <- as.numeric(table(factor(dpObj$clusterLabels,
+                                                    levels = 1:dpObj$numberClusters)))
 
   return(dpObj)
 }
