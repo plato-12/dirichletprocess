@@ -235,7 +235,7 @@ Rcpp::List BetaMixingDistribution::posteriorDraw(const arma::mat& x, int n) cons
   Rcpp::List startPos = priorDraw(1);
 
   // Ensure mhStepSize is properly set
-  Rcpp::NumericVector stepSize = this->mhStepSize;
+  Rcpp::NumericVector stepSize = Rcpp::as<Rcpp::NumericVector>(this->mhStepSize);
   if (stepSize.size() < 2) {
     stepSize = Rcpp::NumericVector::create(0.1, 0.1);
   }
