@@ -23,7 +23,7 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
   for (int i = 0; i < n; i++) {
     int currentLabel = clusterLabels[i];
 
-    // Remove point from current cluster
+    // Remove point from current cluster temporarily
     pointsPerCluster[currentLabel]--;
 
     // Generate auxiliary parameters
@@ -65,7 +65,7 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
 
     // Existing clusters
     for (int j = 0; j < numberClusters; j++) {
-      if (pointsPerCluster[j] > 0) {
+      if (j != currentLabel || pointsPerCluster[j] > 0) {
         Rcpp::List clusterParam = Rcpp::List::create(
           Rcpp::NumericVector::create(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0])[j]),
           Rcpp::NumericVector::create(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1])[j])
@@ -132,10 +132,7 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
       }
     }
 
-    // Restore point count before update
-    // pointsPerCluster[currentLabel]++;
-
-    // Update cluster assignment
+    // Update cluster assignment (clusterLabelChange will handle point counting)
     Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel, aux);
 
     // Update state from result
@@ -149,6 +146,8 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
 Rcpp::List NonConjugateBetaDP::clusterLabelChange(int i, int newLabel, int currentLabel,
                                                   const Rcpp::List& aux) {
   if (newLabel == currentLabel) {
+    // Restore the point count since we temporarily removed it
+    pointsPerCluster[currentLabel]++;
     return Rcpp::List::create(
       Rcpp::Named("clusterLabels") = clusterLabels,
       Rcpp::Named("pointsPerCluster") = pointsPerCluster,
@@ -161,26 +160,47 @@ Rcpp::List NonConjugateBetaDP::clusterLabelChange(int i, int newLabel, int curre
   Rcpp::NumericVector mu_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]));
   Rcpp::NumericVector nu_vec = Rcpp::clone(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]));
 
-  // 1. Remove point from old cluster
-  pointsPerCluster[currentLabel]--;
+  // Note: pointsPerCluster[currentLabel] has already been decremented in clusterComponentUpdate
 
-  // 2. Assign to new cluster
+  // Assign to new cluster
   if (newLabel < numberClusters) {
     // Existing cluster
     pointsPerCluster[newLabel]++;
     clusterLabels[i] = newLabel;
 
     // If old cluster is now empty, remove it
-    if (pointsPerCluster[currentLabel] == 0) {
+    if (pointsPerCluster[currentLabel] == 0 && currentLabel != newLabel) {
       numberClusters--;
-      pointsPerCluster.shed_row(currentLabel);
 
-      mu_vec.erase(currentLabel);
-      nu_vec.erase(currentLabel);
+      // Create new vectors without the empty cluster
+      arma::uvec new_pointsPerCluster(numberClusters);
+      int idx = 0;
+      for (int j = 0; j < pointsPerCluster.n_elem; j++) {
+        if (j != currentLabel) {
+          new_pointsPerCluster[idx++] = pointsPerCluster[j];
+        }
+      }
+      pointsPerCluster = new_pointsPerCluster;
 
-      // Update labels
+      // Remove from parameter vectors
+      Rcpp::NumericVector new_mu_vec;
+      Rcpp::NumericVector new_nu_vec;
+      for (int j = 0; j < mu_vec.size(); j++) {
+        if (j != currentLabel) {
+          new_mu_vec.push_back(mu_vec[j]);
+          new_nu_vec.push_back(nu_vec[j]);
+        }
+      }
+      mu_vec = new_mu_vec;
+      nu_vec = new_nu_vec;
+
+      // Update labels for points in clusters after the removed one
       for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
         if (clusterLabels[j] > (unsigned int)currentLabel) {
+          clusterLabels[j]--;
+        }
+        // Also update the current point's label if needed
+        if (j == i && newLabel > currentLabel) {
           clusterLabels[j]--;
         }
       }
@@ -208,8 +228,15 @@ Rcpp::List NonConjugateBetaDP::clusterLabelChange(int i, int newLabel, int curre
       nu_vec.push_back(aux_nu[auxIndex]);
 
       clusterLabels[i] = numberClusters;
-      pointsPerCluster.resize(numberClusters + 1);
-      pointsPerCluster[numberClusters] = 1;
+
+      // Resize pointsPerCluster correctly
+      arma::uvec new_pointsPerCluster(numberClusters + 1);
+      for (int j = 0; j < numberClusters; j++) {
+        new_pointsPerCluster[j] = pointsPerCluster[j];
+      }
+      new_pointsPerCluster[numberClusters] = 1;
+      pointsPerCluster = new_pointsPerCluster;
+
       numberClusters++;
     }
   }

@@ -181,7 +181,13 @@ test_that("BetaMixing class (new architecture) log likelihood", {
 
   # Should be finite and reasonable
   expect_true(is.finite(log_lik))
-  expect_true(log_lik < 0) # Log likelihood typically negative
+  expect_true(!is.nan(log_lik))
+  expect_true(!is.infinite(log_lik))
+
+  # For Beta distributions, log likelihood can be positive or negative
+  # depending on whether the density is > 1 or < 1
+  # So we just check that it's a reasonable value
+  expect_true(abs(log_lik) < 100)  # Reasonable bounds check
 
   # Test edge cases
   x_edge1 <- 0.0
@@ -191,6 +197,33 @@ test_that("BetaMixing class (new architecture) log likelihood", {
   x_edge2 <- 1.1
   lik_edge2 <- Likelihood(beta_mix, x_edge2, params)
   expect_true(lik_edge2 <= 1e-300)
+
+  # Test with parameters that should give negative log likelihood
+  params2 <- list(
+    mu = array(0.2, dim = c(1, 1, 1)),
+    nu = array(5.0, dim = c(1, 1, 1))
+  )
+
+  x2 <- 0.8  # Far from mean
+  lik2 <- Likelihood(beta_mix, x2, params2)
+  log_lik2 <- log(lik2)
+
+  expect_true(is.finite(log_lik2))
+  expect_true(log_lik2 < 0)  # This should definitely be negative
+
+  # Test with parameters that might give positive log likelihood
+  params3 <- list(
+    mu = array(0.5, dim = c(1, 1, 1)),
+    nu = array(0.5, dim = c(1, 1, 1))  # Low precision
+  )
+
+  x3 <- 0.5  # At the mean
+  lik3 <- Likelihood(beta_mix, x3, params3)
+  log_lik3 <- log(lik3)
+
+  expect_true(is.finite(log_lik3))
+  # Don't assume sign - just check it's reasonable
+  expect_true(abs(log_lik3) < 100)
 })
 
 test_that("BetaMixing posterior draw with method of moments", {

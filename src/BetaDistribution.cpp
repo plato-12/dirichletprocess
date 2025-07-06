@@ -415,25 +415,31 @@ void NonConjugateBetaDP::clusterParameterUpdate() {
 
 Rcpp::List NonConjugateBetaDP::toR() const {
   Rcpp::List result;
+
   result["data"] = data;
   result["n"] = n;
   result["alpha"] = alpha;
   result["alphaPriorParameters"] = alphaPriorParameters;
-  result["mhDraws"] = mhDraws;
 
-  // Ensure cluster labels are valid
+  // Ensure cluster labels are valid (1-indexed for R)
   if (clusterLabels.n_elem == 0 && n > 0) {
     // Initialize with all points in one cluster if empty
     result["clusterLabels"] = arma::uvec(n, arma::fill::ones);
     result["numberClusters"] = 1;
     result["pointsPerCluster"] = arma::uvec({static_cast<arma::uword>(n)});
+
+    // Initialize cluster parameters
+    Rcpp::List init_params = mixingDistribution->priorDraw(1);
+    result["clusterParameters"] = init_params;
   } else {
-    result["clusterLabels"] = clusterLabels; // Already 0-indexed
+    // Convert to 1-indexed for R
+    arma::uvec r_labels = clusterLabels + 1;
+    result["clusterLabels"] = r_labels;
     result["numberClusters"] = numberClusters;
     result["pointsPerCluster"] = pointsPerCluster;
+    result["clusterParameters"] = clusterParameters;
   }
 
-  result["clusterParameters"] = clusterParameters;
   result["m"] = m;
 
   if (mixingDistribution) {
