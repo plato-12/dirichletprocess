@@ -158,7 +158,7 @@ run_beta_atime_benchmark <- function() {
       iterations <- 100  # Fixed number of iterations
     },
     expr.list = expr_list,
-    seconds.limit = 10,  # Stop if any expression takes more than 10 seconds
+    seconds.limit = 500,  # Stop if any expression takes more than 10 seconds
     verbose = TRUE
   )
 

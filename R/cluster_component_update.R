@@ -411,8 +411,9 @@ ClusterComponentUpdate.beta <- function(dpObj) {
       newMu <- aux[[1]][, , auxIndex, drop = FALSE]
       newNu <- aux[[2]][, , auxIndex, drop = FALSE]
 
-      dpObj$clusterParameters[[1]] <- abind(dpObj$clusterParameters[[1]], newMu, along = 3)
-      dpObj$clusterParameters[[2]] <- abind(dpObj$clusterParameters[[2]], newNu, along = 3)
+      # Use abind:: to explicitly call from the abind package
+      dpObj$clusterParameters[[1]] <- abind::abind(dpObj$clusterParameters[[1]], newMu, along = 3)
+      dpObj$clusterParameters[[2]] <- abind::abind(dpObj$clusterParameters[[2]], newNu, along = 3)
     }
   }
 

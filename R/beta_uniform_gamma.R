@@ -23,45 +23,66 @@ BetaMixtureCreate <- function(priorParameters = c(2, 8), mhStepSize = c(1, 1), m
 Likelihood.beta <- function(mdObj, x, theta) {
   maxT <- mdObj$maxT
   x <- as.vector(x, "numeric")
-  mu <- as.numeric(theta[[1]][, , , drop = TRUE])
-  tau <- as.numeric(theta[[2]][, , , drop = TRUE])
+
+  # Handle both array and vector inputs for theta
+  if (is.list(theta) && length(theta) >= 2) {
+    # Extract mu and tau from arrays
+    if (is.array(theta[[1]])) {
+      mu <- as.numeric(theta[[1]][, , , drop = TRUE])
+    } else {
+      mu <- as.numeric(theta[[1]])
+    }
+
+    if (is.array(theta[[2]])) {
+      tau <- as.numeric(theta[[2]][, , , drop = TRUE])
+    } else {
+      tau <- as.numeric(theta[[2]])
+    }
+  } else {
+    stop("theta must be a list with at least 2 elements")
+  }
 
   # Ensure we have values
   if (length(mu) == 0 || length(tau) == 0) {
     return(numeric(length(x)))
   }
 
-  # Recycle parameters if needed
-  mu <- rep_len(mu, length(x))
-  tau <- rep_len(tau, length(x))
+  # Calculate likelihood for each cluster
+  n_clusters <- length(mu)
+  y <- matrix(NA_real_, nrow = length(x), ncol = n_clusters)
 
-  # Calculate likelihood
-  y <- numeric(length(x))
-  for (i in seq_along(x)) {
+  for (k in 1:n_clusters) {
     # Validate parameters
-    if (is.na(mu[i]) || is.na(tau[i]) || mu[i] <= 0 || mu[i] >= maxT || tau[i] <= 0) {
-      y[i] <- 1e-300
+    if (is.na(mu[k]) || is.na(tau[k]) || mu[k] <= 0 || mu[k] >= maxT || tau[k] <= 0) {
+      y[, k] <- 1e-300
       next
     }
 
-    a <- (mu[i] * tau[i]) / maxT
-    b <- (1 - mu[i]/maxT) * tau[i]
+    a <- (mu[k] * tau[k]) / maxT
+    b <- (1 - mu[k]/maxT) * tau[k]
 
     # Ensure valid beta parameters
     if (a <= 0 || b <= 0 || !is.finite(a) || !is.finite(b)) {
-      y[i] <- 1e-300
+      y[, k] <- 1e-300
       next
     }
 
-    # Calculate likelihood
-    if (x[i] >= 0 && x[i] <= maxT) {
-      y[i] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
-    } else {
-      y[i] <- 1e-300
+    # Calculate likelihood for all data points
+    for (i in seq_along(x)) {
+      if (x[i] >= 0 && x[i] <= maxT) {
+        y[i, k] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
+      } else {
+        y[i, k] <- 1e-300
+      }
     }
   }
 
-  return(as.numeric(y))
+  # Return as vector if single cluster, matrix otherwise
+  if (n_clusters == 1) {
+    return(as.numeric(y[, 1]))
+  } else {
+    return(y)
+  }
 }
 
 #' @export

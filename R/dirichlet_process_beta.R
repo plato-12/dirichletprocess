@@ -34,19 +34,23 @@ Initialise.beta <- function(dpObj, posterior = TRUE, verbose = TRUE, ...) {
   dpObj$pointsPerCluster <- numeric(dpObj$n)
   dpObj$pointsPerCluster[1] <- dpObj$n
 
-  # Initialize parameters
+  # Initialize parameters with proper array structure
   if (posterior) {
     cluster_data <- matrix(dpObj$data, ncol = 1)
     post_draws <- PosteriorDraw(dpObj$mixingDistribution, cluster_data, n = 1)
+
+    # Ensure proper array structure
     dpObj$clusterParameters <- list(
-      mu = as.numeric(post_draws$mu),
-      nu = as.numeric(post_draws$nu)
+      mu = array(as.numeric(post_draws$mu), dim = c(1, 1, 1)),
+      nu = array(as.numeric(post_draws$nu), dim = c(1, 1, 1))
     )
   } else {
     prior_draws <- PriorDraw(dpObj$mixingDistribution, 1)
+
+    # Ensure proper array structure
     dpObj$clusterParameters <- list(
-      mu = as.numeric(prior_draws$mu),
-      nu = as.numeric(prior_draws$nu)
+      mu = array(as.numeric(prior_draws$mu), dim = c(1, 1, 1)),
+      nu = array(as.numeric(prior_draws$nu), dim = c(1, 1, 1))
     )
   }
 
@@ -56,8 +60,8 @@ Initialise.beta <- function(dpObj, posterior = TRUE, verbose = TRUE, ...) {
   for (j in seq_len(dpObj$m)) {
     aux_params <- PriorDraw(dpObj$mixingDistribution, 1)
     dpObj$aux[[j]] <- list(
-      mu = as.numeric(aux_params$mu),
-      nu = as.numeric(aux_params$nu)
+      mu = array(as.numeric(aux_params$mu), dim = c(1, 1, 1)),
+      nu = array(as.numeric(aux_params$nu), dim = c(1, 1, 1))
     )
   }
 
