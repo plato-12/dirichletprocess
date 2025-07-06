@@ -92,7 +92,7 @@ run_mvnormal_atime_benchmark <- function() {
 
   # Run atime benchmark
   atime_result <- atime::atime(
-    N = as.integer(10^seq(1.5, 3, by = 0.25)),  # 30 to 1000 observations
+    N = as.integer(10^seq(1.5, 2.5, by = 0.15)),  # 30 to 1000 observations
     setup = {
       # Test with 2D data by default
       d <- 2

@@ -6,120 +6,58 @@ library(dirichletprocess)
 library(atime)
 library(ggplot2)
 
-# Fix 1: Update the Likelihood.beta function to handle both old and new theta formats
-fix_beta_likelihood <- function() {
-  assignInNamespace("Likelihood.beta", function(mdObj, x, theta) {
-    maxT <- mdObj$maxT
-    x <- as.vector(x, "numeric")
+# Fix: Update ClusterParameterUpdate.nonconjugate to handle beta distribution correctly
+fix_cluster_parameter_update <- function() {
+  assignInNamespace("ClusterParameterUpdate.nonconjugate", function(dpObj) {
 
-    # Handle both indexed and named theta formats
-    if (is.list(theta) && !is.null(names(theta)) && "mu" %in% names(theta)) {
-      # New format with named components
-      mu <- theta$mu
-      nu <- theta$nu
-    } else {
-      # Old format with indexed components
-      mu <- as.numeric(theta[[1]][, , , drop = TRUE])
-      tau <- as.numeric(theta[[2]][, , , drop = TRUE])
-      # Convert tau to nu for consistency
-      nu <- tau
+    if (inherits(dpObj, "beta") && using_cpp_samplers()) {
+      cpp_result <- nonconjugate_beta_cluster_parameter_update_cpp(dpObj)
+
+      if (!is.null(cpp_result)) {
+        dpObj$clusterParameters <- cpp_result
+        return(dpObj)
+      }
     }
 
-    # Ensure we have values
-    if (length(mu) == 0 || length(nu) == 0) {
-      return(numeric(length(x)))
-    }
-
-    # Ensure mu and nu are numeric vectors
-    mu <- as.numeric(mu)
-    nu <- as.numeric(nu)
-
-    # Recycle parameters if needed
-    mu <- rep_len(mu, length(x))
-    nu <- rep_len(nu, length(x))
-
-    # Calculate likelihood
-    y <- numeric(length(x))
-    for (i in seq_along(x)) {
-      # Validate parameters
-      if (is.na(mu[i]) || is.na(nu[i]) || mu[i] <= 0 || mu[i] >= maxT || nu[i] <= 0) {
-        y[i] <- 1e-300
+    for (i in seq_len(dpObj$numberClusters)) {
+      cluster_data_indices <- dpObj$clusterLabels == i
+      if (sum(cluster_data_indices) == 0) {
         next
       }
+      cluster_data <- dpObj$data[cluster_data_indices, , drop = FALSE]
 
-      a <- (mu[i] * nu[i]) / maxT
-      b <- (1 - mu[i]/maxT) * nu[i]
+      current_params_list <- list(
+        mu = array(dpObj$clusterParameters[[1]][, , i], dim = c(1,1,1)),
+        nu = array(dpObj$clusterParameters[[2]][, , i], dim = c(1,1,1))
+      )
 
-      # Ensure valid beta parameters
-      if (a <= 0 || b <= 0 || !is.finite(a) || !is.finite(b)) {
-        y[i] <- 1e-300
-        next
-      }
+      posterior_draw_samples <- PosteriorDraw(dpObj$mixingDistribution,
+                                              cluster_data,
+                                              n = dpObj$mhDraws,
+                                              start_pos = current_params_list)
 
-      # Calculate likelihood
-      if (x[i] >= 0 && x[i] <= maxT) {
-        y[i] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
+      # Fix: Handle the beta distribution's return format
+      if (inherits(dpObj$mixingDistribution, "beta")) {
+        # PosteriorDraw.beta returns list(mu=vector, nu=vector)
+        # Extract the last sample from each
+        mu_values <- posterior_draw_samples$mu
+        nu_values <- posterior_draw_samples$nu
+
+        # Take the last value from the MCMC chain
+        dpObj$clusterParameters[[1]][, , i] <- mu_values[length(mu_values)]
+        dpObj$clusterParameters[[2]][, , i] <- nu_values[length(nu_values)]
       } else {
-        y[i] <- 1e-300
+        # Original logic for other distributions
+        dpObj$clusterParameters[[1]][, , i] <- posterior_draw_samples[[1]][,,dpObj$mhDraws, drop=FALSE]
+        dpObj$clusterParameters[[2]][, , i] <- posterior_draw_samples[[2]][,,dpObj$mhDraws, drop=FALSE]
       }
     }
-
-    return(as.numeric(y))
-  }, ns = "dirichletprocess")
-}
-
-# Fix 2: Update Initialise.beta to use correct theta structure
-fix_beta_initialization <- function() {
-  assignInNamespace("Initialise.beta", function(dpObj, posterior = TRUE, verbose = TRUE, ...) {
-
-    # Ensure all points start in cluster 1
-    dpObj$clusterLabels <- rep(1, dpObj$n)
-    dpObj$numberClusters <- 1
-    dpObj$pointsPerCluster <- numeric(dpObj$n)
-    dpObj$pointsPerCluster[1] <- dpObj$n
-
-    # Initialize parameters with correct array structure
-    if (posterior) {
-      cluster_data <- matrix(dpObj$data, ncol = 1)
-      post_draws <- PosteriorDraw(dpObj$mixingDistribution, cluster_data, n = 1)
-
-      # Ensure parameters are in array format
-      dpObj$clusterParameters <- list(
-        array(as.numeric(post_draws$mu), dim = c(1, 1, 1)),
-        array(as.numeric(post_draws$nu), dim = c(1, 1, 1))
-      )
-    } else {
-      prior_draws <- PriorDraw(dpObj$mixingDistribution, 1)
-
-      # Ensure parameters are in array format
-      dpObj$clusterParameters <- list(
-        array(as.numeric(prior_draws$mu), dim = c(1, 1, 1)),
-        array(as.numeric(prior_draws$nu), dim = c(1, 1, 1))
-      )
-    }
-
-    # Initialize auxiliary parameters for non-conjugate
-    dpObj$m <- 3
-    dpObj$aux <- vector("list", dpObj$m)
-    for (j in seq_len(dpObj$m)) {
-      aux_params <- PriorDraw(dpObj$mixingDistribution, 1)
-      dpObj$aux[[j]] <- list(
-        mu = as.numeric(aux_params$mu),
-        nu = as.numeric(aux_params$nu)
-      )
-    }
-
-    if (verbose) {
-      cat("Initialised Dirichlet process with 1 cluster\n")
-    }
-
     return(dpObj)
   }, ns = "dirichletprocess")
 }
 
-# Apply both fixes
-fix_beta_likelihood()
-fix_beta_initialization()
+# Apply the fix
+fix_cluster_parameter_update()
 
 # ==============================================================================
 # Setup Functions
@@ -346,7 +284,7 @@ analyze_beta_memory_scaling <- function() {
 }
 
 # ==============================================================================
-# Main Execution with Fixed Initialization
+# Main Execution
 # ==============================================================================
 
 if (interactive()) {
