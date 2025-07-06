@@ -6,10 +6,70 @@ library(dirichletprocess)
 library(atime)
 library(ggplot2)
 
-# First, let's fix the Initialise.beta function issue
-# This is a temporary fix - in production, this should be fixed in the package itself
+# Fix 1: Update the Likelihood.beta function to handle both old and new theta formats
+fix_beta_likelihood <- function() {
+  assignInNamespace("Likelihood.beta", function(mdObj, x, theta) {
+    maxT <- mdObj$maxT
+    x <- as.vector(x, "numeric")
+
+    # Handle both indexed and named theta formats
+    if (is.list(theta) && !is.null(names(theta)) && "mu" %in% names(theta)) {
+      # New format with named components
+      mu <- theta$mu
+      nu <- theta$nu
+    } else {
+      # Old format with indexed components
+      mu <- as.numeric(theta[[1]][, , , drop = TRUE])
+      tau <- as.numeric(theta[[2]][, , , drop = TRUE])
+      # Convert tau to nu for consistency
+      nu <- tau
+    }
+
+    # Ensure we have values
+    if (length(mu) == 0 || length(nu) == 0) {
+      return(numeric(length(x)))
+    }
+
+    # Ensure mu and nu are numeric vectors
+    mu <- as.numeric(mu)
+    nu <- as.numeric(nu)
+
+    # Recycle parameters if needed
+    mu <- rep_len(mu, length(x))
+    nu <- rep_len(nu, length(x))
+
+    # Calculate likelihood
+    y <- numeric(length(x))
+    for (i in seq_along(x)) {
+      # Validate parameters
+      if (is.na(mu[i]) || is.na(nu[i]) || mu[i] <= 0 || mu[i] >= maxT || nu[i] <= 0) {
+        y[i] <- 1e-300
+        next
+      }
+
+      a <- (mu[i] * nu[i]) / maxT
+      b <- (1 - mu[i]/maxT) * nu[i]
+
+      # Ensure valid beta parameters
+      if (a <= 0 || b <= 0 || !is.finite(a) || !is.finite(b)) {
+        y[i] <- 1e-300
+        next
+      }
+
+      # Calculate likelihood
+      if (x[i] >= 0 && x[i] <= maxT) {
+        y[i] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
+      } else {
+        y[i] <- 1e-300
+      }
+    }
+
+    return(as.numeric(y))
+  }, ns = "dirichletprocess")
+}
+
+# Fix 2: Update Initialise.beta to use correct theta structure
 fix_beta_initialization <- function() {
-  # Override the Initialise.beta method temporarily
   assignInNamespace("Initialise.beta", function(dpObj, posterior = TRUE, verbose = TRUE, ...) {
 
     # Ensure all points start in cluster 1
@@ -18,19 +78,23 @@ fix_beta_initialization <- function() {
     dpObj$pointsPerCluster <- numeric(dpObj$n)
     dpObj$pointsPerCluster[1] <- dpObj$n
 
-    # Initialize parameters
+    # Initialize parameters with correct array structure
     if (posterior) {
       cluster_data <- matrix(dpObj$data, ncol = 1)
       post_draws <- PosteriorDraw(dpObj$mixingDistribution, cluster_data, n = 1)
+
+      # Ensure parameters are in array format
       dpObj$clusterParameters <- list(
-        mu = as.numeric(post_draws$mu),
-        nu = as.numeric(post_draws$nu)
+        array(as.numeric(post_draws$mu), dim = c(1, 1, 1)),
+        array(as.numeric(post_draws$nu), dim = c(1, 1, 1))
       )
     } else {
       prior_draws <- PriorDraw(dpObj$mixingDistribution, 1)
+
+      # Ensure parameters are in array format
       dpObj$clusterParameters <- list(
-        mu = as.numeric(prior_draws$mu),
-        nu = as.numeric(prior_draws$nu)
+        array(as.numeric(prior_draws$mu), dim = c(1, 1, 1)),
+        array(as.numeric(prior_draws$nu), dim = c(1, 1, 1))
       )
     }
 
@@ -53,7 +117,8 @@ fix_beta_initialization <- function() {
   }, ns = "dirichletprocess")
 }
 
-# Apply the fix
+# Apply both fixes
+fix_beta_likelihood()
 fix_beta_initialization()
 
 # ==============================================================================
@@ -199,9 +264,10 @@ benchmark_beta_components <- function() {
     if (comp == "Likelihood") {
       expr_list_comp[["Likelihood_calculation"]] <- quote({
         mdObj <- BetaMixtureCreate(c(2, 8), mhStepSize = c(0.1, 0.1))
+        # Create theta with proper array structure
         theta <- list(
-          mu = array(0.5, dim = c(1, 1, 1)),
-          nu = array(10, dim = c(1, 1, 1))
+          array(0.5, dim = c(1, 1, 1)),
+          array(10, dim = c(1, 1, 1))
         )
         # Calculate likelihood for all data points
         for (i in 1:10) {
