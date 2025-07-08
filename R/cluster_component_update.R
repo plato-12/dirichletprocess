@@ -108,91 +108,70 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
       dpObj$clusterParameters <- cpp_result$clusterParameters
       return(dpObj)
     }
-    # If cpp_result is NULL, it means C++ stub signaled to use R fallback (or an error occurred)
-    # The warning from C++ will have already printed.
-    # Proceed to R fallback logic below
   }
 
-  # R fallback implementation (will run if C++ is disabled or C++ stub returns NULL)
+  # R implementation fallback
   y <- dpObj$data
-  n <- dpObj$n
+  n <- nrow(y)
   alpha <- dpObj$alpha
-
-  clusterLabels <- dpObj$clusterLabels
-  clusterParams <- dpObj$clusterParameters
-  numLabels <- dpObj$numberClusters
-
-  mdObj <- dpObj$mixingDistribution
   m <- dpObj$m
 
   pointsPerCluster <- dpObj$pointsPerCluster
+  clusterLabels <- dpObj$clusterLabels
+  clusterParams <- dpObj$clusterParameters
+  numLabels <- dpObj$numberClusters
+  mdObj <- dpObj$mixingDistribution
 
-  aux <- vector("list", length(clusterParams))
-
+  # Algorithm 8 from Neal (2000)
   for (i in seq_len(n)) {
     currentLabel <- clusterLabels[i]
 
+    # Temporarily remove the point from its current cluster
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] - 1
 
-    # Determine the correct parameters for the cluster being emptied (or use prior if it was a singleton)
-    current_params_for_empty_slot <- if(pointsPerCluster[currentLabel] == 0 && currentLabel <= dim(clusterParams[[1]])[3]) {
-      list(
-        mu = array(clusterParams[[1]][, , currentLabel], dim = c(1, dim(clusterParams[[1]])[2], 1)),
-        sig = array(clusterParams[[2]][, , currentLabel], dim = c(dim(clusterParams[[2]])[1], dim(clusterParams[[2]])[2], 1))
-      )
-    } else {
-      NULL
-    }
+    # Generate auxiliary parameters based on whether current cluster is now empty
+    if (pointsPerCluster[currentLabel] == 0) {
+      # Current cluster is empty, generate m-1 auxiliary parameters
+      # and include the current cluster's parameters as one auxiliary
+      aux <- PriorDraw(mdObj, m - 1)
 
-    if (!is.null(current_params_for_empty_slot)) {
-      # Get m-1 auxiliary parameters
-      aux_params <- PriorDraw(mdObj, m - 1)
+      # Combine current cluster params with auxiliary params
+      for (k in seq_along(clusterParams)) {
+        param_dim <- dim(clusterParams[[k]])
+        combined_aux <- array(NA, dim = c(param_dim[1], param_dim[2], m))
 
-      # Combine current cluster params with auxiliary parameters
-      for (j in seq_along(clusterParams)) {
-        param_dim <- dim(clusterParams[[j]])
-        if (length(param_dim) == 3) {
-          # Create array to hold all m parameters
-          new_dim <- param_dim
-          new_dim[3] <- m
-          aux[[j]] <- array(NA, dim = new_dim)
+        # First auxiliary is the current (empty) cluster's parameters
+        combined_aux[, , 1] <- clusterParams[[k]][, , currentLabel]
 
-          # First position gets the current (soon to be empty) cluster's parameters
-          if (length(param_dim) == 3) {
-            aux[[j]][, , 1] <- clusterParams[[j]][, , currentLabel]
-          } else {
-            aux[[j]][, , 1] <- current_params_for_empty_slot[[j]][, , 1]
-          }
-
-          # Rest get the auxiliary parameters
-          for (k in 2:m) {
-            aux[[j]][, , k] <- aux_params[[j]][, , k-1]
-          }
+        # Rest are the newly drawn auxiliary parameters
+        if (m > 1) {
+          combined_aux[, , 2:m] <- aux[[k]]
         }
+
+        aux[[k]] <- combined_aux
       }
     } else {
+      # Current cluster is not empty, generate m auxiliary parameters
       aux <- PriorDraw(mdObj, m)
     }
 
+    # Calculate probabilities for each possible assignment
     probs <- numeric(numLabels + m)
 
+    # Existing clusters
     for (j in seq_len(numLabels)) {
-      if (j == currentLabel && pointsPerCluster[j] == 0) {
-        # Use auxiliary parameter for empty cluster
-        tempThetaJ <- vector("list", length(clusterParams))
-        for (k in seq_along(clusterParams)) {
-          tempThetaJ[[k]] <- array(aux[[k]][, , 1], dim = c(dim(aux[[k]])[1], dim(aux[[k]])[2], 1))
-        }
-
-        probs[j] <- (1) * Likelihood(mdObj, y[i, , drop = FALSE], tempThetaJ)
-      } else if (pointsPerCluster[j] > 0) {
+      if (pointsPerCluster[j] > 0) {
+        # Non-empty cluster
         tempThetaJ <- vector("list", length(clusterParams))
         for (k in seq_along(clusterParams)) {
           tempThetaJ[[k]] <- array(clusterParams[[k]][, , j],
-                                   dim = c(dim(clusterParams[[k]])[1], dim(clusterParams[[k]])[2], 1))
+                                   dim = c(dim(clusterParams[[k]])[1],
+                                           dim(clusterParams[[k]])[2], 1))
         }
-
         probs[j] <- pointsPerCluster[j] * Likelihood(mdObj, y[i, , drop = FALSE], tempThetaJ)
+      } else {
+        # Empty cluster (only possible for currentLabel)
+        probs[j] <- 0
       }
     }
 
@@ -200,124 +179,101 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     for (j in seq_len(m)) {
       tempThetaJ <- vector("list", length(clusterParams))
       for (k in seq_along(clusterParams)) {
-        if (pointsPerCluster[currentLabel] == 0 && j == 1) {
-          # Skip the first aux parameter if current cluster is empty (already used above)
-          next
-        }
-        aux_idx <- if (pointsPerCluster[currentLabel] == 0 && j > 1) j else j
-        tempThetaJ[[k]] <- array(aux[[k]][, , aux_idx],
-                                 dim = c(dim(aux[[k]])[1], dim(aux[[k]])[2], 1))
+        tempThetaJ[[k]] <- array(aux[[k]][, , j],
+                                 dim = c(dim(aux[[k]])[1],
+                                         dim(aux[[k]])[2], 1))
       }
-
       probs[numLabels + j] <- (alpha / m) * Likelihood(mdObj, y[i, , drop = FALSE], tempThetaJ)
     }
 
+    # Normalize probabilities
     probs[is.na(probs)] <- 0
     probs[probs < 0] <- 0
 
     if (sum(probs) > 0) {
       probs <- probs / sum(probs)
     } else {
+      # Fallback to uniform if all probabilities are 0
       probs <- rep(1 / length(probs), length(probs))
     }
 
+    # Sample new label
     newLabel <- sample.int(length(probs), 1, prob = probs)
 
-    # Update the cluster assignment
+    # Handle the assignment
     if (newLabel <= numLabels) {
       # Assigned to existing cluster
       clusterLabels[i] <- newLabel
       pointsPerCluster[newLabel] <- pointsPerCluster[newLabel] + 1
-    } else {
-      # Assigned to auxiliary component - create new cluster
-      numLabels <- numLabels + 1
-      clusterLabels[i] <- numLabels
-      pointsPerCluster[numLabels] <- 1
 
-      aux_component_index <- newLabel - (numLabels - 1)
-
-      # Expand cluster parameters
-      for (j in seq_along(clusterParams)) {
-        param_dim <- dim(clusterParams[[j]])
-        new_dim <- param_dim
-        new_dim[3] <- numLabels
-
-        new_param <- array(NA, dim = new_dim)
-        if (param_dim[3] > 0) {
-          new_param[, , 1:param_dim[3]] <- clusterParams[[j]]
-        }
-        new_param[, , numLabels] <- aux[[j]][, , aux_component_index]
-        clusterParams[[j]] <- new_param
-      }
-    }
-
-    # Handle empty clusters by removing them
-    if (pointsPerCluster[currentLabel] == 0 && currentLabel <= numLabels) {
-      # Remove empty cluster
-      if (currentLabel == numLabels) {
-        # It's the last cluster, just reduce count
+      # Check if old cluster is now empty and needs removal
+      if (pointsPerCluster[currentLabel] == 0 && currentLabel != newLabel) {
+        # Remove empty cluster and shift indices
         numLabels <- numLabels - 1
 
-        # Shrink parameter arrays
+        # Remove from pointsPerCluster
+        if (currentLabel <= length(pointsPerCluster)) {
+          pointsPerCluster <- pointsPerCluster[-currentLabel]
+        }
+
+        # Remove from cluster parameters
         for (k in seq_along(clusterParams)) {
           param_dim <- dim(clusterParams[[k]])
-          if (length(param_dim) == 3 && param_dim[3] > 1) {
-            clusterParams[[k]] <- clusterParams[[k]][, , 1:(param_dim[3]-1), drop = FALSE]
+          if (param_dim[3] > 1) {
+            clusterParams[[k]] <- clusterParams[[k]][, , -currentLabel, drop = FALSE]
           }
         }
 
-        # Remove last element from pointsPerCluster
-        pointsPerCluster <- pointsPerCluster[1:numLabels]
-
-      } else {
-        # Not the last cluster - need to shift everything down
-
-        # Shift labels down for clusters after the empty one
+        # Shift down all labels greater than currentLabel
         clusterLabels[clusterLabels > currentLabel] <- clusterLabels[clusterLabels > currentLabel] - 1
 
-        # Shift parameters
+        # Adjust newLabel if it was shifted
+        if (newLabel > currentLabel) {
+          clusterLabels[i] <- newLabel - 1
+        }
+      }
+    } else {
+      # Assigned to auxiliary component - create new cluster
+      aux_idx <- newLabel - numLabels
+
+      if (pointsPerCluster[currentLabel] == 0) {
+        # Reuse the empty cluster slot
+        clusterLabels[i] <- currentLabel
+        pointsPerCluster[currentLabel] <- 1
+
+        # Update parameters with auxiliary values
+        for (k in seq_along(clusterParams)) {
+          clusterParams[[k]][, , currentLabel] <- aux[[k]][, , aux_idx]
+        }
+      } else {
+        # Create genuinely new cluster
+        numLabels <- numLabels + 1
+        clusterLabels[i] <- numLabels
+        pointsPerCluster <- c(pointsPerCluster, 1)
+
+        # Expand cluster parameters
         for (k in seq_along(clusterParams)) {
           param_dim <- dim(clusterParams[[k]])
-          if (length(param_dim) == 3 && param_dim[3] >= currentLabel) {
-            # Create new array without the empty cluster
-            new_dim <- param_dim
-            new_dim[3] <- param_dim[3] - 1
-            new_param <- array(NA, dim = new_dim)
-
-            # Copy parameters before the empty cluster
-            if (currentLabel > 1) {
-              new_param[, , 1:(currentLabel-1)] <- clusterParams[[k]][, , 1:(currentLabel-1)]
-            }
-
-            # Copy parameters after the empty cluster (shifted down)
-            if (currentLabel < param_dim[3]) {
-              new_param[, , currentLabel:(new_dim[3])] <- clusterParams[[k]][, , (currentLabel+1):param_dim[3]]
-            }
-
-            clusterParams[[k]] <- new_param
-          }
+          new_param <- array(NA, dim = c(param_dim[1], param_dim[2], numLabels))
+          new_param[, , 1:(numLabels-1)] <- clusterParams[[k]]
+          new_param[, , numLabels] <- aux[[k]][, , aux_idx]
+          clusterParams[[k]] <- new_param
         }
-
-        # Shift pointsPerCluster
-        new_pointsPerCluster <- numeric(length(pointsPerCluster) - 1)
-        if (currentLabel > 1) {
-          new_pointsPerCluster[1:(currentLabel-1)] <- pointsPerCluster[1:(currentLabel-1)]
-        }
-        if (currentLabel < length(pointsPerCluster)) {
-          new_pointsPerCluster[currentLabel:(length(new_pointsPerCluster))] <-
-            pointsPerCluster[(currentLabel+1):length(pointsPerCluster)]
-        }
-        pointsPerCluster <- new_pointsPerCluster
-
-        numLabels <- numLabels - 1
       }
     }
+  }
+
+  # Final validation - ensure consistency
+  if (sum(pointsPerCluster) != n) {
+    warning("Inconsistent point counts detected, recalculating...")
+    pointsPerCluster <- as.numeric(table(factor(clusterLabels, levels = seq_len(numLabels))))
   }
 
   dpObj$pointsPerCluster <- pointsPerCluster
   dpObj$clusterLabels <- clusterLabels
   dpObj$clusterParameters <- clusterParams
   dpObj$numberClusters <- numLabels
+
   return(dpObj)
 }
 

@@ -17,41 +17,47 @@ NonConjugateBetaDP::~NonConjugateBetaDP() {
 }
 
 void NonConjugateBetaDP::clusterComponentUpdate() {
-  // Implementation of Algorithm 8 from Neal (2000) for non-conjugate case
   int n = data.n_rows;
 
   for (int i = 0; i < n; i++) {
     int currentLabel = clusterLabels[i];
+
+    // Validate currentLabel
+    if (currentLabel >= numberClusters) {
+      Rcpp::stop("Invalid cluster label encountered");
+    }
 
     // Remove point from current cluster temporarily
     pointsPerCluster[currentLabel]--;
 
     // Generate auxiliary parameters
     Rcpp::List aux;
-    if (pointsPerCluster[currentLabel] == 0) {
-      // If cluster is now empty, we need m-1 auxiliary parameters
+    bool currentClusterEmpty = (pointsPerCluster[currentLabel] == 0);
+
+    if (currentClusterEmpty) {
+      // Current cluster is empty, include it as auxiliary
       aux = mixingDistribution->priorDraw(m - 1);
 
-      // Include the current cluster's parameters as one of the auxiliary
+      // Include current cluster params as first auxiliary
       Rcpp::NumericVector mu_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[0]);
       Rcpp::NumericVector nu_vec = Rcpp::as<Rcpp::NumericVector>(clusterParameters[1]);
 
       Rcpp::NumericVector mu_aux = aux[0];
       Rcpp::NumericVector nu_aux = aux[1];
 
-      // Create new arrays including current cluster params
       Rcpp::NumericVector mu_combined(m);
       Rcpp::NumericVector nu_combined(m);
-      mu_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
-      nu_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
 
       mu_combined[0] = mu_vec[currentLabel];
       nu_combined[0] = nu_vec[currentLabel];
 
-      for (int j = 0; j < m-1; j++) {
-        mu_combined[j+1] = mu_aux[j];
-        nu_combined[j+1] = nu_aux[j];
+      for (int j = 1; j < m; j++) {
+        mu_combined[j] = mu_aux[j-1];
+        nu_combined[j] = nu_aux[j-1];
       }
+
+      mu_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
+      nu_combined.attr("dim") = Rcpp::IntegerVector::create(1, 1, m);
 
       aux = Rcpp::List::create(mu_combined, nu_combined);
     } else {
@@ -60,18 +66,17 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
     }
 
     // Calculate probabilities
-    int totalLabels = numberClusters + m;
-    Rcpp::NumericVector probs(totalLabels);
+    Rcpp::NumericVector probs(numberClusters + m);
 
     // Existing clusters
     for (int j = 0; j < numberClusters; j++) {
-      if (j != currentLabel || pointsPerCluster[j] > 0) {
+      if (pointsPerCluster[j] > 0) {
         Rcpp::List clusterParam = Rcpp::List::create(
           Rcpp::NumericVector::create(Rcpp::as<Rcpp::NumericVector>(clusterParameters[0])[j]),
           Rcpp::NumericVector::create(Rcpp::as<Rcpp::NumericVector>(clusterParameters[1])[j])
         );
 
-        // Add dimensions
+        // Set dimensions
         Rcpp::NumericVector mu_j = clusterParam[0];
         Rcpp::NumericVector nu_j = clusterParam[1];
         mu_j.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
@@ -93,7 +98,6 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
         Rcpp::NumericVector::create(Rcpp::as<Rcpp::NumericVector>(aux[1])[j])
       );
 
-      // Add dimensions
       Rcpp::NumericVector mu_aux = auxParam[0];
       Rcpp::NumericVector nu_aux = auxParam[1];
       mu_aux.attr("dim") = Rcpp::IntegerVector::create(1, 1, 1);
@@ -105,20 +109,22 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
       probs[numberClusters + j] = (alpha / m) * lik[0];
     }
 
-    // Handle edge cases
-    if (Rcpp::is_true(Rcpp::any(Rcpp::is_nan(probs)))) {
-      for (int j = 0; j < probs.size(); j++) {
-        if (std::isnan(probs[j])) probs[j] = 0.0;
+    // Normalize probabilities
+    double probSum = 0.0;
+    for (int j = 0; j < probs.size(); j++) {
+      if (!std::isnan(probs[j]) && probs[j] >= 0) {
+        probSum += probs[j];
+      } else {
+        probs[j] = 0.0;
       }
     }
 
-    if (Rcpp::is_true(Rcpp::all(probs == 0))) {
+    if (probSum <= 0) {
+      // Uniform fallback
       probs.fill(1.0 / probs.size());
+    } else {
+      probs = probs / probSum;
     }
-
-    // Normalize
-    double probSum = Rcpp::sum(probs);
-    probs = probs / probSum;
 
     // Sample new label
     int newLabel = 0;
@@ -132,7 +138,7 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
       }
     }
 
-    // Update cluster assignment (clusterLabelChange will handle point counting)
+    // Update cluster assignment
     Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel, aux);
 
     // Update state from result
@@ -140,6 +146,12 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
     pointsPerCluster = Rcpp::as<arma::uvec>(updateResult["pointsPerCluster"]);
     clusterParameters = updateResult["clusterParameters"];
     numberClusters = updateResult["numberClusters"];
+  }
+
+  // Final validation
+  arma::uword totalPoints = arma::sum(pointsPerCluster);
+  if (totalPoints != n) {
+    Rcpp::warning("Point count mismatch detected in C++ implementation");
   }
 }
 
