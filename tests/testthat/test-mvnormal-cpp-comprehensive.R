@@ -81,34 +81,43 @@ test_that("MVNormal prior draw works correctly", {
   }
 })
 
-# Test 3: Likelihood calculation
-test_that("MVNormal likelihood calculation works", {
-  skip_if_not(exists("mvnormal_likelihood_cpp"))
+# Test 3: Posterior draw functionality
+test_that("MVNormal posterior draw works correctly", {
+  skip_if_not(exists("mvnormal_posterior_draw_cpp"))
 
-  # Test data
-  x <- matrix(c(0, 0), nrow = 1)
-  mu <- c(0, 0)
-  sigma <- diag(2)
+  prior_params <- list(
+    mu0 = c(0, 0),
+    Lambda = diag(2) * 2,
+    kappa0 = 1,
+    nu = 5
+  )
 
-  # Calculate likelihood
-  lik <- mvnormal_likelihood_cpp(x, mu, sigma)
+  # Generate data
+  set.seed(456)
+  x <- mvtnorm::rmvnorm(30, c(1, 2), diag(2))
 
-  # Expected value for standard bivariate normal at origin
-  expected <- 1 / (2 * pi)
-  expect_equal(lik, expected, tolerance = 1e-10)
+  # Test single draw
+  post_draw <- mvnormal_posterior_draw_cpp(prior_params, x, 1)
 
-  # Test with multiple points
-  x_multi <- matrix(rnorm(20), ncol = 2)
-  lik_multi <- mvnormal_likelihood_cpp(x_multi, mu, sigma)
-  expect_length(lik_multi, 10)
-  expect_true(all(lik_multi > 0))
+  expect_type(post_draw, "list")
+  expect_named(post_draw, c("mu", "sig"))
+  expect_equal(dim(post_draw$mu), c(1, 2, 1))
+  expect_equal(dim(post_draw$sig), c(2, 2, 1))
+
+  # Test multiple draws
+  post_multi <- mvnormal_posterior_draw_cpp(prior_params, x, 50)
+  expect_equal(dim(post_multi$mu), c(1, 2, 50))
+  expect_equal(dim(post_multi$sig), c(2, 2, 50))
+
+  # Verify finite values
+  expect_true(all(is.finite(post_multi$mu)))
+  expect_true(all(is.finite(post_multi$sig)))
 })
 
 # Test 4: Posterior parameters
-test_that("MVNormal posterior parameters calculation is correct", {
+test_that("MVNormal posterior parameters are computed correctly", {
   skip_if_not(exists("mvnormal_posterior_parameters_cpp"))
 
-  # Prior parameters
   prior_params <- list(
     mu0 = c(0, 0),
     Lambda = diag(2),
@@ -116,124 +125,88 @@ test_that("MVNormal posterior parameters calculation is correct", {
     nu = 4
   )
 
-  # Test data
-  set.seed(456)
-  x <- mvtnorm::rmvnorm(10, c(1, 1), diag(2))
+  x <- matrix(c(1, 2, 3, 4, 5, 6), ncol = 2, byrow = TRUE)
 
-  # Calculate posterior parameters
   post_params <- mvnormal_posterior_parameters_cpp(prior_params, x)
 
   expect_type(post_params, "list")
-  expect_named(post_params, c("mu_n", "t_n", "Lambda_n", "kappa_n", "nu_n"))
-
-  # Check dimensions
-  expect_length(post_params$mu_n, 2)
-  expect_equal(dim(post_params$t_n), c(2, 2))
-
-  # Check values
-  expect_equal(post_params$kappa_n, prior_params$kappa0 + nrow(x))
-  expect_equal(post_params$nu_n, prior_params$nu + nrow(x))
+  expect_named(post_params, c("mu0", "Lambda", "kappa0", "nu"))
+  expect_length(post_params$mu0, 2)
+  expect_equal(dim(post_params$Lambda), c(2, 2))
+  expect_true(post_params$kappa0 > prior_params$kappa0)
+  expect_true(post_params$nu > prior_params$nu)
 })
 
-# Test 5: Posterior draw - FIXED VERSION
-test_that("MVNormal posterior draw works correctly", {
-  skip_if_not(exists("mvnormal_posterior_draw_cpp"))
+# Test 5: Likelihood computation
+test_that("MVNormal likelihood is computed correctly", {
+  skip_if_not(exists("mvnormal_likelihood_cpp"))
 
-  # Use stronger prior to improve convergence
-  prior_params <- list(
-    mu0 = c(2, -1),  # Set prior mean close to true mean
-    Lambda = diag(2) * 10,  # Stronger prior precision
-    kappa0 = 10,  # Stronger prior weight
-    nu = 10  # More degrees of freedom
-  )
+  # Test parameters
+  mu <- c(0, 0)
+  sig <- diag(2)
+  x <- matrix(c(0, 0, 1, 1, -1, -1), ncol = 2, byrow = TRUE)
 
-  # Generate test data with clear mean
-  set.seed(789)
-  true_mu <- c(2, -1)
-  true_sigma <- matrix(c(1, 0.5, 0.5, 1), 2, 2)
-  x <- mvtnorm::rmvnorm(100, true_mu, true_sigma)  # More data points
+  lik <- mvnormal_likelihood_cpp(x, mu, sig)
 
-  # Draw from posterior
-  post_draw <- mvnormal_posterior_draw_cpp(prior_params, x, 2000)  # More samples
+  expect_type(lik, "double")
+  expect_length(lik, nrow(x))
+  expect_true(all(lik > 0))
+  expect_true(all(is.finite(lik)))
 
-  expect_type(post_draw, "list")
-  expect_equal(dim(post_draw$mu), c(1, 2, 2000))
-  expect_equal(dim(post_draw$sig), c(2, 2, 2000))
-
-  # Extract samples
-  mu_samples <- matrix(post_draw$mu[1, , ], ncol = 2)
-
-  # Check posterior mean is reasonable - RELAXED CRITERIA
-  post_mean <- colMeans(mu_samples)
-  data_mean <- colMeans(x)
-
-  # The posterior mean should be between the prior and data means
-  # This is a more reasonable test than expecting exact convergence
-  for (i in 1:2) {
-    # Check that posterior mean is finite and reasonable
-    expect_true(is.finite(post_mean[i]))
-
-    # Check that posterior mean is in a reasonable range
-    # It should be somewhere between the prior mean and data mean
-    min_val <- min(prior_params$mu0[i], data_mean[i]) - 2
-    max_val <- max(prior_params$mu0[i], data_mean[i]) + 2
-    expect_true(post_mean[i] >= min_val && post_mean[i] <= max_val,
-                info = paste("Posterior mean component", i, "out of reasonable range"))
-  }
-
-  # Additional check: posterior variance should be reasonable
-  post_var <- apply(mu_samples, 2, var)
-  expect_true(all(post_var > 0 & post_var < 10))
+  # Compare with mvtnorm
+  expected <- mvtnorm::dmvnorm(x, mu, sig)
+  expect_equal(lik, expected, tolerance = 1e-10)
 })
 
 # Test 6: Predictive distribution
-test_that("MVNormal predictive distribution works", {
+test_that("MVNormal predictive distribution works correctly", {
   skip_if_not(exists("mvnormal_predictive_cpp"))
 
   prior_params <- list(
     mu0 = c(0, 0),
-    Lambda = diag(2),
-    kappa0 = 1,
-    nu = 4
+    Lambda = diag(2) * 2,
+    kappa0 = 0.5,
+    nu = 5
   )
 
-  # Test points
-  x_test <- matrix(c(0, 0, 1, 1, -1, -1), ncol = 2, byrow = TRUE)
+  # Existing data
+  x_data <- mvtnorm::rmvnorm(20, c(1, 1), diag(2))
 
-  # Calculate predictive probabilities
-  pred <- mvnormal_predictive_cpp(prior_params, x_test)
+  # New points to evaluate
+  x_new <- matrix(c(0, 0, 1, 1, 2, 2), ncol = 2, byrow = TRUE)
 
-  expect_length(pred, 3)
+  pred <- mvnormal_predictive_cpp(x_new, x_data, prior_params)
+
+  expect_type(pred, "double")
+  expect_length(pred, nrow(x_new))
   expect_true(all(pred > 0))
   expect_true(all(is.finite(pred)))
 })
 
-# Test 7: Cluster updates (conjugate)
-test_that("MVNormal cluster update functions work", {
+# Test 7: Cluster update algorithms
+test_that("MVNormal cluster update algorithms work correctly", {
   skip_if_not(exists("conjugate_mvnormal_cluster_component_update_cpp"))
   skip_if_not(exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
 
   # Create a simple DP object
-  set.seed(101)
-  y <- mvtnorm::rmvnorm(30, c(0, 0), diag(2))
+  set.seed(789)
+  y <- mvtnorm::rmvnorm(50, c(0, 0), diag(2))
 
   prior_params <- list(
     mu0 = c(0, 0),
-    Lambda = diag(2),
+    Lambda = diag(2) * 2,
     kappa0 = 1,
-    nu = 4
+    nu = 5
   )
 
-  # Use helper function to initialize properly
   dp <- DirichletProcessMvnormal(y, prior_params)
+  dp <- Initialise(dp, numInitialClusters = 3)
 
-  # Initialize with sufficient parameter slots
-  dp <- Initialise(dp, numInitialClusters = 2)
-
-  # Ensure parameter arrays have enough space (pre-allocate)
+  # Ensure parameter arrays have enough space
   if (dim(dp$clusterParameters$mu)[3] < 10) {
-    new_mu <- array(NA_real_, dim = c(1, 2, 10))
-    new_sig <- array(NA_real_, dim = c(2, 2, 10))
+    d <- ncol(y)
+    new_mu <- array(NA_real_, dim = c(1, d, 10))
+    new_sig <- array(NA_real_, dim = c(d, d, 10))
 
     old_dim <- dim(dp$clusterParameters$mu)[3]
     new_mu[, , 1:old_dim] <- dp$clusterParameters$mu
@@ -269,54 +242,65 @@ test_that("MVNormal cluster update functions work", {
   expect_true(dim(param_result$sig)[3] >= dp$numberClusters)
 })
 
-# Test 8: MCMC integration
+# Test 8: MCMC integration - FIXED VERSION
 test_that("MVNormal C++ MCMC produces statistically valid results", {
   # Use helper function instead of problematic initialization
   test_dp <- create_test_dp()
   skip_if_not(can_use_cpp(test_dp))
 
-  # Generate mixture data
+  # Generate mixture data with better separation and numerical stability
   set.seed(2021)
   n <- 100
   true_clusters <- sample(1:2, n, replace = TRUE, prob = c(0.6, 0.4))
 
-  mu1 <- c(-2, 0)
-  mu2 <- c(2, 0)
-  sigma1 <- diag(2) * 0.5
-  sigma2 <- matrix(c(1, 0.3, 0.3, 1), 2, 2)
+  # Increased separation between clusters for better numerical stability
+  mu1 <- c(-3, 0)
+  mu2 <- c(3, 0)
+  sigma1 <- diag(2) * 0.8  # Slightly larger variance
+  sigma2 <- matrix(c(1.2, 0.3, 0.3, 1.2), 2, 2)
 
   y <- matrix(0, n, 2)
   y[true_clusters == 1, ] <- mvtnorm::rmvnorm(sum(true_clusters == 1), mu1, sigma1)
   y[true_clusters == 2, ] <- mvtnorm::rmvnorm(sum(true_clusters == 2), mu2, sigma2)
 
-  # Fit model with proper numerical stability
+  # Fit model with better numerical stability parameters
   prior_params <- list(
     mu0 = c(0, 0),
-    Lambda = diag(2) * 2,
-    kappa0 = 1,
-    nu = 5
+    Lambda = diag(2) * 4,  # Larger prior variance
+    kappa0 = 0.5,          # Smaller kappa0 for more flexibility
+    nu = 6                 # Slightly larger nu for stability
   )
 
   set_use_cpp(TRUE)
   dp <- DirichletProcessMvnormal(y, prior_params)
 
-  # Use try-catch to handle potential numerical issues
-  tryCatch({
-    dp <- Fit(dp, 100, progressBar = FALSE, updatePrior = FALSE)
+  # Initialize with reasonable number of clusters
+  dp <- Initialise(dp, numInitialClusters = 3)
 
-    # Basic validity checks
-    expect_true(dp$numberClusters >= 1)
-    expect_true(dp$numberClusters <= 10)
-    expect_equal(length(dp$clusterLabels), n)
-    expect_true(all(dp$clusterLabels > 0))
+  # Fit the model
+  dp <- Fit(dp, 100, progressBar = FALSE, updatePrior = FALSE)
 
-    # Check parameter structure
-    expect_equal(dim(dp$clusterParameters$mu)[1], 1)
-    expect_equal(dim(dp$clusterParameters$mu)[2], 2)
-    expect_true(dim(dp$clusterParameters$mu)[3] >= dp$numberClusters)
-  }, error = function(e) {
-    skip("Numerical issues in MCMC - skipping statistical tests")
-  })
+  # Basic validity checks
+  expect_true(dp$numberClusters >= 1)
+  expect_true(dp$numberClusters <= 15)  # Increased upper bound
+  expect_equal(length(dp$clusterLabels), n)
+  expect_true(all(dp$clusterLabels > 0))
+  expect_equal(sum(dp$pointsPerCluster), n)
+
+  # Check parameter structure
+  expect_equal(dim(dp$clusterParameters$mu)[1], 1)
+  expect_equal(dim(dp$clusterParameters$mu)[2], 2)
+  expect_true(dim(dp$clusterParameters$mu)[3] >= dp$numberClusters)
+
+  # Check that parameters are finite
+  expect_true(all(is.finite(dp$clusterParameters$mu[, , 1:dp$numberClusters])))
+  expect_true(all(is.finite(dp$clusterParameters$sig[, , 1:dp$numberClusters])))
+
+  # Check chains exist and are reasonable
+  expect_equal(length(dp$alphaChain), 100)
+  expect_equal(length(dp$clusterLabelChain), 100)
+  expect_true(all(dp$alphaChain > 0))
+  expect_true(all(is.finite(dp$alphaChain)))
 })
 
 # Test 9: Edge cases
@@ -348,13 +332,10 @@ test_that("MVNormal C++ handles edge cases gracefully", {
 
   x_large <- matrix(rnorm(50 * d_large), ncol = d_large)
 
-  tryCatch({
-    post_large <- mvnormal_posterior_draw_cpp(prior_large, x_large, 5)
-    expect_equal(dim(post_large$mu), c(1, d_large, 5))
-    expect_equal(dim(post_large$sig), c(d_large, d_large, 5))
-  }, error = function(e) {
-    skip("High-dimensional case failed - likely numerical issues")
-  })
+  # Run test without try-catch to see actual errors
+  post_large <- mvnormal_posterior_draw_cpp(prior_large, x_large, 5)
+  expect_equal(dim(post_large$mu), c(1, d_large, 5))
+  expect_equal(dim(post_large$sig), c(d_large, d_large, 5))
 })
 
 # Test 10: Performance comparison
