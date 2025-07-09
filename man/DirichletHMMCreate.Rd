@@ -9,7 +9,7 @@ DirichletHMMCreate(x, mdobj, alpha, beta)
 \arguments{
 \item{x}{Data to be modelled}
 
-\item{mdobj}{Mixing disitribution object}
+\item{mdobj}{Mixing distribution object}
 
 \item{alpha}{Alpha parameter}
 

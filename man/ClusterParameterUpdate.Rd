@@ -2,9 +2,12 @@
 % Please edit documentation in R/cluster_parameter_update.R
 \name{ClusterParameterUpdate}
 \alias{ClusterParameterUpdate}
+\alias{ClusterParameterUpdate.nonconjugate}
 \title{Update the cluster parameters of the Dirichlet process.}
 \usage{
 ClusterParameterUpdate(dpObj)
+
+\method{ClusterParameterUpdate}{nonconjugate}(dpObj)
 }
 \arguments{
 \item{dpObj}{Dirichlet process object}

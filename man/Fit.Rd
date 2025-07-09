@@ -4,25 +4,31 @@
 \alias{Fit}
 \title{Fit the Dirichlet process object}
 \usage{
-Fit(dpObj, its, updatePrior = FALSE, progressBar = TRUE)
+Fit(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...)
 }
 \arguments{
 \item{dpObj}{Initialised Dirichlet Process object}
 
 \item{its}{Number of iterations to use}
 
-\item{updatePrior}{Logical flag, defaults to \code{FAlSE}. Set whether the parameters of the base measure are updated.}
+\item{updatePrior}{Logical flag, defaults to FALSE. Set whether the parameters
+of the base measure are updated.}
 
 \item{progressBar}{Logical flag indicating whether to display a progress bar.}
+
+\item{...}{Additional arguments}
 }
 \value{
 A Dirichlet Process object with the fitted cluster parameters and labels.
 }
 \description{
-Using Neal's algorithm 4 or 8 depending on conjugacy the sampling procedure for a Dirichlet process is carried out.
-Lists of both cluster parameters, weights and the sampled concentration values are included in the fitted \code{dpObj}.
-When \code{update_prior} is set to \code{TRUE} the parameters of the base measure are also updated.
+Using Neal's algorithm 4 or 8 depending on conjugacy the sampling procedure
+for a Dirichlet process is carried out. Lists of both cluster parameters,
+weights and the sampled concentration values are included in the fitted dpObj.
+When update_prior is set to TRUE the parameters of the base measure are also updated.
 }
 \references{
-Neal, R. M. (2000). Markov chain sampling methods for Dirichlet process mixture models. Journal of computational and graphical statistics, 9(2), 249-265.
+Neal, R. M. (2000). Markov chain sampling methods for Dirichlet
+            process mixture models. Journal of computational and graphical
+            statistics, 9(2), 249-265.
 }

@@ -1,0 +1,21 @@
+function ClusterParameterUpdate.conjugate(dpObj):
+    number_clusters = dpObj.number_clusters
+    cluster_labels = dpObj.cluster_labels
+    data = dpObj.data
+    mixing_distribution = dpObj.mixing_distribution
+    
+    for k = 1 to number_clusters:
+        // Get data points belonging to cluster k
+        data_for_cluster_k = empty_list
+        for i = 1 to dpObj.number_of_data_points:
+            if cluster_labels[i] == k:
+                data_for_cluster_k.add(data[i])
+        
+        // If cluster is not empty, draw new parameters from posterior
+        if length(data_for_cluster_k) > 0:
+            new_params_for_cluster_k = PosteriorDraw(mixing_distribution, data_for_cluster_k)
+            dpObj.cluster_parameters[k] = new_params_for_cluster_k
+        // else: If cluster is empty, its parameters might be removed by ClusterLabelChange
+        // or kept as is if no points assigned. Here, we only update non-empty ones.
+
+    return dpObj

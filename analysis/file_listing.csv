@@ -1,0 +1,66 @@
+"file_name","size","last_modified","functions_count"
+"beta_uniform_gamma.R",  4.03K,2025-05-18 21:42:44.767972,7
+"beta_uniform_pareto.R",  2.02K,2025-05-18 21:42:44.76898,5
+"burn.R",  1.02K,2025-05-18 21:42:44.770001,1
+"change_observations.R",  2.27K,2025-05-18 21:42:44.770001,3
+"cluster_component_update.R",  3.94K,2025-05-18 21:42:44.770001,4
+"cluster_label_change.R",  3.98K,2025-05-18 21:42:44.770999,3
+"cluster_label_predict.R",  4.14K,2025-05-18 21:42:44.771995,3
+"cluster_parameter_update.R",  2.44K,2025-05-18 21:42:44.771995,4
+"data.R",335,2025-05-18 21:42:44.772996,0
+"diagnostic_plots.R",  4.8K,2025-05-18 21:42:44.772996,5
+"dirichletprocess.R",443,2025-05-18 21:42:44.778997,0
+"dirichlet_hmm_create.R",955,2025-05-18 21:42:44.772996,1
+"dirichlet_process_beta.R",  1.56K,2025-05-18 21:42:44.774002,1
+"dirichlet_process_beta_2.R",  1.35K,2025-05-18 21:42:44.774002,1
+"dirichlet_process_create.R",  1.09K,2025-05-18 21:42:44.774997,1
+"dirichlet_process_exponential.R",851,2025-05-18 21:42:44.774997,1
+"dirichlet_process_gaussian.R",  1.04K,2025-05-18 21:42:44.775995,1
+"dirichlet_process_gaussian_fixed_variance.R",768,2025-05-18 21:42:44.775995,1
+"dirichlet_process_hierarchical_beta.R",  2.23K,2025-05-18 21:42:44.776996,1
+"dirichlet_process_hierarchical_mvnormal2.R",  2.42K,2025-05-18 21:42:44.776996,1
+"dirichlet_process_mvnormal.R",  1.18K,2025-05-18 21:42:44.777995,1
+"dirichlet_process_mvnormal2.R",850,2025-05-18 21:42:44.777995,1
+"dirichlet_process_weibull.R",  1.75K,2025-05-18 21:42:44.778997,1
+"duplicate_cluster_remove.R",  1.58K,2025-05-18 21:42:44.778997,1
+"exponential_gamma.R",  1.46K,2025-05-18 21:42:44.779991,5
+"fit.R",  3.71K,2025-05-18 21:42:44.779991,3
+"fit_hmm.R",  1.62K,2025-05-18 21:42:44.780994,3
+"global_parameter_update.R",  2.37K,2025-05-18 21:42:44.780994,2
+"hierarchical_beta.R",  1.62K,2025-05-18 21:42:44.782016,1
+"hierarchical_mvnormal2.R",  1.4K,2025-05-18 21:42:44.782016,1
+"initialise.R",  2.95K,2025-05-18 21:42:44.782993,6
+"likelihood.R",784,2025-05-18 21:42:44.782993,1
+"likelihood_function.R",  1.39K,2025-05-18 21:42:44.78399,2
+"metropolis_hastings.R",  3.41K,2025-05-18 21:42:44.78399,3
+"mixing_distribution.R",  1.14K,2025-05-18 21:42:44.78399,2
+"mixing_distribution_likelihood.R",343,2025-05-18 21:42:44.78527,1
+"mixing_distribution_penalised_likelihood.R",518,2025-05-18 21:42:44.78527,2
+"mixing_distribution_posterior_draw.R",  1.04K,2025-05-18 21:42:44.786275,2
+"mixing_distribution_posterior_parameters.R",278,2025-05-18 21:42:44.786275,1
+"mixing_distribution_predictive.R",253,2025-05-18 21:42:44.787272,1
+"mixing_distribution_prior_density.R",213,2025-05-18 21:42:44.787272,1
+"mixing_distribution_prior_draw.R",480,2025-05-18 21:42:44.787272,2
+"mixing_distribution_update_prior_parameters.R",402,2025-05-18 21:42:44.788274,1
+"mvnormal_normal_wishart.R",  3.25K,2025-05-18 21:42:44.788274,6
+"mvnormal_semi_conjugate.R",  2.93K,2025-05-18 21:42:44.789273,4
+"normal_fixed_variance.R",  2.29K,2025-05-18 21:42:44.789273,6
+"normal_inverse_gamma.R",  2.55K,2025-05-18 21:42:44.790274,6
+"plot.R",  1.85K,2025-05-18 21:42:44.790274,1
+"plot_dirichletprocess.R",  3.79K,2025-05-18 21:42:44.791273,8
+"posterior.R",945,2025-05-18 21:42:44.791273,2
+"posterior_clusters.R",  2.31K,2025-05-18 21:42:44.792274,2
+"posterior_frame.R",830,2025-05-18 21:42:44.792274,1
+"print.R",  4.3K,2025-05-18 21:42:44.793273,3
+"prior.R",709,2025-05-18 21:42:44.793273,2
+"prior_clusters.R",681,2025-05-18 21:42:44.794276,2
+"stick_breaking.R",  2.1K,2025-05-18 21:42:44.794276,3
+"table_update.R",  2.95K,2025-05-18 21:42:44.795273,1
+"true_cluster_labels.R",613,2025-05-18 21:42:44.795273,1
+"update_alpha.R",  1.05K,2025-05-18 21:42:44.796274,3
+"update_alpha_beta.R",  1.81K,2025-05-18 21:42:44.796274,3
+"update_concentration.R",  1.48K,2025-05-18 21:42:44.796274,2
+"update_g0.R",  2.2K,2025-05-18 21:42:44.797273,1
+"update_states.R",  2.43K,2025-05-18 21:42:44.798275,3
+"utilities.R",  1.48K,2025-05-18 21:42:44.798275,6
+"weibull_uniform_gamma.R",  3.38K,2025-05-18 21:42:44.798275,7

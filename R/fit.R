@@ -1,25 +1,32 @@
 #' Fit the Dirichlet process object
 #'
-#' Using Neal's algorithm 4 or 8 depending on conjugacy the sampling procedure for a Dirichlet process is carried out.
-#' Lists of both cluster parameters, weights and the sampled concentration values are included in the fitted \code{dpObj}.
-#' When \code{update_prior} is set to \code{TRUE} the parameters of the base measure are also updated.
+#' Using Neal's algorithm 4 or 8 depending on conjugacy the sampling procedure
+#' for a Dirichlet process is carried out. Lists of both cluster parameters,
+#' weights and the sampled concentration values are included in the fitted dpObj.
+#' When update_prior is set to TRUE the parameters of the base measure are also updated.
 #'
 #' @param dpObj Initialised Dirichlet Process object
 #' @param its Number of iterations to use
-#' @param updatePrior Logical flag, defaults to \code{FAlSE}. Set whether the parameters of the base measure are updated.
+#' @param updatePrior Logical flag, defaults to FALSE. Set whether the parameters
+#'        of the base measure are updated.
 #' @param progressBar Logical flag indicating whether to display a progress bar.
+#' @param ... Additional arguments
 #' @return A Dirichlet Process object with the fitted cluster parameters and labels.
 #'
-#' @references Neal, R. M. (2000). Markov chain sampling methods for Dirichlet process mixture models. Journal of computational and graphical statistics, 9(2), 249-265.
+#' @references Neal, R. M. (2000). Markov chain sampling methods for Dirichlet
+#'             process mixture models. Journal of computational and graphical
+#'             statistics, 9(2), 249-265.
 #'
 #' @export
-Fit <- function(dpObj, its, updatePrior = FALSE, progressBar=TRUE) UseMethod("Fit", dpObj)
+Fit <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
+  UseMethod("Fit", dpObj)
+}
 
 #' @export
-Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()) {
+Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
 
-  if (progressBar){
-    pb <- txtProgressBar(min=0, max=its, width=50, char="-", style=3)
+  if (progressBar) {
+    pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
   }
 
   alphaChain <- numeric(its)
@@ -37,18 +44,19 @@ Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interacti
     priorParametersChain[[i]] <- dpObj$mixingDistribution$priorParameters
     labelsChain[[i]] <- dpObj$clusterLabels
 
-
     likelihoodChain[i] <- sum(log(LikelihoodDP(dpObj)))
 
     dpObj <- ClusterComponentUpdate(dpObj)
     dpObj <- ClusterParameterUpdate(dpObj)
     dpObj <- UpdateAlpha(dpObj)
 
-    if (updatePrior) {
+    # Only update prior parameters for non-conjugate models when requested
+    if (updatePrior && !inherits(dpObj$mixingDistribution, "conjugate")) {
       dpObj$mixingDistribution <- PriorParametersUpdate(dpObj$mixingDistribution,
                                                         dpObj$clusterParameters)
     }
-    if (progressBar){
+
+    if (progressBar) {
       setTxtProgressBar(pb, i)
     }
   }
@@ -67,46 +75,314 @@ Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interacti
   return(dpObj)
 }
 
-#'@export
-Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()){
-  if (progressBar) {
-    pb <- txtProgressBar(min=0, max=its, width=50, char="-", style=3)
+#' @export
+Fit.conjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
+  # Use C++ implementation if available and enabled
+  if (using_cpp() && can_use_cpp(dpObj)) {
+    return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar, ...))
   }
 
+  # Otherwise use default R implementation
+  return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+}
+
+#' @export
+Fit.nonconjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
+  # For nonconjugate, check if C++ implementation is available
+  if (using_cpp() && can_use_cpp(dpObj)) {
+    return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar, ...))
+  }
+
+  # Otherwise use default R implementation
+  return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+}
+
+#' @export
+Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
+  # Validate inputs
+  if (!inherits(dpObj, "dirichletprocess")) {
+    stop("dpObj must be a dirichletprocess object")
+  }
+  if (its <= 0) {
+    stop("Number of iterations must be positive")
+  }
+
+  # Extract additional parameters
+  dots <- list(...)
+  n_burn <- ifelse(is.null(dots$n_burn), 0, dots$n_burn)
+  thin <- ifelse(is.null(dots$thin), 1, dots$thin)
+
+  # Check if we should use C++ implementation
+  use_cpp <- getOption("dirichletprocess.use_cpp", FALSE) && can_use_cpp(dpObj)
+
+  if (use_cpp) {
+    tryCatch({
+      # Ensure dpObj has all required fields
+      if (is.null(dpObj$data) || is.null(dpObj$alpha)) {
+        stop("Invalid dirichletprocess object: missing data or alpha")
+      }
+
+      # Prepare parameters for C++
+      mixing_params <- prepare_mixing_dist_params(dpObj)
+      mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, n_burn, thin)
+
+      # Initialize cluster labels if not present
+      if (is.null(dpObj$clusterLabels)) {
+        dpObj$clusterLabels <- rep(1L, nrow(dpObj$data))
+      }
+
+      # Run C++ MCMC
+      results <- run_mcmc_cpp(
+        data = as.matrix(dpObj$data),
+        mixing_dist_params = mixing_params,
+        mcmc_params = mcmc_params
+      )
+
+      # Update dpObj with results
+      if (!is.null(results$cluster_labels)) {
+        # Get the final cluster labels
+        dpObj$clusterLabels <- results$cluster_labels[[length(results$cluster_labels)]]
+      }
+
+      if (!is.null(results$alpha)) {
+        # Get the final alpha value
+        dpObj$alpha <- tail(results$alpha, 1)
+      }
+
+      # Store chains
+      dpObj$labelsChain <- results$labelsChain
+      dpObj$alphaChain <- results$alphaChain
+      dpObj$likelihoodChain <- results$likelihoodChain
+
+      # Extract final cluster parameters
+      if (!is.null(results$cluster_params)) {
+        final_params <- results$cluster_params[[length(results$cluster_params)]]
+        dpObj$clusterParameters <- final_params
+      }
+
+      # Update cluster counts
+      unique_labels <- unique(dpObj$clusterLabels)
+      dpObj$numberClusters <- length(unique_labels)
+      dpObj$pointsPerCluster <- as.numeric(table(factor(dpObj$clusterLabels,
+                                                        levels = seq_len(dpObj$numberClusters))))
+      dpObj$weights <- dpObj$pointsPerCluster / dpObj$n
+
+      # Store parameter chains
+      dpObj$clusterParametersChain <- results$cluster_params
+      dpObj$weightsChain <- lapply(results$cluster_labels, function(labels) {
+        table(labels) / length(labels)
+      })
+
+      # Prior parameters chain if updated
+      if (updatePrior && !is.null(results$prior_params_chain)) {
+        dpObj$priorParametersChain <- results$prior_params_chain
+        dpObj$mixingDistribution$priorParameters <-
+          results$prior_params_chain[[length(results$prior_params_chain)]]
+      }
+
+      return(dpObj)
+
+    }, error = function(e) {
+      warning("C++ implementation failed: ", e$message,
+              "\nFalling back to R implementation")
+      return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+    })
+  }
+
+  # Use R implementation
+  return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+}
+
+#' @export
+Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
+  # Use C++ implementation if enabled and available
+  if (using_cpp_hierarchical_samplers() && can_use_hierarchical_cpp(dpObj)) {
+    return(Fit.hierarchical.cpp(dpObj, its, updatePrior, progressBar))
+  }
+
+  # Original R implementation
+  if (progressBar) {
+    pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
+  }
+
+  # Initialize storage arrays
   gammaValues <- numeric(its)
+  gammaChain <- numeric(its)
 
-  for(i in seq_len(its)){
+  # Initialize alpha chains for each individual DP
+  for (j in seq_along(dpObj$indDP)) {
+    dpObj$indDP[[j]]$alphaChain <- numeric(its)
+    dpObj$indDP[[j]]$likelihoodChain <- numeric(its)
+    dpObj$indDP[[j]]$weightsChain <- vector("list", length = its)
+    dpObj$indDP[[j]]$clusterParametersChain <- vector("list", length = its)
+    dpObj$indDP[[j]]$labelsChain <- vector("list", length = its)
+  }
 
+  # Initialize global parameter storage
+  globalParametersChain <- vector("list", length = its)
+  globalStickChain <- vector("list", length = its)
+
+  for (i in seq_len(its)) {
+    # Update cluster components for each individual DP
     dpObj <- ClusterComponentUpdate(dpObj)
+
+    # Update alpha for each individual DP
     dpObj <- UpdateAlpha(dpObj)
+
+    # Update global parameters using all data
     dpObj <- GlobalParameterUpdate(dpObj)
+
+    # Update G0 (the base distribution)
     dpObj <- UpdateG0(dpObj)
+
+    # Update gamma (concentration parameter for G0)
     dpObj <- UpdateGamma(dpObj)
 
+    # Store values for this iteration
+    gammaValues[i] <- dpObj$gamma
+    gammaChain[i] <- dpObj$gamma
+    globalParametersChain[[i]] <- dpObj$globalParameters
+    globalStickChain[[i]] <- dpObj$globalStick
+
+    # Store individual DP values
+    for (j in seq_along(dpObj$indDP)) {
+      # Store alpha
+      dpObj$indDP[[j]]$alphaChain[i] <- dpObj$indDP[[j]]$alpha
+
+      # Calculate and store likelihood
+      if (!is.null(dpObj$indDP[[j]]$data) && !is.null(dpObj$indDP[[j]]$clusterLabels)) {
+        dpObj$indDP[[j]]$likelihoodChain[i] <- sum(log(LikelihoodDP(dpObj$indDP[[j]])))
+      }
+
+      # Store weights
+      dpObj$indDP[[j]]$weightsChain[[i]] <- dpObj$indDP[[j]]$pointsPerCluster / dpObj$indDP[[j]]$n
+
+      # Store cluster parameters
+      dpObj$indDP[[j]]$clusterParametersChain[[i]] <- dpObj$indDP[[j]]$clusterParameters
+
+      # Store labels
+      dpObj$indDP[[j]]$labelsChain[[i]] <- dpObj$indDP[[j]]$clusterLabels
+
+      # Update weights
+      dpObj$indDP[[j]]$weights <- dpObj$indDP[[j]]$pointsPerCluster / dpObj$indDP[[j]]$n
+    }
+
+    # Update prior parameters if requested
     if (updatePrior) {
+      # Get unique cluster parameters across all DPs
+      allClusterParams <- list()
+      for (j in seq_along(dpObj$indDP)) {
+        if (!is.null(dpObj$indDP[[j]]$clusterParameters)) {
+          allClusterParams <- c(allClusterParams,
+                                list(dpObj$indDP[[j]]$clusterParameters))
+        }
+      }
 
-      clustParamLen <- length(unique(lapply(dpObj$indDP, function(x) x$clusterParameters[[1]])))
+      # Find unique parameters
+      if (length(allClusterParams) > 0) {
+        uniqueParams <- unique(unlist(lapply(allClusterParams, function(x) {
+          if (is.list(x)) x[[1]] else x
+        }), recursive = FALSE))
 
-      clustParam <- lapply(dpObj$globalParameters, function(x) x[,,1:clustParamLen, drop=FALSE])
+        clustParamLen <- length(uniqueParams)
 
-      tempMD <- PriorParametersUpdate(dpObj$indDP[[1]]$mixingDistribution, clustParam)
+        if (clustParamLen > 0) {
+          # Extract global parameters up to the number of unique clusters
+          clustParam <- lapply(dpObj$globalParameters, function(x) {
+            if (is.array(x) && length(dim(x)) >= 3) {
+              x[, , 1:min(clustParamLen, dim(x)[3]), drop = FALSE]
+            } else {
+              x
+            }
+          })
 
-      for(j in seq_along(dpObj$indDP)){
-        dpObj$indDP[[j]]$mixingDistribution$priorParameters <- tempMD$priorParameters
+          # Update prior parameters using the first DP's mixing distribution
+          tempMD <- PriorParametersUpdate(dpObj$indDP[[1]]$mixingDistribution, clustParam)
+
+          # Apply updated prior parameters to all individual DPs
+          for (j in seq_along(dpObj$indDP)) {
+            dpObj$indDP[[j]]$mixingDistribution$priorParameters <- tempMD$priorParameters
+          }
+        }
       }
     }
 
     if (progressBar) {
       setTxtProgressBar(pb, i)
     }
-
-    gammaValues[i] <- dpObj$gamma
-
   }
+
+  # Store all chains in the dpObj
   dpObj$gammaValues <- gammaValues
+  dpObj$gammaChain <- gammaChain
+  dpObj$globalParametersChain <- globalParametersChain
+  dpObj$globalStickChain <- globalStickChain
+
+  # Ensure each individual DP has the correct numberClusters as a scalar
+  for (j in seq_along(dpObj$indDP)) {
+    if (!is.null(dpObj$indDP[[j]]$clusterLabels)) {
+      dpObj$indDP[[j]]$numberClusters <- length(unique(dpObj$indDP[[j]]$clusterLabels))
+    }
+  }
+
   if (progressBar) {
     close(pb)
   }
+
   return(dpObj)
 }
 
+#' @export
+Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()) {
+  if (!can_use_hierarchical_cpp(dpObj)) {
+    stop("C++ implementation not available for this hierarchical DP type")
+  }
+
+  # Use the C++ implementation via run_hierarchical_mcmc_cpp
+  result <- run_hierarchical_mcmc_cpp(
+    dpObj,
+    n_iter = its,
+    n_burn = 0,  # No burn-in for regular Fit
+    thin = 1,
+    update_prior = updatePrior,
+    progress_bar = progressBar
+  )
+
+  # The result from run_hierarchical_mcmc_cpp should already have the updated dpObj
+  # Ensure all fields are properly set
+
+  # Make sure numberClusters is scalar for each individual DP
+  for (j in seq_along(result$indDP)) {
+    if (!is.null(result$indDP[[j]]$clusterLabels)) {
+      result$indDP[[j]]$numberClusters <- as.integer(length(unique(result$indDP[[j]]$clusterLabels)))
+    }
+
+    # Ensure weights are calculated
+    if (!is.null(result$indDP[[j]]$pointsPerCluster) && !is.null(result$indDP[[j]]$n)) {
+      result$indDP[[j]]$weights <- result$indDP[[j]]$pointsPerCluster / result$indDP[[j]]$n
+    }
+  }
+
+  # Ensure gamma is set to the last value if we have samples
+  if (!is.null(result$gammaValues) && length(result$gammaValues) > 0) {
+    result$gamma <- result$gammaValues[length(result$gammaValues)]
+  }
+
+  # Set gammaChain as alias for gammaValues for compatibility
+  if (!is.null(result$gammaValues)) {
+    result$gammaChain <- result$gammaValues
+  }
+
+  return(result)
+}
+
+#' @export
+Fit.markov <- function(dpObj, its = 1000, updatePrior = FALSE, progressBar = interactive(), ...) {
+  # Similar pattern - check for C++ then fall back to R
+  if (using_cpp() && exists("_dirichletprocess_markov_dp_fit_cpp")) {
+    return(Fit.markov.cpp(dpObj, its, updatePrior, progressBar))
+  }
+
+  # R implementation would go here
+  return(dpObj)
+}

@@ -23,20 +23,66 @@ BetaMixtureCreate <- function(priorParameters = c(2, 8), mhStepSize = c(1, 1), m
 Likelihood.beta <- function(mdObj, x, theta) {
   maxT <- mdObj$maxT
   x <- as.vector(x, "numeric")
-  mu <- theta[[1]][, , , drop = TRUE]
-  tau <- theta[[2]][, , , drop = TRUE]
 
+  # Handle both array and vector inputs for theta
+  if (is.list(theta) && length(theta) >= 2) {
+    # Extract mu and tau from arrays
+    if (is.array(theta[[1]])) {
+      mu <- as.numeric(theta[[1]][, , , drop = TRUE])
+    } else {
+      mu <- as.numeric(theta[[1]])
+    }
 
-  a <- (mu * tau)/maxT
-  b <- (1 - mu/maxT) * tau
-  #cat(c(mu, tau, a, b), '\n')
-  # numerator <- (a - 1) * log(x) + (b - 1) * log(maxT - x)
-  # numerator <- numerator - lbeta(a, b) - (tau - 1) * log(maxT)
-  # y <- exp(numerator)
+    if (is.array(theta[[2]])) {
+      tau <- as.numeric(theta[[2]][, , , drop = TRUE])
+    } else {
+      tau <- as.numeric(theta[[2]])
+    }
+  } else {
+    stop("theta must be a list with at least 2 elements")
+  }
 
-  y <- 1/maxT * dbeta(x/maxT, a, b)
+  # Ensure we have values
+  if (length(mu) == 0 || length(tau) == 0) {
+    return(numeric(length(x)))
+  }
 
-  return(as.numeric(y))
+  # Calculate likelihood for each cluster
+  n_clusters <- length(mu)
+  y <- matrix(NA_real_, nrow = length(x), ncol = n_clusters)
+
+  for (k in 1:n_clusters) {
+    # Validate parameters
+    if (is.na(mu[k]) || is.na(tau[k]) || mu[k] <= 0 || mu[k] >= maxT || tau[k] <= 0) {
+      y[, k] <- 1e-300
+      next
+    }
+
+    a <- (mu[k] * tau[k]) / maxT
+    b <- (1 - mu[k]/maxT) * tau[k]
+
+    # Ensure valid beta parameters
+    if (a <= 0 || b <= 0 || !is.finite(a) || !is.finite(b)) {
+      y[, k] <- 1e-300
+      next
+    }
+
+    # Calculate likelihood for all data points
+    for (i in seq_along(x)) {
+      if (x[i] >= 0 && x[i] <= maxT) {
+        y[i, k] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
+      } else {
+        y[i, k] <- 1e-300
+      }
+    }
+  }
+
+  # Return as vector if single cluster, matrix otherwise
+  if (n_clusters == 1) {
+    return(as.numeric(y[, 1]))
+  } else {
+    return(y)
+  }
 }
 
 #' @export
@@ -44,9 +90,9 @@ Likelihood.beta <- function(mdObj, x, theta) {
 PriorDraw.beta <- function(mdObj, n = 1) {
 
   priorParameters <- mdObj$priorParameters
-
   mu <- runif(n, 0, mdObj$maxT)
-  nu <- 1/rgamma(n, priorParameters[1], priorParameters[2])
+  nu <- 1/rgamma(n, shape = priorParameters[1], rate = priorParameters[2])
+
   theta <- list(mu = array(mu, c(1, 1, n)), nu = array(nu, c(1, 1, n)))
   return(theta)
 }
@@ -56,17 +102,20 @@ PriorDraw.beta <- function(mdObj, n = 1) {
 PriorDensity.beta <- function(mdObj, theta) {
 
   priorParameters <- mdObj$priorParameters
-  muDensity <- dunif(theta[[1]], 0, mdObj$maxT)
-  nuDensity <- dgamma(1/theta[[2]], priorParameters[1], priorParameters[2])
+  mu <- theta[[1]]
+  nu <- theta[[2]]
+
+  muDensity <- dunif(mu, 0, mdObj$maxT)
+
+  nuDensity <- dgamma(1/nu, priorParameters[1], priorParameters[2]) * (1/nu^2)
+
+  if(is.infinite(nuDensity) | is.na(nuDensity)){
+    nuDensity <- 1e-10 # Return a very small number instead of Inf or NA
+  }
+
   thetaDensity <- muDensity * nuDensity
   return(as.numeric(thetaDensity))
 }
-
-# PosteriorDraw.beta <- function(mdObj, x, n=100, start_pos){
-# if(missing(start_pos)){ start_pos <- PriorDraw(mdObj) } mh_result <-
-# MetropolisHastings(x, start_pos, mdObj, no_draws=n) theta <-
-# list(mu=array(mh_result$parameter_samples[[1]], dim=c(1,1,n)),
-# nu=array(mh_result$parameter_samples[[2]], dim=c(1,1,n))) return(theta) }
 
 #' @export
 #' @rdname PriorParametersUpdate
@@ -96,38 +145,66 @@ MhParameterProposal.beta <- function(mdObj, old_params) {
 
   new_params <- old_params
 
-  new_params[[1]] <- old_params[[1]] + mhStepSize[1] * rnorm(1, 0, 2.4)
+  # Extract current values
+  old_mu <- as.numeric(old_params[[1]])
+  old_nu <- as.numeric(old_params[[2]])
 
-  if (new_params[[1]] > mdObj$maxT | new_params[[1]] < 0) {
-    new_params[[1]] <- old_params[[1]]
+  # Propose new mu
+  new_mu <- old_mu + mhStepSize[1] * rnorm(1, 0, 2.4)
+  if (new_mu > mdObj$maxT || new_mu < 0) {
+    new_mu <- old_mu
   }
 
-  new_params[[2]] <- abs(old_params[[2]] + mhStepSize[2] * rnorm(1, 0, 2.4))
+  # Propose new nu (ensure positive)
+  new_nu <- abs(old_nu + mhStepSize[2] * rnorm(1, 0, 2.4))
+
+  # Return in proper format
+  new_params[[1]] <- array(new_mu, dim = c(1, 1, 1))
+  new_params[[2]] <- array(new_nu, dim = c(1, 1, 1))
 
   return(new_params)
 }
 
 #' @export
 #' @rdname PenalisedLikelihood
-PenalisedLikelihood.beta <- function(mdObj, x){
+PenalisedLikelihood.beta <- function(mdObj, x) {
+  if (length(x) == 0) {
+    return(PriorDraw(mdObj, 1))
+  }
 
-  optimStartParams <- c(mdObj$maxT/2, 2)
+  x <- as.numeric(x)
+  x <- x[x > 0 & x < mdObj$maxT]  # Remove boundary values
 
-  optimParams <- tryCatch(optim(optimStartParams, function(params){
+  if (length(x) == 0) {
+    return(PriorDraw(mdObj, 1))
+  }
 
-    ll <- sum(log(Likelihood(mdObj, x, VectorToArray(params))))
-    ll <- ll + log(PriorDensity(mdObj, VectorToArray(params)))
+  # Method of moments estimation
+  x_norm <- x / mdObj$maxT
+  x_mean <- mean(x_norm)
+  x_var <- var(x_norm)
 
-    if (is.infinite(ll)) ll <- -1e30
+  # Handle edge cases
+  if (is.na(x_var) || x_var < 1e-10) {
+    x_var <- 0.01
+  }
 
-    return(-ll)
-  }, method="L-BFGS-B", lower=c(0,0), upper=c(mdObj$maxT, Inf)), error = function(e) list(par=optimStartParams))
+  if (x_mean <= 0.01) x_mean <- 0.01
+  if (x_mean >= 0.99) x_mean <- 0.99
 
+  # Calculate parameters
+  common <- x_mean * (1 - x_mean) / x_var - 1
+  if (common <= 0) {
+    # Fallback to prior
+    return(PriorDraw(mdObj, 1))
+  }
 
-  optimParamsRet <- VectorToArray(optimParams$par)
+  mu_est <- x_mean * mdObj$maxT
+  tau_est <- common
 
-  return(optimParamsRet)
+  # Return in the expected format
+  return(list(
+    mu = array(mu_est, dim = c(1, 1, 1)),
+    nu = array(tau_est, dim = c(1, 1, 1))
+  ))
 }
-
-
-

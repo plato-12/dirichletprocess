@@ -1,6 +1,5 @@
 context("Update G0")
 
-
 test_that("2 Data, 1 Cluster", {
 
   dataTest <- list(rbeta(100, 1, 3), rbeta(100, 1, 3))

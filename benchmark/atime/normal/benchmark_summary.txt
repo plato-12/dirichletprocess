@@ -1,0 +1,17 @@
+## Quick Summary: Normal DP Benchmark Results
+
+**C++ vs R Implementation Performance:**
+
+**Average Speedup:** 29.0x faster
+
+**Test Case: 3,162 observations**
+- R: 61.2 seconds, 7.3 GB RAM
+- C++: 1.9 seconds, 28 MB RAM
+
+**Key Benefits:**
+- Enables analysis of large datasets (3000+ observations)
+- Dramatic memory efficiency (272xx less RAM)
+- Maintains same algorithmic properties as Neal (2000)
+
+Full report: benchmark_report.md
+

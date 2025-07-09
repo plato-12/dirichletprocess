@@ -1,0 +1,62 @@
+========================================
+MVNormal Dirichlet Process Benchmarking
+========================================
+
+1. Running quick benchmark...
+
+=== Quick MVNormal Distribution Benchmark ===
+
+Testing d = 2, n = 100:
+  R: 12.927s, C++: 0.420s, Speedup: 30.8x, Clusters: 2.0
+Testing d = 2, n = 250:
+  R: 34.313s, C++: 1.070s, Speedup: 32.1x, Clusters: 2.0
+Testing d = 2, n = 500:
+  R: 62.073s, C++: 2.157s, Speedup: 28.8x, Clusters: 2.0
+Testing d = 3, n = 100:
+  R: 9.467s, C++: 0.493s, Speedup: 19.2x, Clusters: 2.0
+Testing d = 3, n = 250:
+  R: 22.277s, C++: 1.213s, Speedup: 18.4x, Clusters: 2.0
+Testing d = 3, n = 500:
+  R: 46.643s, C++: 2.557s, Speedup: 18.2x, Clusters: 2.0
+Testing d = 5, n = 100:
+  R: 9.133s, C++: 0.663s, Speedup: 13.8x, Clusters: 2.0
+Testing d = 5, n = 250:
+  R: 24.100s, C++: 1.663s, Speedup: 14.5x, Clusters: 2.0
+Testing d = 5, n = 500:
+  R: 48.617s, C++: 3.480s, Speedup: 14.0x, Clusters: 2.0
+
+2. Profiling individual components...
+
+=== MVNormal Component Profiling ===
+
+Profiling R implementation...
+Profiling C++ implementation...
+
+Component timings (milliseconds):
+          component implementation mean_time_ms
+1 ClusterAssignment              R        438.9
+2   ParameterUpdate              R          0.4
+3 ClusterAssignment            C++        575.6
+4   ParameterUpdate            C++          0.1
+
+Speedup by component:
+  Cluster Assignment: 0.8x
+  Parameter Update: 4.0x
+
+3. Testing statistical equivalence...
+
+=== Testing Statistical Equivalence ===
+
+Number of clusters:
+  R: 74
+  C++: 2
+
+Concentration parameter (alpha):
+  R: 12.312
+  C++: 0.553
+
+Posterior alpha statistics:
+  R: mean=11.044, sd=2.003
+  C++: mean=0.553, sd=0.000
+
+KS test p-value: 0.000

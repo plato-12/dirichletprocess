@@ -1,0 +1,46 @@
+function PosteriorDraw(mixing_distribution_object_mdObj, data_x_for_cluster, num_samples_n, optional_start_pos):
+    // data_x_for_cluster: list/vector of data points in the current cluster.
+    // num_samples_n: number of posterior samples to draw (relevant for non-conjugate).
+    // optional_start_pos: starting parameters for MCMC (for non-conjugate).
+
+    kernel_type = mdObj.type 
+    // also check for conjugacy status: mdObj.is_conjugate
+
+    if mdObj.is_conjugate:
+        // For conjugate, typically n=1 sample is drawn for ClusterParameterUpdate,
+        // but function can support more if needed for other purposes.
+        // The num_samples_n argument might be ignored or used if >1 posterior sample needed.
+        
+        // 1. Calculate posterior hyperparameters based on prior_params from mdObj and data_x_for_cluster
+        posterior_hyperparams = CalculatePosteriorHyperparameters(mdObj, data_x_for_cluster)
+        
+        // 2. Draw sample(s) from this analytical posterior distribution
+        // This step is specific to the kernel (e.g., Normal-InvGamma, Normal-Wishart)
+        if kernel_type == "normal":
+            return DrawFromNormalInvGammaPosterior(posterior_hyperparams, num_samples_n)
+        else if kernel_type == "mvnormal":
+            return DrawFromNormalWishartPosterior(posterior_hyperparams, num_samples_n, mdObj.dimension)
+        // ... other conjugate kernels
+        else:
+            error "Unsupported conjugate kernel for PosteriorDraw"
+            
+    else: // Non-conjugate case
+        // Determine start_pos if not provided
+        if optional_start_pos is null or empty:
+            // Try to find a good start_pos, e.g., using PenalisedLikelihood or PriorDraw
+            start_params = FindModeUsingPenalisedLikelihood(mdObj, data_x_for_cluster)
+            if start_params is null: // PenalisedLikelihood failed or not available
+                start_params = PriorDraw(mdObj, 1) // Draw from prior as a starting point
+        else:
+            start_params = optional_start_pos
+            
+        // Call Metropolis-Hastings (or other MCMC method)
+        mcmc_samples_and_info = MetropolisHastings(mdObj, 
+                                                   data_x_for_cluster, 
+                                                   start_parameters = start_params, 
+                                                   number_of_draws = num_samples_n) 
+                                                   // num_samples_n here is often dpObj.mh_draws
+        
+        return mcmc_samples_and_info.parameter_samples // or just the last sample as per R
+        // R code often returns just the last sample for ClusterParameterUpdate, 
+        // but the MH function itself returns all samples.

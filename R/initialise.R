@@ -26,6 +26,60 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
     dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution, numInitialClusters)
   }
 
+  # For multivariate normal, ensure we have enough space for future clusters
+  if (inherits(dpObj, "mvnormal")) {
+    # Get current dimensions
+    mu_dim <- dim(dpObj$clusterParameters$mu)
+    sig_dim <- dim(dpObj$clusterParameters$sig)
+
+    # Handle case where mu_dim might not have 3 dimensions (e.g., 1D data)
+    if (is.null(mu_dim) || length(mu_dim) < 3) {
+      # For 1D data, mu might be a vector or 2D array
+      if (is.null(mu_dim)) {
+        # It's a vector, convert to proper 3D array
+        d <- 1
+        n_clusters <- length(dpObj$clusterParameters$mu)
+        dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
+        dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+      } else if (length(mu_dim) == 2) {
+        # It's a 2D array, add the third dimension
+        d <- mu_dim[1]
+        n_clusters <- mu_dim[2]
+        dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
+        dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+      }
+      # Update dimensions
+      mu_dim <- dim(dpObj$clusterParameters$mu)
+      sig_dim <- dim(dpObj$clusterParameters$sig)
+    }
+
+    # Ensure we have at least enough slots for the data size or 50, whichever is larger
+    min_slots <- max(50, dpObj$n, numInitialClusters * 10)
+
+    if (mu_dim[3] < min_slots) {
+      # Expand arrays
+      d <- mu_dim[2]
+
+      # Create new arrays with more space
+      new_mu <- array(NA_real_, dim = c(1, d, min_slots))
+      new_sig <- array(NA_real_, dim = c(d, d, min_slots))
+
+      # Copy existing parameters
+      new_mu[, , 1:mu_dim[3]] <- dpObj$clusterParameters$mu
+      new_sig[, , 1:sig_dim[3]] <- dpObj$clusterParameters$sig
+
+      # Fill remaining slots with prior draws
+      if (mu_dim[3] < min_slots) {
+        extra_params <- PriorDraw(dpObj$mixingDistribution, min_slots - mu_dim[3])
+        new_mu[, , (mu_dim[3]+1):min_slots] <- extra_params$mu
+        new_sig[, , (sig_dim[3]+1):min_slots] <- extra_params$sig
+      }
+
+      dpObj$clusterParameters$mu <- new_mu
+      dpObj$clusterParameters$sig <- new_sig
+    }
+  }
+
   dpObj <- InitialisePredictive(dpObj)
 
   return(dpObj)

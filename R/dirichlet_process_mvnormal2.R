@@ -7,20 +7,27 @@
 #' @param alphaPriors Alpha prior parameters. See \code{\link{UpdateAlpha}}.
 #' @export
 DirichletProcessMvnormal2 <- function(y,
-                                     g0Priors,
-                                     alphaPriors = c(2, 4)) {
+                                      g0Priors,
+                                      alphaPriors = c(2, 4)) {
 
   if (!is.matrix(y)){
     y <- matrix(y, ncol=length(y))
   }
 
   if(missing(g0Priors)){
-    g0Priors <- list(nu0 = 2,
-                     phi0 = diag(ncol(y)),
-                     mu0 = numeric(ncol(y)),
-                     sigma0 = diag(ncol(y)))
+    # Fix: Ensure nu0 is large enough for the Wishart distribution
+    d <- ncol(y)
+    g0Priors <- list(nu0 = d + 2,  # Changed from 2 to d + 2
+                     phi0 = diag(d),
+                     mu0 = numeric(d),
+                     sigma0 = diag(d))
   }
 
+  # Validate nu0
+  if(g0Priors$nu0 <= ncol(y) - 1) {
+    stop(sprintf("nu0 must be greater than %d (dimension - 1) for valid Wishart distribution",
+                 ncol(y) - 1))
+  }
 
   mdobj <- Mvnormal2Create(g0Priors)
   dpobj <- DirichletProcessCreate(y, mdobj, alphaPriors)

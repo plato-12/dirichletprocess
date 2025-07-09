@@ -25,23 +25,70 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
     newData <- matrix(newData, ncol = 1)
 
   alpha <- dpobj$alpha
-
-  # clusterLabels <- dpobj$clusterLabels
   clusterParams <- dpobj$clusterParameters
   numLabels <- dpobj$numberClusters
   mdobj <- dpobj$mixingDistribution
-
   pointsPerCluster <- dpobj$pointsPerCluster
-
   Predictive_newData <- Predictive(mdobj, newData)
-
   componentIndexes <- numeric(nrow(newData))
 
-  for (i in seq_len(nrow(newData))) {
+  # For mvnormal with pre-allocated arrays, check capacity and expand if necessary
+  if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
+    current_capacity <- dim(clusterParams[[1]])[3]
+    if (current_capacity < numLabels + nrow(newData)) {
+      # Expand arrays preemptively
+      new_capacity <- numLabels + nrow(newData) + 20
+      for (j in seq_along(clusterParams)) {
+        param_dims <- dim(clusterParams[[j]])
+        if (length(param_dims) == 3) {
+          new_array <- array(NA_real_, dim = c(param_dims[1], param_dims[2], new_capacity))
+          new_array[, , 1:current_capacity] <- clusterParams[[j]]
 
+          # Fill remaining slots with prior draws
+          if (current_capacity < new_capacity) {
+            extra_params <- PriorDraw(mdobj, new_capacity - current_capacity)
+            if (j == 1) {
+              new_array[, , (current_capacity+1):new_capacity] <- extra_params$mu
+            } else {
+              new_array[, , (current_capacity+1):new_capacity] <- extra_params$sig
+            }
+          }
+          clusterParams[[j]] <- new_array
+        }
+      }
+    }
+  }
+
+  for (i in seq_len(nrow(newData))) {
     dataVal <- newData[i, , drop = FALSE]
     weights <- numeric(numLabels + 1)
-    weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, clusterParams)
+
+    # FIX: Re-extract active parameters inside the loop to reflect the current number of clusters.
+    active_clusterParams <- clusterParams
+    if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
+      active_clusterParams <- list()
+      for (j in seq_along(clusterParams)) {
+        param_dims <- dim(clusterParams[[j]])
+        if (length(param_dims) == 3 && param_dims[3] >= numLabels) {
+          # Extract only the active clusters
+          active_clusterParams[[j]] <- clusterParams[[j]][, , 1:numLabels, drop = FALSE]
+        } else {
+          active_clusterParams[[j]] <- clusterParams[[j]]
+        }
+      }
+    } else if (is.list(clusterParams)) { # General case for other array-based distributions
+      active_clusterParams <- list()
+      for (j in seq_along(clusterParams)) {
+        param_dims <- dim(clusterParams[[j]])
+        if (length(param_dims) == 3 && param_dims[3] >= numLabels) {
+          active_clusterParams[[j]] <- clusterParams[[j]][, , 1:numLabels, drop = FALSE]
+        } else {
+          active_clusterParams[[j]] <- clusterParams[[j]]
+        }
+      }
+    }
+
+    weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, active_clusterParams)
     weights[numLabels + 1] <- alpha * Predictive_newData[i]
 
     ind <- numLabels + 1
@@ -56,21 +103,43 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
       pointsPerCluster <- c(pointsPerCluster, 1)
       post_draw <- PosteriorDraw(mdobj, newData[i, ,drop=FALSE])
 
-      for (j in seq_along(clusterParams)) {
-        clusterParams[[j]] <- array(c(clusterParams[[j]], post_draw[[j]]),
-          dim = c(dim(post_draw[[j]])[1:2],
-                  dim(clusterParams[[j]])[3] + 1))
+      if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
+        # For mvnormal with pre-allocated arrays
+        current_capacity <- dim(clusterParams[[1]])[3]
+        if (numLabels > current_capacity) {
+          # This should not be reached due to pre-expansion
+          stop("Insufficient capacity in pre-allocated arrays")
+        }
+
+        # Use the pre-allocated slot
+        for (j in seq_along(clusterParams)) {
+          param_dims <- dim(clusterParams[[j]])
+          if (length(param_dims) == 3) {
+            # Extract the single draw properly
+            if (j == 1) { # For mu
+              clusterParams[[j]][1, , numLabels] <- post_draw[[j]][1, , 1]
+            } else { # For sig
+              clusterParams[[j]][, , numLabels] <- post_draw[[j]][, , 1]
+            }
+          }
+        }
+      } else {
+        # Original expansion logic for other distributions
+        for (j in seq_along(clusterParams)) {
+          clusterParams[[j]] <- array(c(clusterParams[[j]], post_draw[[j]]),
+                                      dim = c(dim(post_draw[[j]])[1:2],
+                                              dim(clusterParams[[j]])[3] + 1))
+        }
       }
-
-
     }
   }
 
-  outList <- list(componentIndexes = componentIndexes, pointsPerCluster = pointsPerCluster,
-    clusterParams = clusterParams, numLabels = numLabels)
+  outList <- list(componentIndexes = componentIndexes,
+                  pointsPerCluster = pointsPerCluster,
+                  clusterParams = clusterParams,
+                  numLabels = numLabels)
   return(outList)
 }
-
 
 #' @export
 ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
@@ -99,7 +168,7 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
 
     weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, clusterParams)
     weights[(numLabels + 1):(numLabels + m)] <- (alpha/m) * Likelihood(mdobj,
-      dataVal, aux)
+                                                                       dataVal, aux)
 
     if (all(weights == 0)) {
       weights[1:(numLabels + m)] <- 1
@@ -124,7 +193,7 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
 
       for (j in seq_along(clusterParams)) {
         clusterParams[[j]] <- array(c(clusterParams[[j]], aux[[j]][, , component - numLabels]), dim = c(dim(clusterParams[[j]])[1:2], dim(clusterParams[[j]])[3] +
-          1))
+                                                                                                          1))
       }
 
       numLabels <- numLabels + 1
@@ -136,4 +205,3 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
                   numLabels = numLabels)
   return(outList)
 }
-

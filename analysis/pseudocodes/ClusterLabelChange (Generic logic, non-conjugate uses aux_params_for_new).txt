@@ -1,0 +1,88 @@
+function ClusterLabelChange(dpObj, data_idx, new_label_sampled_idx, old_label, aux_params_for_new, is_new_from_aux):
+    // dpObj needs update: clusterLabels, pointsPerCluster, clusterParameters, numberClusters
+    // data_idx: index of the data point that changed cluster
+    // new_label_sampled_idx: The actual index from the probability vector (1 to K_current + M_aux)
+    // old_label: The original cluster label of data_idx
+    // aux_params_for_new: The specific auxiliary parameter set if chosen for a new cluster.
+    // is_new_from_aux: Boolean, true if new_label_sampled_idx points to an aux parameter.
+
+    // Current state from dpObj
+    labels = dpObj.clusterLabels
+    counts = dpObj.pointsPerCluster
+    params = dpObj.clusterParameters // list of param arrays
+    num_clust = dpObj.numberClusters
+    md = dpObj.mixingDistribution
+    data_point = dpObj.data[data_idx]
+
+    // 1. Point moves from old_label
+    // counts[old_label] was already decremented before calling this in R's ClusterComponentUpdate.
+    // If not, decrement here: counts[old_label] = counts[old_label] - 1
+
+    // Determine if new_label_sampled_idx refers to an existing cluster or a new one (from aux)
+    actual_new_label_for_assignment = -1
+    params_for_the_newly_assigned_or_created_cluster = null
+
+    if not is_new_from_aux: // Assigning to an existing cluster slot
+        actual_new_label_for_assignment = new_label_sampled_idx
+        counts[actual_new_label_for_assignment] = counts[actual_new_label_for_assignment] + 1
+        labels[data_idx] = actual_new_label_for_assignment
+        // Parameters for this cluster already exist: params[actual_new_label_for_assignment]
+    
+    else: // Assigning to a new cluster (represented by an auxiliary parameter)
+        // Two sub-cases:
+        // a) The old_label became empty and its slot is reused for this "new" cluster.
+        // b) A completely new cluster slot is added.
+
+        if counts[old_label] == 0: // Old cluster became empty, reuse its slot for the new aux param
+            actual_new_label_for_assignment = old_label 
+            labels[data_idx] = actual_new_label_for_assignment
+            counts[actual_new_label_for_assignment] = 1 // This slot now has 1 point
+            params[actual_new_label_for_assignment] = aux_params_for_new // Use the chosen aux param
+            // num_clust does not change yet, but the parameters for this slot are now new.
+        
+        else: // Old cluster not empty OR old_label was already new, so add a new cluster slot
+            num_clust = num_clust + 1
+            actual_new_label_for_assignment = num_clust 
+            labels[data_idx] = actual_new_label_for_assignment
+            counts.append(1) // Add count for the new cluster
+            params.append(aux_params_for_new) // Add parameters for the new cluster
+
+    // Clean up: if old_label (that is NOT actual_new_label_for_assignment) became empty and wasn't reused, remove it.
+    if counts[old_label] == 0 and old_label != actual_new_label_for_assignment:
+        // Remove cluster 'old_label'
+        params.remove_at_index(old_label)
+        counts.remove_at_index(old_label)
+        num_clust = num_clust - 1
+        
+        // Re-index labels and actual_new_label_for_assignment if it was > old_label
+        for k_idx = 1 to length(labels):
+            if labels[k_idx] > old_label:
+                labels[k_idx] = labels[k_idx] - 1
+        
+        if actual_new_label_for_assignment > old_label:
+            actual_new_label_for_assignment = actual_new_label_for_assignment - 1
+            // Re-update the label for data_idx if it was affected by re-indexing
+            labels[data_idx] = actual_new_label_for_assignment
+
+
+    // For CONJUGATE case specifically, if new_label_sampled_idx was for a new cluster (not aux based)
+    // if new_label_sampled_idx > original_num_clust_before_aux_probs (AND dpObj is conjugate):
+    //    if counts[old_label] == 0: // Reuse slot
+    //        actual_new_label_for_assignment = old_label
+    //        labels[data_idx] = actual_new_label_for_assignment
+    //        counts[old_label] = 1
+    //        params[old_label] = PosteriorDraw(md, data_point, n_samples=1) // Draw for single point
+    //    else: // Add new slot
+    //        num_clust = num_clust + 1
+    //        actual_new_label_for_assignment = num_clust
+    //        labels[data_idx] = actual_new_label_for_assignment
+    //        counts.append(1)
+    //        params.append(PosteriorDraw(md, data_point, n_samples=1))
+
+    // Store updated state back into dpObj
+    dpObj.clusterLabels = labels
+    dpObj.pointsPerCluster = counts
+    dpObj.clusterParameters = params
+    dpObj.numberClusters = num_clust
+
+    return dpObj

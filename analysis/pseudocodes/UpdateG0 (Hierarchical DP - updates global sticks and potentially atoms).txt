@@ -1,0 +1,127 @@
+function UpdateG0(hdpObj):
+    // hdpObj contains indDP_list, globalParameters {phi_k}, globalStick {beta_k}, global_gamma.
+    // mixingDistribution_for_G0 defines the prior H for new global atoms.
+
+    gamma_global = hdpObj.gamma
+    current_global_atoms_phi_k = hdpObj.globalParameters
+    
+    // 1. Count usage of global atoms: n_k = number of tables (local clusters) in all groups
+    //    that are assigned to global atom phi_k.
+    //    m_k_dot = number of data points assigned to global atom phi_k across all groups. (Not directly used for beta_k update here, but for phi_k in GlobalParameterUpdate)
+
+    // `globalParamTable$Freq` in R code is effectively n_k.
+    // It maps each used global atom to its count of tables (n_k).
+    // Let's assume:
+    // active_global_atom_indices = indices of global_atoms that are currently used by at least one table.
+    // n_k_counts = array where n_k_counts[j] is the number of tables pointing to active_global_atom_indices[j].
+    // num_active_global_atoms = length(active_global_atom_indices)
+    
+    // Simpler: table_counts_per_global_atom = array of size num_global_atoms, initialized to 0.
+    // For each indDP:
+    //   For each local_cluster in indDP:
+    //     global_atom_idx = map_local_cluster_to_global_atom_index(local_cluster)
+    //     table_counts_per_global_atom[global_atom_idx]++
+    // active_n_k_counts = filter table_counts_per_global_atom where count > 0
+    // num_active_global_atoms = length(active_n_k_counts)
+    
+    // Let globalParamTable_Freq be the counts n_k for *currently existing* global atoms.
+    // R: `tableCounts <- table(unlist(lapply(dpobjlist$indDP, function(x) true_cluster_labels(x$clusterParameters, dpobjlist$globalParameters))))`
+    // `globalParamTable <- data.frame(Parameter = as.numeric(names(tableCounts)), Freq = as.numeric(tableCounts))`
+    // So, globalParamTable.Parameter are indices into dpobjlist$globalParameters
+    // globalParamTable.Freq are the n_k counts for those specific global atoms.
+
+    // Assume global_param_usage_counts is an array where global_param_usage_counts[k] = n_k
+    // for the k-th atom in current_global_atoms_phi_k.
+    // For simplicity, let's use a conceptual `n_k_for_each_existing_atom` list.
+    // And `num_existing_atoms_with_tables_K0 = count of atoms in n_k_for_each_existing_atom with n_k > 0`.
+    // `sum_of_n_k_counts_M = sum of all n_k in n_k_for_each_existing_atom`.
+
+    // R `UpdateG0` uses gtools::rdirichlet for existing components:
+    // `dirichlet_draws = rdirichlet(1, c(globalParamTable$Freq, dpobjlist$gamma))`
+    // This implies the weights are for the K0 currently used atoms + one more for "new" from gamma.
+    // n_k_values_for_rdirichlet = get_n_k_counts_for_active_global_atoms()
+    // num_active_global_atoms = length(n_k_values_for_rdirichlet)
+    
+    // The `gtools::rdirichlet` approach (Neal's method for posterior of DP weights):
+    // If K components have counts n_1, ..., n_K, then (beta_1, ..., beta_K, beta_new) ~ Dir(n_1, ..., n_K, gamma)
+    // Where beta_new is the total mass for new components.
+    
+    // Let's use a structure similar to R's logic:
+    // globalParamTable has Freq (n_k) for global atoms currently referenced by tables.
+    // globalParamTable.Parameter has the indices of these global atoms in hdpObj.globalParameters.
+    
+    // Build counts_for_dirichlet = [n_k1, n_k2, ..., n_k_active, gamma_global]
+    active_atom_counts_n_k = get_table_counts_for_each_active_global_atom(hdpObj) // array of counts n_k
+    dirichlet_params = concatenate(active_atom_counts_n_k, [gamma_global])
+    
+    sampled_dirichlet_weights = sample_from_Dirichlet(dirichlet_params) 
+    // This gives weights for K_active atoms + mass for new atoms.
+    
+    new_global_sticks_beta_k = empty_list
+    for i = 1 to length(active_atom_counts_n_k):
+        new_global_sticks_beta_k.add(sampled_dirichlet_weights[i])
+        
+    remaining_mass_for_new_atoms = sampled_dirichlet_weights[length(active_atom_counts_n_k) + 1]
+    
+    // 2. Stick-breaking for the remaining_mass (for atoms not in current active set)
+    // The number of new sticks/atoms to generate (num_breaks) is a truncation level.
+    // R uses a fixed `numBreaks` (e.g. 20 from `MixingDistribution`).
+    num_new_atoms_to_generate_N_prime = hdpObj.mixingDistribution_for_G0.num_breaks_for_G0_truncation
+    
+    // Generate stick-breaking weights for these N_prime new potential atoms from remaining_mass
+    // These are v_l' ~ Beta(1, gamma_global + M), where M is sum of active_n_k_counts.
+    // beta'_l = v_l' * product(1-v_j') for j < l.
+    // Sum of active_n_k_counts (M) is used in the Beta parameter.
+    // R code: `newSticks <- StickBreaking(dpobjlist$gamma + numTables, numBreaks)` -> where numTables = M
+    // These `newSticks` sum to 1. They need to be scaled by `remaining_mass_for_new_atoms`.
+    
+    sum_M_active_table_counts = sum(active_atom_counts_n_k)
+    weights_for_N_prime_new_atoms_unscaled = StickBreaking_process(alpha_param = gamma_global + sum_M_active_table_counts, 
+                                                                  num_breaks = num_new_atoms_to_generate_N_prime)
+    
+    scaled_weights_for_new_atoms = weights_for_N_prime_new_atoms_unscaled * remaining_mass_for_new_atoms
+    new_global_sticks_beta_k.append_all(scaled_weights_for_new_atoms)
+    
+    // 3. Generate parameters (phi'_l) for these N_prime new atoms from the prior H
+    new_atom_parameters_phi_prime_l = PriorDraw(hdpObj.mixingDistribution_for_G0, num_new_atoms_to_generate_N_prime)
+    
+    // 4. Combine: Updated global atoms and sticks
+    // The active global atoms parameters are preserved.
+    updated_global_atoms_list = get_parameters_of_active_global_atoms(hdpObj, active_atom_counts_n_k) 
+    updated_global_atoms_list.append_all(new_atom_parameters_phi_prime_l)
+    
+    hdpObj.globalParameters = updated_global_atoms_list
+    hdpObj.globalStick = new_global_sticks_beta_k // These are the beta_k weights for the new G0
+    
+    // 5. Update mixing distributions of all individual DPs (indDPs)
+    // Their md.theta_k should point to the new hdpObj.globalParameters
+    // Their md.pi_k (local stick-breaking weights) need to be redrawn based on new globalStick (beta_k)
+    // and their own alpha_j.
+    for each indDP in hdpObj.indDP_list:
+        indDP.mixing_distribution.theta_k = hdpObj.globalParameters // Point to the new set of global atoms
+        
+        // Draw new local stick-breaking weights pi^(j)_k for this indDP_j
+        // pi^(j)_k ~ DP(alpha_j, G0_new) where G0_new uses hdpObj.globalStick as its weights.
+        // R code: newGJ = draw_gj(dpobjlist$indDP[[i]]$alpha, dpobjlist$globalStick)
+        // draw_gj likely implements a DP draw using a finite set of atoms (from globalStick)
+        // For a finite G0 with weights beta_k, drawing from DP(alpha_j, G0) means
+        // drawing (p_1, ..., p_L) ~ Dirichlet(alpha_j * beta_1, ..., alpha_j * beta_L)
+        // Or using stick-breaking construction for the local DP weights based on global sticks.
+        // If draw_gj uses stick-breaking: v_jk ~ Beta(alpha_j * beta_k, alpha_j * sum_{l=k+1 to L} beta_l)
+        // Or more simply, since G0 is now fixed by globalSticks, the local pi_k are weights
+        // for selecting from these global atoms.
+        // Teh (2005) suggests for fixed G0, posterior for pi_j is Dir(alpha_j*beta_k + n_jk)
+        // Since we are resampling G0, the n_jk (local counts per global atom) are implicitly used in beta_k.
+        // So, new local pi_k for indDP_j are drawn from DP(alpha_j, G0_updated).
+        // This can be done via stick-breaking using alpha_j and the *new* global_sticks beta_k
+        // if G0_updated itself is treated as a base measure.
+        // Or, if G0_updated means its atoms' weights are directly the global_sticks,
+        // then new_local_pi_k_for_indDP_j = sample_from_DirichletProcess_given_base_weights(alpha = indDP.alpha, base_measure_atom_weights = hdpObj.globalStick)
+        // The R `draw_gj` function seems to implement this as:
+        //    u_i = rbeta(length(beta), alpha * beta, alpha * (1 - cumsum(beta) + beta))
+        //    pi_k is then product of u_i etc. (stick-breaking from Beta draws)
+        
+        new_local_sticks_pi_jk = generate_local_sticks_from_global(indDP.alpha, hdpObj.globalStick)
+        indDP.mixing_distribution.pi_k = new_local_sticks_pi_jk
+        
+    return hdpObj

@@ -1,3 +1,4 @@
+# R/dirichlet_process_hierarchical_mvnormal2.R
 #' Create a Hierarchical Dirichlet Mixture of
 #' semi-conjugate Multivariate Normal Distributions
 #'
@@ -17,13 +18,6 @@ DirichletProcessHierarchicalMvnormal2 <- function(dataList,
                                                   numInitialClusters = 1,
                                                   mhDraws=250) {
 
-
-  # for(i in dataList) {
-  #   if(!is.matrix(i)){
-  #     i <- matrix(i, ncol=length(i))
-  #   }
-  # }
-  #
   if(missing(g0Priors)){
     g0Priors <- list(nu0 = 2,
                      phi0 = diag(ncol(dataList[[1]])),
@@ -31,6 +25,14 @@ DirichletProcessHierarchicalMvnormal2 <- function(dataList,
                      sigma0 = diag(ncol(dataList[[1]])))
   }
 
+  # Add this block to ensure mu0 is a matrix:
+  if (!is.matrix(g0Priors$mu0) || nrow(g0Priors$mu0) != 1) {
+    if (is.numeric(g0Priors$mu0) && (is.vector(g0Priors$mu0) || is.array(g0Priors$mu0))) {
+      g0Priors$mu0 <- matrix(g0Priors$mu0, nrow = 1)
+    } else {
+      stop("g0Priors$mu0 must be a numeric vector or a 1xN matrix.")
+    }
+  }
 
   mdobj_list <- HierarchicalMvnormal2Create(n=length(dataList), priorParameters=g0Priors,
                                             gammaPrior=gammaPriors,
@@ -50,7 +52,9 @@ DirichletProcessHierarchicalMvnormal2 <- function(dataList,
   dpobjlist$globalStick <- mdobj_list[[1]]$beta_k
   dpobjlist$gamma <- mdobj_list[[1]]$gamma
   dpobjlist$gammaPriors <- gammaPriors
-  class(dpobjlist) <- c("list", "dirichletprocess", "hierarchical")
+
+  # CRITICAL: Set class with hierarchical FIRST to ensure proper method dispatch
+  class(dpobjlist) <- c("hierarchical", "dirichletprocess", "list")
 
   return(dpobjlist)
 }

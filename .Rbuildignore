@@ -13,3 +13,6 @@
 ^pkgdown$
 ^\.github$
 ^CRAN-SUBMISSION$
+^profiling$
+^analysis$
+^inst/benchmarks$

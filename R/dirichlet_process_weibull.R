@@ -23,7 +23,7 @@
 DirichletProcessWeibull <- function(y, g0Priors, alphaPriors = c(2, 4),
                                     mhStepSize = c(1, 1),
                                     hyperPriorParameters = c(6, 2, 1, 0.5),
-                                    verbose=FALSE, mhDraws=250) {
+                                    verbose=FALSE, mhDraws=100) {
 
   mdobj <- WeibullMixtureCreate(g0Priors, mhStepSize, hyperPriorParameters)
   dpobj <- DirichletProcessCreate(y, mdobj, alphaPriors, mhDraws)

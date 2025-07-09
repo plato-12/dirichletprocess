@@ -9,18 +9,22 @@
 #' @return A mixing distribution object.
 #' @export
 #'
-
 HierarchicalMvnormal2Create <- function(n, priorParameters,
                                         alphaPrior, gammaPrior,
                                         num_sticks) {
 
+  # Use C++ implementation if enabled
+  if (using_cpp_hierarchical_samplers()) {
+    return(HierarchicalMvnormal2Create.cpp(n, priorParameters, alphaPrior,
+                                           gammaPrior, num_sticks))
+  }
+
+  # Original R implementation
   mdobj_mvnormal2 <- Mvnormal2Create(priorParameters)
 
   class(mdobj_mvnormal2) <- c("hierarchical", "mvnormal2", "nonconjugate")
 
-
   gammaParam <- rgamma(1, gammaPrior[1], gammaPrior[2])
-
 
   theta_k <- PriorDraw.mvnormal2(mdobj_mvnormal2, num_sticks)
   beta_k <- StickBreaking(gammaParam, num_sticks)
@@ -28,8 +32,6 @@ HierarchicalMvnormal2Create <- function(n, priorParameters,
   mdobj_mvnormal2$theta_k <- theta_k
   mdobj_mvnormal2$beta_k <- beta_k
   mdobj_mvnormal2$gamma <- gammaParam
-
-  #mdobj_beta$pi_k <- draw_gj(alpha0, beta_k)
 
   mdobj_list <- vector("list", n)
 
