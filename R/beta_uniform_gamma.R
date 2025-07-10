@@ -22,66 +22,69 @@ BetaMixtureCreate <- function(priorParameters = c(2, 8), mhStepSize = c(1, 1), m
 #' @rdname Likelihood
 Likelihood.beta <- function(mdObj, x, theta) {
   maxT <- mdObj$maxT
-  x <- as.vector(x, "numeric")
+  x <- as.numeric(x)
 
-  # Handle both array and vector inputs for theta
-  if (is.list(theta) && length(theta) >= 2) {
-    # Extract mu and tau from arrays
-    if (is.array(theta[[1]])) {
-      mu <- as.numeric(theta[[1]][, , , drop = TRUE])
-    } else {
-      mu <- as.numeric(theta[[1]])
-    }
+  # Validate theta structure
+  if (!is.list(theta) || length(theta) < 2) {
+    stop("theta must be a list with mu and nu components")
+  }
 
-    if (is.array(theta[[2]])) {
-      tau <- as.numeric(theta[[2]][, , , drop = TRUE])
-    } else {
-      tau <- as.numeric(theta[[2]])
-    }
+  # Extract parameters with proper handling
+  mu <- if (is.array(theta[[1]])) {
+    as.numeric(theta[[1]][,,, drop = FALSE])
   } else {
-    stop("theta must be a list with at least 2 elements")
+    as.numeric(theta[[1]])
   }
 
-  # Ensure we have values
-  if (length(mu) == 0 || length(tau) == 0) {
-    return(numeric(length(x)))
+  nu <- if (is.array(theta[[2]])) {
+    as.numeric(theta[[2]][,,, drop = FALSE])
+  } else {
+    as.numeric(theta[[2]])
   }
 
-  # Calculate likelihood for each cluster
+  # Ensure we have valid values
+  mu <- mu[!is.na(mu)]
+  nu <- nu[!is.na(nu)]
+
+  if (length(mu) == 0 || length(nu) == 0) {
+    return(rep(1e-300, length(x)))
+  }
+
+  # Calculate likelihood
   n_clusters <- length(mu)
-  y <- matrix(NA_real_, nrow = length(x), ncol = n_clusters)
+  if (length(x) == 1) {
+    # Single observation
+    lik <- numeric(n_clusters)
+    for (k in 1:n_clusters) {
+      if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
+        a <- (mu[k] * nu[k]) / maxT
+        b <- (1 - mu[k]/maxT) * nu[k]
 
-  for (k in 1:n_clusters) {
-    # Validate parameters
-    if (is.na(mu[k]) || is.na(tau[k]) || mu[k] <= 0 || mu[k] >= maxT || tau[k] <= 0) {
-      y[, k] <- 1e-300
-      next
-    }
-
-    a <- (mu[k] * tau[k]) / maxT
-    b <- (1 - mu[k]/maxT) * tau[k]
-
-    # Ensure valid beta parameters
-    if (a <= 0 || b <= 0 || !is.finite(a) || !is.finite(b)) {
-      y[, k] <- 1e-300
-      next
-    }
-
-    # Calculate likelihood for all data points
-    for (i in seq_along(x)) {
-      if (x[i] >= 0 && x[i] <= maxT) {
-        y[i, k] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
+        if (a > 0 && b > 0 && x >= 0 && x <= maxT) {
+          lik[k] <- (1/maxT) * dbeta(x/maxT, a, b)
+        } else {
+          lik[k] <- 1e-300
+        }
       } else {
-        y[i, k] <- 1e-300
+        lik[k] <- 1e-300
       }
     }
-  }
-
-  # Return as vector if single cluster, matrix otherwise
-  if (n_clusters == 1) {
-    return(as.numeric(y[, 1]))
+    return(if (n_clusters == 1) lik[1] else lik)
   } else {
-    return(y)
+    # Multiple observations - return matrix
+    lik <- matrix(1e-300, nrow = length(x), ncol = n_clusters)
+    for (k in 1:n_clusters) {
+      if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
+        a <- (mu[k] * nu[k]) / maxT
+        b <- (1 - mu[k]/maxT) * nu[k]
+
+        if (a > 0 && b > 0) {
+          valid_idx <- x >= 0 & x <= maxT
+          lik[valid_idx, k] <- (1/maxT) * dbeta(x[valid_idx]/maxT, a, b)
+        }
+      }
+    }
+    return(lik)
   }
 }
 

@@ -27,12 +27,10 @@ DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
 
 #' @export
 Initialise.beta <- function(dpObj, posterior = TRUE, verbose = TRUE, ...) {
-
   # Ensure all points start in cluster 1
   dpObj$clusterLabels <- rep(1, dpObj$n)
   dpObj$numberClusters <- 1
-  dpObj$pointsPerCluster <- numeric(dpObj$n)
-  dpObj$pointsPerCluster[1] <- dpObj$n
+  dpObj$pointsPerCluster <- dpObj$n  # Single value, not array
 
   # Initialize parameters with proper array structure
   if (posterior) {
