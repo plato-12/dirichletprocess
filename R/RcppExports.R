@@ -365,6 +365,106 @@ normal_posterior_parameters_cpp <- function(priorParams, x) {
     .Call(`_dirichletprocess_normal_posterior_parameters_cpp`, priorParams, x)
 }
 
+create_mcmc_runner_cpp <- function(data, mixing_params, mcmc_params) {
+    .Call(`_dirichletprocess_create_mcmc_runner_cpp`, data, mixing_params, mcmc_params)
+}
+
+step_assignments_cpp <- function(runner_ptr) {
+    invisible(.Call(`_dirichletprocess_step_assignments_cpp`, runner_ptr))
+}
+
+step_parameters_cpp <- function(runner_ptr) {
+    invisible(.Call(`_dirichletprocess_step_parameters_cpp`, runner_ptr))
+}
+
+step_concentration_cpp <- function(runner_ptr) {
+    invisible(.Call(`_dirichletprocess_step_concentration_cpp`, runner_ptr))
+}
+
+perform_iteration_cpp <- function(runner_ptr) {
+    invisible(.Call(`_dirichletprocess_perform_iteration_cpp`, runner_ptr))
+}
+
+get_state_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_state_cpp`, runner_ptr)
+}
+
+get_results_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_results_cpp`, runner_ptr)
+}
+
+is_complete_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_is_complete_cpp`, runner_ptr)
+}
+
+set_labels_cpp <- function(runner_ptr, labels) {
+    invisible(.Call(`_dirichletprocess_set_labels_cpp`, runner_ptr, labels))
+}
+
+set_params_cpp <- function(runner_ptr, params) {
+    invisible(.Call(`_dirichletprocess_set_params_cpp`, runner_ptr, params))
+}
+
+set_parameter_bounds_cpp <- function(runner_ptr, lower, upper) {
+    invisible(.Call(`_dirichletprocess_set_parameter_bounds_cpp`, runner_ptr, lower, upper))
+}
+
+get_auxiliary_params_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_auxiliary_params_cpp`, runner_ptr)
+}
+
+set_update_flags_cpp <- function(runner_ptr, clusters, params, alpha) {
+    invisible(.Call(`_dirichletprocess_set_update_flags_cpp`, runner_ptr, clusters, params, alpha))
+}
+
+get_cluster_likelihoods_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_cluster_likelihoods_cpp`, runner_ptr)
+}
+
+get_membership_matrix_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_membership_matrix_cpp`, runner_ptr)
+}
+
+get_cluster_statistics_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_cluster_statistics_cpp`, runner_ptr)
+}
+
+merge_clusters_cpp <- function(runner_ptr, cluster1, cluster2) {
+    invisible(.Call(`_dirichletprocess_merge_clusters_cpp`, runner_ptr, cluster1, cluster2))
+}
+
+split_cluster_cpp <- function(runner_ptr, cluster_id, split_prob) {
+    invisible(.Call(`_dirichletprocess_split_cluster_cpp`, runner_ptr, cluster_id, split_prob))
+}
+
+set_temperature_cpp <- function(runner_ptr, temp) {
+    invisible(.Call(`_dirichletprocess_set_temperature_cpp`, runner_ptr, temp))
+}
+
+set_auxiliary_count_cpp <- function(runner_ptr, m) {
+    invisible(.Call(`_dirichletprocess_set_auxiliary_count_cpp`, runner_ptr, m))
+}
+
+sample_predictive_cpp <- function(runner_ptr, n_samples) {
+    .Call(`_dirichletprocess_sample_predictive_cpp`, runner_ptr, n_samples)
+}
+
+get_log_posterior_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_log_posterior_cpp`, runner_ptr)
+}
+
+get_cluster_entropies_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_cluster_entropies_cpp`, runner_ptr)
+}
+
+get_clustering_entropy_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_clustering_entropy_cpp`, runner_ptr)
+}
+
+get_convergence_diagnostics_cpp <- function(runner_ptr) {
+    .Call(`_dirichletprocess_get_convergence_diagnostics_cpp`, runner_ptr)
+}
+
 weibull_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_weibull_prior_draw_cpp`, priorParams, n)
 }

@@ -137,33 +137,33 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
     for (j in 1:numLabels) {
       if (pointsPerCluster[j] > 0 || j == currentLabel) {
-        # Extract parameters for cluster j
+        # Extract parameters for cluster j with proper structure handling
         if (inherits(dpObj, "beta")) {
-          # Special handling for beta distribution parameters
-          # Check if parameters are already arrays with correct dimensions
+          # Ensure theta has the correct structure for beta distribution
           if (is.array(clusterParams$mu) && length(dim(clusterParams$mu)) == 3) {
             theta_j <- list(
               mu = array(clusterParams$mu[,,j, drop = FALSE], dim = c(1,1,1)),
               nu = array(clusterParams$nu[,,j, drop = FALSE], dim = c(1,1,1))
             )
-          } else if (is.array(clusterParams$mu)) {
-            # Parameters might be 1D or 2D arrays
-            if (length(clusterParams$mu) >= j) {
+          } else if (is.list(clusterParams) && length(clusterParams) >= 2) {
+            # Handle list format
+            if (is.array(clusterParams[[1]]) && length(clusterParams[[1]]) >= j) {
               theta_j <- list(
-                mu = array(clusterParams$mu[j], dim = c(1,1,1)),
-                nu = array(clusterParams$nu[j], dim = c(1,1,1))
+                mu = array(as.numeric(clusterParams[[1]][j]), dim = c(1,1,1)),
+                nu = array(as.numeric(clusterParams[[2]][j]), dim = c(1,1,1))
               )
             } else {
+              # Fallback to safe defaults
               theta_j <- list(
-                mu = array(0.5, dim = c(1,1,1)),  # Default value
-                nu = array(1, dim = c(1,1,1))     # Default value
+                mu = array(0.5, dim = c(1,1,1)),
+                nu = array(1, dim = c(1,1,1))
               )
             }
           } else {
-            # Parameters are likely vectors or single values
+            # Last resort fallback
             theta_j <- list(
-              mu = array(clusterParams$mu[[j]], dim = c(1,1,1)),
-              nu = array(clusterParams$nu[[j]], dim = c(1,1,1))
+              mu = array(0.5, dim = c(1,1,1)),
+              nu = array(1, dim = c(1,1,1))
             )
           }
         } else {
@@ -196,75 +196,53 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
       # Ensure aux parameters have correct structure
       if (inherits(dpObj, "beta")) {
         # Check structure of aux parameters
-        if (is.list(dpObj$aux[[j]])) {
-          if (is.array(dpObj$aux[[j]]$mu) && length(dim(dpObj$aux[[j]]$mu)) == 3) {
-            tempAux <- list(
-              mu = array(dpObj$aux[[j]]$mu[,,1, drop = FALSE], dim = c(1,1,1)),
-              nu = array(dpObj$aux[[j]]$nu[,,1, drop = FALSE], dim = c(1,1,1))
-            )
-          } else {
-            tempAux <- list(
-              mu = array(as.numeric(dpObj$aux[[j]]$mu), dim = c(1,1,1)),
-              nu = array(as.numeric(dpObj$aux[[j]]$nu), dim = c(1,1,1))
-            )
-          }
-        } else {
+        if (is.list(dpObj$aux[[j]]) && all(c("mu", "nu") %in% names(dpObj$aux[[j]]))) {
           tempAux <- dpObj$aux[[j]]
+        } else if (is.array(dpObj$aux[[j]])) {
+          # Convert array to list format
+          tempAux <- list(
+            mu = array(dpObj$aux[[j]][1], dim = c(1,1,1)),
+            nu = array(dpObj$aux[[j]][2], dim = c(1,1,1))
+          )
+        } else {
+          # Generate new aux parameter if structure is wrong
+          tempAux <- PriorDraw(dpObj$mixingDistribution, 1)
         }
       } else {
-        tempAux <- lapply(dpObj$aux[[j]], function(param) {
-          if (is.array(param) && length(dim(param)) == 3) {
-            array(param[,,1, drop = FALSE],
-                  dim = c(dim(param)[1], dim(param)[2], 1))
-          } else {
-            param
-          }
-        })
+        tempAux <- dpObj$aux[[j]]
       }
 
-      aux_probs[j] <- (alpha / m) * Likelihood(mdObj, y[i, , drop = FALSE], tempAux)
+      lik <- Likelihood(mdObj, y[i, , drop = FALSE], tempAux)
+      aux_probs[j] <- (alpha / m) * lik
     }
 
-    # Combine all probabilities
+    # Combine probabilities
     all_probs <- c(cluster_probs, aux_probs)
 
-    # Handle numerical issues
-    all_probs[is.na(all_probs) | is.infinite(all_probs) | all_probs < 0] <- 0
-
-    # Normalize probabilities
-    prob_sum <- sum(all_probs)
-    if (prob_sum > 0) {
-      all_probs <- all_probs / prob_sum
+    # Sample new label
+    if (sum(all_probs) == 0) {
+      # Fallback to uniform if all probabilities are zero
+      newLabel <- sample.int(numLabels + m, 1)
     } else {
-      # Fallback to uniform if all probabilities are 0
-      all_probs <- rep(1 / length(all_probs), length(all_probs))
+      newLabel <- sample.int(numLabels + m, 1, prob = all_probs)
     }
 
-    # Sample new label
-    newLabel <- sample.int(length(all_probs), 1, prob = all_probs)
-
-    # Handle the assignment
+    # Update cluster assignment
     if (newLabel <= numLabels) {
       # Assigned to existing cluster
       clusterLabels[i] <- newLabel
       pointsPerCluster[newLabel] <- pointsPerCluster[newLabel] + 1
 
-      # Handle empty cluster removal if necessary
-      if (empty_cluster && currentLabel != newLabel) {
-        # Remove the empty cluster
-        keep_idx <- setdiff(1:numLabels, currentLabel)
+      # Clean up empty cluster if needed
+      if (empty_cluster && newLabel != currentLabel) {
+        # Remove empty cluster
+        keep_idx <- seq_len(numLabels)[-currentLabel]
 
-        # Create label mapping
-        label_map <- integer(numLabels)
-        label_map[keep_idx] <- seq_along(keep_idx)
+        # Update labels
+        clusterLabels[clusterLabels > currentLabel] <- clusterLabels[clusterLabels > currentLabel] - 1
 
-        # Remap all cluster labels
-        for (j in seq_len(n)) {
-          clusterLabels[j] <- label_map[clusterLabels[j]]
-        }
-
-        # Update cluster count
-        numLabels <- length(keep_idx)
+        # Update number of clusters
+        numLabels <- numLabels - 1
 
         # Update points per cluster
         pointsPerCluster <- pointsPerCluster[keep_idx]
@@ -320,22 +298,22 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
         # Copy auxiliary parameters to the empty slot
         if (inherits(dpObj, "beta")) {
+          # Special handling for beta parameters
           if (is.array(clusterParams$mu) && length(dim(clusterParams$mu)) == 3) {
-            if (is.array(dpObj$aux[[aux_idx]]$mu) && length(dim(dpObj$aux[[aux_idx]]$mu)) == 3) {
-              clusterParams$mu[,,currentLabel] <- dpObj$aux[[aux_idx]]$mu[,,1]
-              clusterParams$nu[,,currentLabel] <- dpObj$aux[[aux_idx]]$nu[,,1]
-            } else {
+            if (is.list(dpObj$aux[[aux_idx]]) && all(c("mu", "nu") %in% names(dpObj$aux[[aux_idx]]))) {
               clusterParams$mu[,,currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
               clusterParams$nu[,,currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
+            } else {
+              # Generate new parameters if aux structure is wrong
+              newParams <- PriorDraw(dpObj$mixingDistribution, 1)
+              clusterParams$mu[,,currentLabel] <- as.numeric(newParams$mu)
+              clusterParams$nu[,,currentLabel] <- as.numeric(newParams$nu)
             }
           } else {
-            # Need to maintain structure
-            if (is.list(clusterParams$mu)) {
-              clusterParams$mu[[currentLabel]] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
-              clusterParams$nu[[currentLabel]] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
-            } else {
-              clusterParams$mu[currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
-              clusterParams$nu[currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
+            # Handle other parameter formats
+            if (is.list(dpObj$aux[[aux_idx]])) {
+              clusterParams[[1]][currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
+              clusterParams[[2]][currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
             }
           }
         } else {
@@ -369,54 +347,36 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
             }
 
             # Add auxiliary parameter
-            if (is.array(dpObj$aux[[aux_idx]]$mu) && length(dim(dpObj$aux[[aux_idx]]$mu)) == 3) {
-              new_mu[,,numLabels] <- dpObj$aux[[aux_idx]]$mu[,,1]
-              new_nu[,,numLabels] <- dpObj$aux[[aux_idx]]$nu[,,1]
-            } else {
+            if (is.list(dpObj$aux[[aux_idx]]) && all(c("mu", "nu") %in% names(dpObj$aux[[aux_idx]]))) {
               new_mu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
               new_nu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
+            } else {
+              # Generate new parameters if aux structure is wrong
+              newParams <- PriorDraw(dpObj$mixingDistribution, 1)
+              new_mu[,,numLabels] <- as.numeric(newParams$mu)
+              new_nu[,,numLabels] <- as.numeric(newParams$nu)
             }
 
             clusterParams$mu <- new_mu
             clusterParams$nu <- new_nu
           } else {
-            # Convert to proper 3D structure
-            old_mu <- if (is.list(clusterParams$mu)) unlist(clusterParams$mu) else clusterParams$mu
-            old_nu <- if (is.list(clusterParams$nu)) unlist(clusterParams$nu) else clusterParams$nu
-
-            new_mu <- array(NA, dim = c(1, 1, numLabels))
-            new_nu <- array(NA, dim = c(1, 1, numLabels))
-
-            if (numLabels > 1) {
-              for (k in 1:(numLabels-1)) {
-                new_mu[,,k] <- old_mu[k]
-                new_nu[,,k] <- old_nu[k]
-              }
-            }
-
-            new_mu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
-            new_nu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
-
-            clusterParams$mu <- new_mu
-            clusterParams$nu <- new_nu
+            # Handle other formats
+            clusterParams[[1]] <- c(clusterParams[[1]], as.numeric(dpObj$aux[[aux_idx]]$mu))
+            clusterParams[[2]] <- c(clusterParams[[2]], as.numeric(dpObj$aux[[aux_idx]]$nu))
           }
         } else {
-          # Generic parameter expansion
+          # Generic expansion for other distributions
           for (k in seq_along(clusterParams)) {
-            param <- clusterParams[[k]]
-            aux_param <- dpObj$aux[[aux_idx]][[k]]
-
-            if (is.array(param) && length(dim(param)) == 3) {
-              new_param <- array(NA, dim = c(dim(param)[1], dim(param)[2], numLabels))
+            if (is.array(clusterParams[[k]]) && length(dim(clusterParams[[k]])) == 3) {
+              old_dim <- dim(clusterParams[[k]])
+              new_array <- array(NA, dim = c(old_dim[1], old_dim[2], numLabels))
               if (numLabels > 1) {
-                new_param[,,1:(numLabels-1)] <- param
+                new_array[,,1:(numLabels-1)] <- clusterParams[[k]]
               }
-              new_param[,,numLabels] <- aux_param
-              clusterParams[[k]] <- new_param
-            } else if (is.list(param)) {
-              clusterParams[[k]] <- c(param, list(aux_param))
-            } else if (is.vector(param)) {
-              clusterParams[[k]] <- c(param, aux_param)
+              new_array[,,numLabels] <- dpObj$aux[[aux_idx]][[k]]
+              clusterParams[[k]] <- new_array
+            } else {
+              clusterParams[[k]] <- c(clusterParams[[k]], dpObj$aux[[aux_idx]][[k]])
             }
           }
         }
@@ -424,9 +384,10 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     }
   }
 
-  # Final validation - ensure consistency
+  # Final validation
   if (sum(pointsPerCluster) != n) {
-    warning(paste("Inconsistent point counts detected. Expected:", n,
+    warning(paste("Points per cluster mismatch after update.",
+                  "Expected:", n,
                   "Got:", sum(pointsPerCluster),
                   "- Recalculating from cluster labels"))
 

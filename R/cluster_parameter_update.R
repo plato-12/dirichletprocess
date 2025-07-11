@@ -53,11 +53,8 @@ ClusterParameterUpdate.conjugate <- function(dpObj) {
 ClusterParameterUpdate.nonconjugate <- function(dpObj) {
 
   if (inherits(dpObj, "beta") && using_cpp_samplers()) {
-
     cpp_result <- nonconjugate_beta_cluster_parameter_update_cpp(dpObj)
-
     if (!is.null(cpp_result)) {
-
       dpObj$clusterParameters <- cpp_result
       return(dpObj)
     }
@@ -70,6 +67,7 @@ ClusterParameterUpdate.nonconjugate <- function(dpObj) {
     }
     cluster_data <- dpObj$data[cluster_data_indices, , drop = FALSE]
 
+    # Prepare current parameters
     current_params_list <- list(
       mu = array(dpObj$clusterParameters[[1]][, , i], dim = c(1,1,1)),
       nu = array(dpObj$clusterParameters[[2]][, , i], dim = c(1,1,1))
@@ -80,8 +78,21 @@ ClusterParameterUpdate.nonconjugate <- function(dpObj) {
                                             n = dpObj$mhDraws,
                                             start_pos = current_params_list)
 
-    dpObj$clusterParameters[[1]][, , i] <- posterior_draw_samples[[1]][,,dpObj$mhDraws, drop=FALSE]
-    dpObj$clusterParameters[[2]][, , i] <- posterior_draw_samples[[2]][,,dpObj$mhDraws, drop=FALSE]
+    # Handle different return formats from PosteriorDraw
+    if (inherits(dpObj, "beta")) {
+      # PosteriorDraw.beta returns list(mu=vector, nu=vector)
+      # Extract the last sample from each
+      mu_values <- posterior_draw_samples$mu
+      nu_values <- posterior_draw_samples$nu
+
+      # Take the last value from the MCMC chain
+      dpObj$clusterParameters[[1]][, , i] <- mu_values[length(mu_values)]
+      dpObj$clusterParameters[[2]][, , i] <- nu_values[length(nu_values)]
+    } else {
+      # Original logic for other distributions
+      dpObj$clusterParameters[[1]][, , i] <- posterior_draw_samples[[1]][,,dpObj$mhDraws, drop=FALSE]
+      dpObj$clusterParameters[[2]][, , i] <- posterior_draw_samples[[2]][,,dpObj$mhDraws, drop=FALSE]
+    }
   }
   return(dpObj)
 }

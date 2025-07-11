@@ -25,21 +25,39 @@ Likelihood.beta <- function(mdObj, x, theta) {
   x <- as.numeric(x)
 
   # Validate theta structure
-  if (!is.list(theta) || length(theta) < 2) {
+  if (!is.list(theta)) {
     stop("theta must be a list with mu and nu components")
   }
 
-  # Extract parameters with proper handling
-  mu <- if (is.array(theta[[1]])) {
-    as.numeric(theta[[1]][,,, drop = FALSE])
-  } else {
-    as.numeric(theta[[1]])
+  if (!all(c("mu", "nu") %in% names(theta))) {
+    stop("theta must contain 'mu' and 'nu' components")
   }
 
-  nu <- if (is.array(theta[[2]])) {
-    as.numeric(theta[[2]][,,, drop = FALSE])
+  # Extract parameters with proper handling for various formats
+  mu <- if (is.array(theta$mu)) {
+    # Handle 3D arrays (dim = c(1,1,n))
+    if (length(dim(theta$mu)) == 3) {
+      as.numeric(theta$mu[,,, drop = TRUE])
+    } else {
+      as.numeric(theta$mu)
+    }
+  } else if (is.list(theta$mu)) {
+    unlist(theta$mu)
   } else {
-    as.numeric(theta[[2]])
+    as.numeric(theta$mu)
+  }
+
+  nu <- if (is.array(theta$nu)) {
+    # Handle 3D arrays (dim = c(1,1,n))
+    if (length(dim(theta$nu)) == 3) {
+      as.numeric(theta$nu[,,, drop = TRUE])
+    } else {
+      as.numeric(theta$nu)
+    }
+  } else if (is.list(theta$nu)) {
+    unlist(theta$nu)
+  } else {
+    as.numeric(theta$nu)
   }
 
   # Ensure we have valid values
@@ -48,6 +66,15 @@ Likelihood.beta <- function(mdObj, x, theta) {
 
   if (length(mu) == 0 || length(nu) == 0) {
     return(rep(1e-300, length(x)))
+  }
+
+  # Ensure mu and nu have the same length
+  n_params <- max(length(mu), length(nu))
+  if (length(mu) == 1 && n_params > 1) {
+    mu <- rep(mu, n_params)
+  }
+  if (length(nu) == 1 && n_params > 1) {
+    nu <- rep(nu, n_params)
   }
 
   # Calculate likelihood
