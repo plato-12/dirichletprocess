@@ -6,11 +6,12 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include "mixing_distribution_base.h"  // CHANGE: Include full header instead of forward declaration
 
 namespace dirichletprocess {
 
 // Forward declarations
-class MixingDistribution;
+// class MixingDistribution;  // REMOVE THIS LINE - not needed anymore
 class DPState;
 
 // Main MCMC runner class
