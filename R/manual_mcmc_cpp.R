@@ -46,34 +46,142 @@ CppMCMCRunner <- setRefClass("CppMCMCRunner",
                                  invisible(.self)
                                },
 
-                               step = function() {
-                                 "Perform one complete MCMC iteration"
+                               perform_iteration = function() {
+                                 "Perform a complete MCMC iteration"
                                  perform_iteration_cpp(ptr)
                                  invisible(.self)
                                },
 
                                get_state = function() {
-                                 "Get current MCMC state"
-                                 state <- get_state_cpp(ptr)
-
-                                 # Convert parameters back to original format based on distribution
-                                 if (distribution_type == "mvnormal") {
-                                   # Special handling for multivariate normal
-                                   state$cluster_params <- lapply(state$cluster_params, function(p) {
-                                     list(mu = p[1:dp_obj$mixingDistribution$d],
-                                          Sigma = matrix(p[-(1:dp_obj$mixingDistribution$d)],
-                                                         nrow = dp_obj$mixingDistribution$d))
-                                   })
-                                 }
-
-                                 state
+                                 "Get current state of the sampler"
+                                 get_state_cpp(ptr)
                                },
 
                                get_results = function() {
-                                 "Get accumulated MCMC results"
-                                 results <- get_results_cpp(ptr)
+                                 "Get complete results"
+                                 get_results_cpp(ptr)
+                               },
 
-                                 # Format results to match standard Fit() output
+                               set_labels = function(labels) {
+                                 "Set cluster labels"
+                                 # Convert to 0-based indexing for C++
+                                 set_labels_cpp(ptr, labels - 1)
+                                 invisible(.self)
+                               },
+
+                               set_params = function(params) {
+                                 "Set cluster parameters"
+                                 set_params_cpp(ptr, params)
+                                 invisible(.self)
+                               },
+
+                               set_bounds = function(lower, upper) {
+                                 "Set parameter bounds"
+                                 set_parameter_bounds_cpp(ptr, lower, upper)
+                                 invisible(.self)
+                               },
+
+                               set_update_flags = function(clusters = TRUE, params = TRUE, alpha = TRUE) {
+                                 "Control which parameters are updated"
+                                 set_update_flags_cpp(ptr, clusters, params, alpha)
+                                 invisible(.self)
+                               },
+
+                               set_temperature = function(temp) {
+                                 "Set temperature for annealed sampling"
+                                 if (temp <= 0) {
+                                   stop("Temperature must be positive")
+                                 }
+                                 set_temperature_cpp(ptr, temp)
+                                 invisible(.self)
+                               },
+
+                               set_auxiliary_count = function(m) {
+                                 "Set number of auxiliary parameters"
+                                 if (m <= 0) {
+                                   stop("Auxiliary count must be positive")
+                                 }
+                                 set_auxiliary_count_cpp(ptr, m)
+                                 invisible(.self)
+                               },
+
+                               merge_clusters = function(cluster1, cluster2) {
+                                 "Merge two clusters"
+                                 merge_clusters_cpp(ptr, cluster1, cluster2)
+                                 invisible(.self)
+                               },
+
+                               split_cluster = function(cluster_id, split_prob = 0.5) {
+                                 "Split a cluster"
+                                 split_cluster_cpp(ptr, cluster_id, split_prob)
+                                 invisible(.self)
+                               },
+
+                               get_auxiliary_params = function() {
+                                 "Get auxiliary parameters"
+                                 get_auxiliary_params_cpp(ptr)
+                               },
+
+                               get_cluster_likelihoods = function() {
+                                 "Get cluster likelihoods"
+                                 get_cluster_likelihoods_cpp(ptr)
+                               },
+
+                               get_membership_matrix = function() {
+                                 "Get cluster membership matrix"
+                                 get_membership_matrix_cpp(ptr)
+                               },
+
+                               get_cluster_statistics = function() {
+                                 "Get cluster statistics"
+                                 get_cluster_statistics_cpp(ptr)
+                               },
+
+                               sample_predictive = function(n_samples) {
+                                 "Sample from posterior predictive"
+                                 sample_predictive_cpp(ptr, n_samples)
+                               },
+
+                               get_log_posterior = function() {
+                                 "Get log posterior"
+                                 get_log_posterior_cpp(ptr)
+                               },
+
+                               get_cluster_entropies = function() {
+                                 "Get cluster entropies"
+                                 get_cluster_entropies_cpp(ptr)
+                               },
+
+                               get_clustering_entropy = function() {
+                                 "Get clustering entropy"
+                                 get_clustering_entropy_cpp(ptr)
+                               },
+
+                               get_convergence_diagnostics = function() {
+                                 "Get convergence diagnostics"
+                                 get_convergence_diagnostics_cpp(ptr)
+                               },
+
+                               get_iteration = function() {
+                                 "Get current iteration number"
+                                 state <- get_state()
+                                 state$iteration
+                               },
+
+                               is_complete = function() {
+                                 "Check if all iterations are complete"
+                                 is_complete_cpp(ptr)
+                               },
+
+                               run = function() {
+                                 "Run all iterations"
+                                 while (!is_complete()) {
+                                   perform_iteration()
+                                 }
+
+                                 results <- get_results()
+
+                                 # Format results to match DP object structure
                                  results$numberClusters <- results$n_clusters
                                  results$clusterParameters <- results$cluster_params
                                  results$clusterLabels <- results$cluster_labels + 1  # R uses 1-based indexing
@@ -83,63 +191,9 @@ CppMCMCRunner <- setRefClass("CppMCMCRunner",
 
                                  class(results) <- c("dirichletprocess", "list")
                                  results
-                               },
-
-                               is_complete = function() {
-                                 "Check if all iterations are complete"
-                                 is_complete_cpp(ptr)
-                               },
-
-                               run_manual = function(callback = NULL, progress = TRUE,
-                                                     custom_assignment_sampler = NULL,
-                                                     custom_parameter_sampler = NULL) {
-                                 "Run MCMC with optional callbacks and custom samplers"
-
-                                 if (progress) {
-                                   pb <- txtProgressBar(min = 0, max = 1, style = 3)
-                                 }
-
-                                 while (!is_complete()) {
-                                   # Custom or standard cluster assignment
-                                   if (!is.null(custom_assignment_sampler)) {
-                                     state <- get_state()
-                                     new_labels <- custom_assignment_sampler(state, dp_obj)
-                                     set_labels_cpp(ptr, new_labels)
-                                   } else {
-                                     step_assignments()
-                                   }
-
-                                   # Custom or standard parameter update
-                                   if (!is.null(custom_parameter_sampler)) {
-                                     state <- get_state()
-                                     new_params <- custom_parameter_sampler(state, dp_obj)
-                                     # Would need set_params_cpp implementation
-                                   } else {
-                                     step_parameters()
-                                   }
-
-                                   # Always update concentration
-                                   step_concentration()
-
-                                   # User callback
-                                   if (!is.null(callback)) {
-                                     state <- get_state()
-                                     callback(state, .self)
-                                   }
-
-                                   # Progress
-                                   if (progress) {
-                                     state <- get_state()
-                                     setTxtProgressBar(pb, state$iteration / mcmc_params$n_iter)
-                                   }
-                                 }
-
-                                 if (progress) close(pb)
-
-                                 get_results()
                                }
-                             )
-)
+                             ))
+
 
 #' Create Manual C++ MCMC Runner
 #'

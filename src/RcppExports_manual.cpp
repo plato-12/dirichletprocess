@@ -60,9 +60,6 @@ bool is_complete_cpp(SEXP runner_ptr) {
 // [[Rcpp::export]]
 void set_labels_cpp(SEXP runner_ptr, std::vector<int> labels) {
   XPtr<MCMCRunnerManual> runner(runner_ptr);
-  for (auto& label : labels) {
-    label -= 1;  // Convert to 0-based indexing
-  }
   runner->set_cluster_labels(labels);
 }
 

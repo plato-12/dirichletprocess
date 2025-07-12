@@ -21,20 +21,51 @@ Manual C++ MCMC Runner Class
 \section{Methods}{
 
 \describe{
-\item{\code{get_results()}}{Get accumulated MCMC results}
+\item{\code{get_auxiliary_params()}}{Get auxiliary parameters}
 
-\item{\code{get_state()}}{Get current MCMC state}
+\item{\code{get_cluster_entropies()}}{Get cluster entropies}
+
+\item{\code{get_cluster_likelihoods()}}{Get cluster likelihoods}
+
+\item{\code{get_cluster_statistics()}}{Get cluster statistics}
+
+\item{\code{get_clustering_entropy()}}{Get clustering entropy}
+
+\item{\code{get_convergence_diagnostics()}}{Get convergence diagnostics}
+
+\item{\code{get_iteration()}}{Get current iteration number}
+
+\item{\code{get_log_posterior()}}{Get log posterior}
+
+\item{\code{get_membership_matrix()}}{Get cluster membership matrix}
+
+\item{\code{get_results()}}{Get complete results}
+
+\item{\code{get_state()}}{Get current state of the sampler}
 
 \item{\code{is_complete()}}{Check if all iterations are complete}
 
-\item{\code{run_manual(
-  callback = NULL,
-  progress = TRUE,
-  custom_assignment_sampler = NULL,
-  custom_parameter_sampler = NULL
-)}}{Run MCMC with optional callbacks and custom samplers}
+\item{\code{merge_clusters(cluster1, cluster2)}}{Merge two clusters}
 
-\item{\code{step()}}{Perform one complete MCMC iteration}
+\item{\code{perform_iteration()}}{Perform a complete MCMC iteration}
+
+\item{\code{run()}}{Run all iterations}
+
+\item{\code{sample_predictive(n_samples)}}{Sample from posterior predictive}
+
+\item{\code{set_auxiliary_count(m)}}{Set number of auxiliary parameters}
+
+\item{\code{set_bounds(lower, upper)}}{Set parameter bounds}
+
+\item{\code{set_labels(labels)}}{Set cluster labels}
+
+\item{\code{set_params(params)}}{Set cluster parameters}
+
+\item{\code{set_temperature(temp)}}{Set temperature for annealed sampling}
+
+\item{\code{set_update_flags(clusters = TRUE, params = TRUE, alpha = TRUE)}}{Control which parameters are updated}
+
+\item{\code{split_cluster(cluster_id, split_prob = 0.5)}}{Split a cluster}
 
 \item{\code{step_assignments()}}{Update cluster assignments using Algorithm 8}
 

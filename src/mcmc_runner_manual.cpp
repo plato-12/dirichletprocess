@@ -7,16 +7,27 @@
 namespace dirichletprocess {
 
 void MCMCRunnerManual::initialize_manual_storage() {
-  // Pre-allocate storage
-  int n_stored = (n_iter - n_burn) / thin;
-  alpha_samples.reserve(n_stored);
-  cluster_samples.reserve(n_stored);
-  theta_samples.reserve(n_stored);
-  likelihood_samples.reserve(n_stored);
+  // Initialize with at least one cluster
+  state->n_clusters = 1;
+  state->cluster_sizes = arma::zeros(1);  // Use arma::zeros(1) instead of arma::zeros<arma::uvec>(1)
+  state->cluster_sizes[0] = data.n_rows;
 
-  // Additional diagnostic storage
+  // All observations start in cluster 0
+  state->cluster_labels = std::vector<int>(data.n_rows, 0);
+
+  // Draw initial parameters for the first cluster
+  state->cluster_params.clear();
+  state->cluster_params.push_back(mixing_dist->prior_draw());
+
+  // Reserve space for diagnostic chains
   log_posterior_chain.reserve(n_iter);
   entropy_chain.reserve(n_iter);
+
+  // Initialize auxiliary parameters
+  auxiliary_params.clear();
+  for (int j = 0; j < m_auxiliary; j++) {
+    auxiliary_params.push_back(mixing_dist->prior_draw());
+  }
 }
 
 void MCMCRunnerManual::step_cluster_assignments() {
