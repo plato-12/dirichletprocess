@@ -112,7 +112,7 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
 
     // Sample new label
     int newLabel = 0;
-    double probSum = arma::sum(probs);
+    double probSum = Rcpp::sum(probs);
 
     if (probSum <= 0) {
       // If all probabilities are zero, assign uniformly
@@ -144,7 +144,7 @@ void NonConjugateBetaDP::clusterComponentUpdate() {
 
   // Final validation
   arma::uword totalPoints = arma::sum(pointsPerCluster);
-  if (totalPoints != n) {
+  if (totalPoints != static_cast<arma::uword>(n)) {
     Rcpp::stop("Point count mismatch after cluster component update: expected " +
       std::to_string(n) + " but got " + std::to_string(totalPoints));
   }
@@ -185,8 +185,8 @@ Rcpp::List NonConjugateBetaDP::clusterLabelChange(int i, int newLabel, int curre
       Rcpp::NumericVector new_nu_vec(numberClusters);
 
       int idx = 0;
-      for (int j = 0; j < pointsPerCluster.n_elem; j++) {
-        if (j != currentLabel) {
+      for (arma::uword j = 0; j < pointsPerCluster.n_elem; j++) {
+        if (j != static_cast<arma::uword>(currentLabel)) {
           new_pointsPerCluster[idx] = pointsPerCluster[j];
           new_mu_vec[idx] = mu_vec[j];
           new_nu_vec[idx] = nu_vec[j];
