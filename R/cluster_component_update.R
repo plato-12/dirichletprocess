@@ -93,139 +93,101 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
   return(dpObj)
 }
 
-#'@export
+#' @export
+#' @rdname ClusterComponentUpdate
 ClusterComponentUpdate.nonconjugate <- function(dpObj) {
-
-  # Check if C++ implementation is available and enabled
-  if (inherits(dpObj, "beta") && using_cpp_samplers()) {
-    cpp_result <- nonconjugate_beta_cluster_component_update_cpp(dpObj)
-
-    if (!is.null(cpp_result) && !isTRUE(cpp_result$stub_result)) {
-      dpObj$clusterLabels <- cpp_result$clusterLabels
-      dpObj$pointsPerCluster <- cpp_result$pointsPerCluster
-      dpObj$numberClusters <- cpp_result$numberClusters
-      dpObj$clusterParameters <- cpp_result$clusterParameters
-      return(dpObj)
+  # Use C++ implementation if enabled and available
+  if (using_cpp()) {
+    if (inherits(dpObj, "beta") && exists("nonconjugate_beta_cluster_component_update_cpp")) {
+      return(ClusterComponentUpdate.beta.nonconjugate.cpp(dpObj))
+    }
+    if (inherits(dpObj, "mvnormal2") && exists("nonconjugate_mvnormal2_cluster_component_update_cpp")) {
+      return(ClusterComponentUpdate.mvnormal2.nonconjugate.cpp(dpObj))
     }
   }
 
-  # R implementation fallback
   y <- dpObj$data
-  n <- nrow(y)
+  n <- dpObj$n
   alpha <- dpObj$alpha
   m <- dpObj$m
 
-  # Create working copies
-  pointsPerCluster <- dpObj$pointsPerCluster
   clusterLabels <- dpObj$clusterLabels
   clusterParams <- dpObj$clusterParameters
   numLabels <- dpObj$numberClusters
   mdObj <- dpObj$mixingDistribution
 
-  # Algorithm 8 from Neal (2000)
+  pointsPerCluster <- dpObj$pointsPerCluster
+
   for (i in seq_len(n)) {
     currentLabel <- clusterLabels[i]
-
-    # Temporarily remove the point from its current cluster
     pointsPerCluster[currentLabel] <- pointsPerCluster[currentLabel] - 1
 
-    # If cluster is now empty, we'll handle it after assignment
     empty_cluster <- (pointsPerCluster[currentLabel] == 0)
 
     # Calculate probabilities for existing clusters
     cluster_probs <- numeric(numLabels)
-
-    for (j in 1:numLabels) {
-      if (pointsPerCluster[j] > 0 || j == currentLabel) {
-        # Extract parameters for cluster j with proper structure handling
-        if (inherits(dpObj, "beta")) {
-          # Ensure theta has the correct structure for beta distribution
-          if (is.array(clusterParams$mu) && length(dim(clusterParams$mu)) == 3) {
-            theta_j <- list(
-              mu = array(clusterParams$mu[,,j, drop = FALSE], dim = c(1,1,1)),
-              nu = array(clusterParams$nu[,,j, drop = FALSE], dim = c(1,1,1))
+    for (j in seq_len(numLabels)) {
+      if (pointsPerCluster[j] > 0 || (empty_cluster && j == currentLabel)) {
+        # Extract parameters for cluster j
+        single_cluster_params <- list()
+        for (k in seq_along(clusterParams)) {
+          param_dims <- dim(clusterParams[[k]])
+          if (length(param_dims) == 3) {
+            single_cluster_params[[k]] <- array(
+              clusterParams[[k]][, , j],
+              dim = c(param_dims[1], param_dims[2], 1)
             )
-          } else if (is.list(clusterParams) && length(clusterParams) >= 2) {
-            # Handle list format
-            if (is.array(clusterParams[[1]]) && length(clusterParams[[1]]) >= j) {
-              theta_j <- list(
-                mu = array(as.numeric(clusterParams[[1]][j]), dim = c(1,1,1)),
-                nu = array(as.numeric(clusterParams[[2]][j]), dim = c(1,1,1))
-              )
-            } else {
-              # Fallback to safe defaults
-              theta_j <- list(
-                mu = array(0.5, dim = c(1,1,1)),
-                nu = array(1, dim = c(1,1,1))
-              )
-            }
           } else {
-            # Last resort fallback
-            theta_j <- list(
-              mu = array(0.5, dim = c(1,1,1)),
-              nu = array(1, dim = c(1,1,1))
-            )
+            single_cluster_params[[k]] <- clusterParams[[k]][j]
           }
-        } else {
-          # Generic parameter extraction for other distributions
-          theta_j <- lapply(clusterParams, function(param) {
-            if (is.array(param) && length(dim(param)) == 3) {
-              array(param[,,j, drop = FALSE],
-                    dim = c(dim(param)[1], dim(param)[2], 1))
-            } else if (is.array(param) || is.vector(param)) {
-              param[j]
-            } else if (is.list(param)) {
-              param[[j]]
-            } else {
-              param
-            }
-          })
         }
 
         # Calculate likelihood
-        lik <- Likelihood(mdObj, y[i, , drop = FALSE], theta_j)
+        lik_val <- Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params)
 
-        # Use actual count (0 if empty) for probability calculation
-        cluster_probs[j] <- pointsPerCluster[j] * lik
+        # Handle NA/NaN/Inf values
+        if (is.na(lik_val) || is.nan(lik_val) || is.infinite(lik_val)) {
+          lik_val <- 0
+        } else if (lik_val < 0) {
+          lik_val <- 0
+        }
+
+        if (empty_cluster && j == currentLabel) {
+          cluster_probs[j] <- (alpha / m) * lik_val
+        } else {
+          cluster_probs[j] <- pointsPerCluster[j] * lik_val
+        }
+      } else {
+        cluster_probs[j] <- 0
       }
     }
 
     # Calculate probabilities for auxiliary components
     aux_probs <- numeric(m)
-    for (j in 1:m) {
-      # Ensure aux parameters have correct structure
-      if (inherits(dpObj, "beta")) {
-        # Check structure of aux parameters
-        if (is.list(dpObj$aux[[j]]) && all(c("mu", "nu") %in% names(dpObj$aux[[j]]))) {
-          tempAux <- dpObj$aux[[j]]
-        } else if (is.array(dpObj$aux[[j]])) {
-          # Convert array to list format
-          tempAux <- list(
-            mu = array(dpObj$aux[[j]][1], dim = c(1,1,1)),
-            nu = array(dpObj$aux[[j]][2], dim = c(1,1,1))
-          )
-        } else {
-          # Generate new aux parameter if structure is wrong
-          tempAux <- PriorDraw(dpObj$mixingDistribution, 1)
-        }
-      } else {
-        tempAux <- dpObj$aux[[j]]
+    for (j in seq_len(m)) {
+      lik_val <- Likelihood(mdObj, y[i, , drop = FALSE], dpObj$aux[[j]])
+
+      # Handle NA/NaN/Inf values
+      if (is.na(lik_val) || is.nan(lik_val) || is.infinite(lik_val)) {
+        lik_val <- 0
+      } else if (lik_val < 0) {
+        lik_val <- 0
       }
 
-      lik <- Likelihood(mdObj, y[i, , drop = FALSE], tempAux)
-      aux_probs[j] <- (alpha / m) * lik
+      aux_probs[j] <- (alpha / m) * lik_val
     }
 
     # Combine probabilities
     all_probs <- c(cluster_probs, aux_probs)
 
-    # Sample new label
-    if (sum(all_probs) == 0) {
-      # Fallback to uniform if all probabilities are zero
-      newLabel <- sample.int(numLabels + m, 1)
-    } else {
-      newLabel <- sample.int(numLabels + m, 1, prob = all_probs)
+    # Additional safety check for all zeros or invalid values
+    if (all(all_probs <= 0) || all(is.na(all_probs)) || sum(all_probs) == 0) {
+      # Fallback to uniform distribution
+      all_probs <- rep(1, length(all_probs))
     }
+
+    # Sample new label
+    newLabel <- sample.int(numLabels + m, 1, prob = all_probs)
 
     # Update cluster assignment
     if (newLabel <= numLabels) {

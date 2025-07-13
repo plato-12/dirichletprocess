@@ -1,0 +1,25 @@
+## Exponential Distribution Benchmark: Executive Summary
+
+**Bottom Line:** C++ implementation is 12-19x faster than R
+
+### Performance at Maximum Scale (N=3162):
+- **R:** 33.0 seconds, 7.5 GB memory
+- **C++:** 1.73 seconds, 27.6 MB memory
+- **Speedup:** 19x
+
+### Why Exponential Matters:
+1. **Fundamental for survival analysis** and reliability studies
+2. **Simple conjugate structure** enables maximum optimization
+3. **Memory efficient** - no matrices or complex parameters
+4. **Numerically stable** - well-behaved likelihood
+
+### Key Advantages:
+- Enables real-time failure rate estimation
+- Handles massive event logs efficiently
+- Minimal memory footprint for IoT/edge deployment
+- Perfect for streaming data applications
+
+**Recommendation:** Always use C++ implementation for exponential distributions.
+
+Full report: exponential_benchmark_report.md
+
