@@ -356,17 +356,6 @@ Classes ‘data.table’ and 'data.frame':	18 obs. of  17 variables:
  3rd Qu.:1000                      3rd Qu.:16.4237   3rd Qu.:16.6543  
  Max.   :3162                      Max.   :59.7869   Max.   :83.2716  
                                                                       
-                                                                      
-                                                                      
-                                                                      
-                                                                      
-                                                                      
-                                                                      
-                                                                      
-                                                                      
-                                                                      
-                                                                      
-                                                                      
     itr/sec            gc/sec            n_itr         n_gc       
  Min.   :0.01485   Min.   :0.04967   Min.   :10   Min.   :   1.0  
  1st Qu.:0.06197   1st Qu.:0.14701   1st Qu.:10   1st Qu.:   2.0  
@@ -374,18 +363,7 @@ Classes ‘data.table’ and 'data.frame':	18 obs. of  17 variables:
  Mean   :0.48085   Mean   :0.48826   Mean   :10   Mean   : 146.6  
  3rd Qu.:0.45875   3rd Qu.:0.67641   3rd Qu.:10   3rd Qu.: 109.8  
  Max.   :2.40988   Max.   :1.83554   Max.   :10   Max.   :1066.0  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
-                                                                  
+       
  result.Length  result.Class  result.Mode
  0       -none-  NULL                    
  0       -none-  NULL                    
@@ -431,18 +409,7 @@ Classes ‘data.table’ and 'data.frame':	18 obs. of  17 variables:
  Mean   : 189282   Mean   :14.1038   Mean   :17.3248   Mean   :17.8491  
  3rd Qu.: 132086   3rd Qu.:16.5184   3rd Qu.:16.8346   3rd Qu.:17.3160  
  Max.   :1387333   Max.   :59.9811   Max.   :90.1487   Max.   :95.3043  
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
-                                                                        
+                
       mean              sd          
  Min.   : 0.415   Min.   : 0.01685  
  1st Qu.: 2.293   1st Qu.: 0.04739  
@@ -450,15 +417,4 @@ Classes ‘data.table’ and 'data.frame':	18 obs. of  17 variables:
  Mean   :15.997   Mean   : 1.73206  
  3rd Qu.:16.707   3rd Qu.: 0.23486  
  Max.   :67.347   Max.   :28.38375  
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
-                                    
+ 
