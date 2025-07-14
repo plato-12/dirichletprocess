@@ -101,23 +101,6 @@ The Exponential distribution implementation leverages several key properties:
 - **Predictive Updates:** Fast marginal likelihood computation
 - **Parameter Caching:** Avoids redundant calculations
 
-## Practical Applications
-
-1. **Survival Analysis:**
-   - Modeling time-to-event data
-   - Heterogeneous failure rates
-   - Competing risks models
-
-2. **Queueing Theory:**
-   - Service time distributions
-   - Inter-arrival times
-   - Network traffic analysis
-
-3. **Reliability Engineering:**
-   - Component lifetime modeling
-   - Maintenance scheduling
-   - Failure rate estimation
-
 ## Memory Usage Analysis
 
 The dramatic memory efficiency improvement stems from:
@@ -132,13 +115,6 @@ The dramatic memory efficiency improvement stems from:
    - Contiguous memory allocation
    - Minimal temporary allocations
 
-## Recommendations
-
-1. **Use C++ for Production:** The performance gains are essential for real applications
-2. **Large Datasets:** C++ is mandatory for N > 1000 observations
-3. **Real-time Applications:** C++ enables online/streaming inference
-4. **Memory-Constrained Environments:** C++ version uses 71x less memory
-
 ## Statistical Validation
 
 Both implementations:
@@ -146,10 +122,6 @@ Both implementations:
 - Maintain proper MCMC mixing properties
 - Converge to the same cluster configurations
 - Generate equivalent predictive distributions
-
-## Conclusion
-
-The C++ implementation of the Exponential distribution achieves exceptional performance improvements, with speedups averaging 16.9x and reaching up to 19.2x. The memory efficiency gains of up to 278x make it possible to analyze datasets that would exhaust memory in R. These improvements make Dirichlet Process mixture models with exponential components practical for large-scale survival analysis and reliability applications.
 
 ## Technical Notes
 
@@ -159,12 +131,7 @@ The C++ implementation of the Exponential distribution achieves exceptional perf
 - **Convergence:** Both implementations reach similar posterior modes
 - **Reproducibility:** Fixed seed ensures consistent initialization
 
-## References
-
-- Neal, R. M. (2000). Markov chain sampling methods for Dirichlet process mixture models. *Journal of Computational and Graphical Statistics*, 9(2), 249-265.
-- Escobar, M. D., & West, M. (1995). Bayesian density estimation and inference using mixtures. *Journal of the American Statistical Association*, 90(430), 577-588.
-- Ferguson, T. S. (1973). A Bayesian analysis of some nonparametric problems. *The Annals of Statistics*, 1(2), 209-230.
-
 ---
+
 *Benchmark conducted using the atime R package for asymptotic performance analysis.*
 

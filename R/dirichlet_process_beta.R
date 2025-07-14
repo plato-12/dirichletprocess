@@ -32,7 +32,7 @@ Initialise.beta <- function(dpObj, m = 3, verbose = TRUE, ...) {
   dpObj$m <- m
   dpObj$numberClusters <- 1
   dpObj$clusterLabels <- rep(1, dpObj$n)
-  dpObj$pointsPerCluster <- dpObj$n
+  dpObj$pointsPerCluster <- c(dpObj$n)
 
   # Ensure parameters are properly structured as 3D arrays
   priorDraws <- PriorDraw(dpObj$mixingDistribution, 1)

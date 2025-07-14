@@ -109,31 +109,6 @@ The Weibull distribution implementation presents unique challenges:
 - **Auxiliary Parameters:** m auxiliary parameters for efficient sampling
 - **Metropolis-Hastings:** Adaptive step size for shape parameter
 - **Hyperprior Updates:** Pareto distribution for φ, Gamma for β
-
-## Practical Applications
-
-1. **Survival Analysis:**
-   - Modeling time-to-event data with heterogeneous populations
-   - Cancer survival times with patient subgroups
-   - Clinical trial endpoint analysis
-   - Competing risks models
-
-2. **Reliability Engineering:**
-   - Component failure time modeling
-   - Wear-out failure mechanisms
-   - Maintenance optimization
-   - Quality control in manufacturing
-
-3. **Wind Speed Modeling:**
-   - Wind energy resource assessment
-   - Turbine performance prediction
-   - Climate modeling applications
-
-4. **Material Science:**
-   - Strength distribution of materials
-   - Fatigue life prediction
-   - Brittle fracture analysis
-
 ## Memory Usage Analysis
 
 The dramatic memory efficiency improvement stems from:
@@ -149,15 +124,6 @@ The dramatic memory efficiency improvement stems from:
    - Efficient std::vector storage
    - Pre-allocated proposal arrays
    - Minimal temporary allocations
-
-## Recommendations
-
-1. **Always use C++ for production:** Essential for real-world survival analysis
-2. **Large Datasets:** C++ is mandatory for N > 500 observations
-3. **MH Tuning:** Adjust step size and number of draws based on data
-4. **Prior Selection:** Choose hyperparameters carefully for numerical stability
-5. **Convergence Monitoring:** Extra important due to MH component
-
 ## Statistical Validation
 
 Both implementations produce statistically equivalent results:
@@ -166,10 +132,6 @@ Both implementations produce statistically equivalent results:
 - Predictive distributions match within Monte Carlo error
 - MH acceptance rates are comparable (~0.3-0.5 range)
 
-## Conclusion
-
-The C++ implementation of the Weibull distribution achieves impressive performance improvements despite the added complexity of semi-conjugate updates. With speedups averaging 11.2x and reaching up to 23.1x, the C++ version makes Bayesian nonparametric survival analysis practical for real-world applications. The memory efficiency gains of up to 14x are particularly important for large-scale reliability studies and clinical trials.
-
 ## Technical Notes
 
 - **Benchmark Environment:** 100 MCMC iterations, 100 MH draws per update
@@ -177,14 +139,6 @@ The C++ implementation of the Weibull distribution achieves impressive performan
 - **MH Step Size:** Adaptive with initial value 1.0
 - **Data Generation:** Mixture of Weibull(2, 1) and Weibull(1.5, 3)
 - **Anomaly:** Performance irregularity at N=3162 likely due to memory/cache effects
-
-## References
-
-- Neal, R. M. (2000). Markov chain sampling methods for Dirichlet process mixture models. *Journal of Computational and Graphical Statistics*, 9(2), 249-265.
-- Escobar, M. D., & West, M. (1995). Bayesian density estimation and inference using mixtures. *Journal of the American Statistical Association*, 90(430), 577-588.
-- Kottas, A. (2006). Nonparametric Bayesian survival analysis using mixtures of Weibull distributions. *Journal of Statistical Planning and Inference*, 136(3), 578-596.
-- Ferguson, T. S. (1973). A Bayesian analysis of some nonparametric problems. *The Annals of Statistics*, 1(2), 209-230.
-
 ---
 *Benchmark conducted using the atime R package for asymptotic performance analysis.*
 

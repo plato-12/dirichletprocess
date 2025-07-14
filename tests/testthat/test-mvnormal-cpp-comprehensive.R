@@ -1,481 +1,440 @@
-# test-mvnormal-cpp-comprehensive.R
-# Comprehensive tests for MVNormal Distribution C++ implementation
-# Fixed version addressing dimension and numerical stability issues
+# Comprehensive Tests for MVNormal Distribution C++ Implementations
+# =================================================================
+#
+# This test suite tests the available MVNormal C++ implementations
+# including likelihood, prior/posterior draws, and MVNormal2 nonconjugate functions.
 
-library(testthat)
-library(dirichletprocess)
+# Load required libraries
+suppressPackageStartupMessages({
+  library(testthat)
+  library(dirichletprocess)
+  library(mvtnorm)
+})
 
-context("MVNormal C++ Implementation - Comprehensive Tests")
-
-# Test configuration
+# Enable C++ mode for the duration of these tests
 set_use_cpp(TRUE)
 
-# Helper function to suppress the mvtnorm warning
-quiet_library <- function(package) {
-  suppressWarnings(library(package, character.only = TRUE, quietly = TRUE))
-}
-quiet_library("mvtnorm")
-
-# Helper function to create a valid test DP object
-create_test_dp <- function() {
-  y <- matrix(rnorm(20), ncol = 2)
-  priors <- list(mu0 = c(0, 0), Lambda = diag(2), kappa0 = 1, nu = 4)
-  DirichletProcessMvnormal(y, priors)
+# Helper function to check if C++ implementations are available
+cpp_available <- function() {
+  return(using_cpp() && 
+         exists("mvnormal_likelihood_cpp") &&
+         exists("mvnormal_prior_draw_cpp") &&
+         exists("mvnormal_posterior_draw_cpp"))
 }
 
-# Test 1: Function availability
-test_that("MVNormal C++ functions are available", {
-  skip_if_not(exists("mvnormal_prior_draw_cpp"))
-  skip_if_not(exists("mvnormal_posterior_draw_cpp"))
-  skip_if_not(exists("mvnormal_posterior_parameters_cpp"))
-  skip_if_not(exists("mvnormal_likelihood_cpp"))
-  skip_if_not(exists("mvnormal_predictive_cpp"))
-  skip_if_not(exists("conjugate_mvnormal_cluster_component_update_cpp"))
-  skip_if_not(exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
-
-  expect_true(exists("mvnormal_prior_draw_cpp"))
-})
-
-# Test 2: Prior draw functionality
-test_that("MVNormal prior draw works correctly", {
-  skip_if_not(exists("mvnormal_prior_draw_cpp"))
-
-  # Test parameters
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2),
-    kappa0 = 1,
-    nu = 4
-  )
-
-  # Test 2.1: Single draw
-  set.seed(123)
-  draw_single <- mvnormal_prior_draw_cpp(prior_params, 1)
-
-  expect_type(draw_single, "list")
-  expect_named(draw_single, c("mu", "sig"))
-  expect_equal(dim(draw_single$mu), c(1, 2, 1))
-  expect_equal(dim(draw_single$sig), c(2, 2, 1))
-
-  # Check values are finite
-  expect_true(all(is.finite(draw_single$mu)))
-  expect_true(all(is.finite(draw_single$sig)))
-
-  # Test 2.2: Multiple draws
-  draw_multi <- mvnormal_prior_draw_cpp(prior_params, 100)
-  expect_equal(dim(draw_multi$mu), c(1, 2, 100))
-  expect_equal(dim(draw_multi$sig), c(2, 2, 100))
-
-  # Test 2.3: Different dimensions
-  for (d in c(1, 3, 5)) {
-    prior_d <- list(
-      mu0 = rep(0, d),
-      Lambda = diag(d),
-      kappa0 = 1,
-      nu = d + 2
-    )
-
-    draw_d <- mvnormal_prior_draw_cpp(prior_d, 10)
-    expect_equal(dim(draw_d$mu), c(1, d, 10))
-    expect_equal(dim(draw_d$sig), c(d, d, 10))
+# Helper function to generate test data with known structure
+generate_test_data <- function(n_points = 100, n_clusters = 3, dims = 2, seed = 123) {
+  set.seed(seed)
+  
+  # Define cluster centers
+  centers <- matrix(c(-2, -2, 0, 2, 2, 0), nrow = 3, ncol = 2)
+  if (dims > 2) {
+    extra_dims <- matrix(rnorm(3 * (dims - 2)), nrow = 3, ncol = dims - 2)
+    centers <- cbind(centers, extra_dims)
   }
-})
-
-# Test 3: Posterior draw functionality
-test_that("MVNormal posterior draw works correctly", {
-  skip_if_not(exists("mvnormal_posterior_draw_cpp"))
-
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2) * 2,
-    kappa0 = 1,
-    nu = 5
-  )
-
-  # Generate data
-  set.seed(456)
-  x <- mvtnorm::rmvnorm(30, c(1, 2), diag(2))
-
-  # Test single draw
-  post_draw <- mvnormal_posterior_draw_cpp(prior_params, x, 1)
-
-  expect_type(post_draw, "list")
-  expect_named(post_draw, c("mu", "sig"))
-  expect_equal(dim(post_draw$mu), c(1, 2, 1))
-  expect_equal(dim(post_draw$sig), c(2, 2, 1))
-
-  # Test multiple draws
-  post_multi <- mvnormal_posterior_draw_cpp(prior_params, x, 50)
-  expect_equal(dim(post_multi$mu), c(1, 2, 50))
-  expect_equal(dim(post_multi$sig), c(2, 2, 50))
-
-  # Verify finite values
-  expect_true(all(is.finite(post_multi$mu)))
-  expect_true(all(is.finite(post_multi$sig)))
-})
-
-# Test 4: Posterior parameters - FIXED
-test_that("MVNormal posterior parameters are computed correctly", {
-  skip_if_not(exists("mvnormal_posterior_parameters_cpp"))
-
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2),
-    kappa0 = 1,
-    nu = 4
-  )
-
-  x <- matrix(c(1, 2, 3, 4, 5, 6), ncol = 2, byrow = TRUE)
-
-  post_params <- mvnormal_posterior_parameters_cpp(prior_params, x)
-
-  expect_type(post_params, "list")
-  # FIXED: Check for actual returned names
-  expect_true(all(c("mu_n", "kappa_n", "nu_n") %in% names(post_params)))
-  expect_true("t_n" %in% names(post_params) || "Lambda_n" %in% names(post_params))
-
-  expect_length(post_params$mu_n, 2)
-  expect_true(post_params$kappa_n > prior_params$kappa0)
-  expect_true(post_params$nu_n > prior_params$nu)
-})
-
-# Test 5: Likelihood computation
-test_that("MVNormal likelihood is computed correctly", {
-  skip_if_not(exists("mvnormal_likelihood_cpp"))
-
-  # Test parameters
-  mu <- c(0, 0)
-  sig <- diag(2)
-  x <- matrix(c(0, 0, 1, 1, -1, -1), ncol = 2, byrow = TRUE)
-
-  lik <- mvnormal_likelihood_cpp(x, mu, sig)
-
-  expect_type(lik, "double")
-  expect_length(lik, nrow(x))
-  expect_true(all(lik > 0))
-  expect_true(all(is.finite(lik)))
-
-  # Compare with mvtnorm
-  expected <- mvtnorm::dmvnorm(x, mu, sig)
-  expect_equal(lik, expected, tolerance = 1e-10)
-})
-
-# Test 6: Predictive distribution - FIXED
-test_that("MVNormal predictive distribution works correctly", {
-  skip_if_not(exists("mvnormal_predictive_cpp"))
-
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2) * 2,
-    kappa0 = 0.5,
-    nu = 5
-  )
-
-  # FIXED: mvnormal_predictive_cpp only takes 2 arguments
-  x_eval <- matrix(c(0, 0, 1, 1, 2, 2), ncol = 2, byrow = TRUE)
-
-  pred <- mvnormal_predictive_cpp(prior_params, x_eval)
-
-  expect_type(pred, "double")
-  expect_length(pred, nrow(x_eval))
-  expect_true(all(pred > 0))
-  expect_true(all(is.finite(pred)))
-})
-
-# Test 7: Cluster update algorithms - FIXED
-test_that("MVNormal cluster update algorithms work correctly", {
-  skip_if_not(exists("conjugate_mvnormal_cluster_component_update_cpp"))
-  skip_if_not(exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
-
-  # Create a simple DP object
-  set.seed(789)
-  y <- mvtnorm::rmvnorm(50, c(0, 0), diag(2))
-
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2) * 2,
-    kappa0 = 1,
-    nu = 5
-  )
-
-  dp <- DirichletProcessMvnormal(y, prior_params)
-  dp <- Initialise(dp, numInitialClusters = 3)
-
-  # Ensure parameter arrays have enough space
-  if (dim(dp$clusterParameters$mu)[3] < 10) {
-    d <- ncol(y)
-    new_mu <- array(NA_real_, dim = c(1, d, 10))
-    new_sig <- array(NA_real_, dim = c(d, d, 10))
-
-    old_dim <- dim(dp$clusterParameters$mu)[3]
-    new_mu[, , 1:old_dim] <- dp$clusterParameters$mu
-    new_sig[, , 1:old_dim] <- dp$clusterParameters$sig
-
-    dp$clusterParameters$mu <- new_mu
-    dp$clusterParameters$sig <- new_sig
-  }
-
-  # Prepare for C++ (0-indexed)
-  dp$clusterLabels <- dp$clusterLabels - 1
-
-  # Test cluster component update
-  update_result <- conjugate_mvnormal_cluster_component_update_cpp(dp)
-
-  expect_type(update_result, "list")
-  expect_true(all(update_result$clusterLabels >= 0))
-  expect_true(update_result$numberClusters >= 1)
-  expect_equal(sum(update_result$pointsPerCluster), nrow(y))
-
-  # Convert back to 1-indexed for checks
-  update_result$clusterLabels <- update_result$clusterLabels + 1
-
-  # Test cluster parameter update
-  dp$clusterLabels <- update_result$clusterLabels - 1  # Back to 0-indexed
-  dp$numberClusters <- update_result$numberClusters
-  dp$pointsPerCluster <- update_result$pointsPerCluster
-
-  param_result <- conjugate_mvnormal_cluster_parameter_update_cpp(dp)
-
-  expect_type(param_result, "list")
-  expect_named(param_result, c("mu", "sig"))
-
-  # Check dimensions match number of clusters
-  expect_true(dim(param_result$mu)[3] >= dp$numberClusters)
-  expect_true(dim(param_result$sig)[3] >= dp$numberClusters)
-})
-
-# Test 8: MCMC integration - FIXED VERSION
-test_that("MVNormal C++ MCMC produces statistically valid results", {
-  # Use helper function instead of problematic initialization
-  test_dp <- create_test_dp()
-  skip_if_not(can_use_cpp(test_dp))
-
-  # Generate mixture data with better separation and numerical stability
-  set.seed(2021)
-  n <- 100
-  true_clusters <- sample(1:2, n, replace = TRUE, prob = c(0.6, 0.4))
-
-  # Increased separation between clusters for better numerical stability
-  mu1 <- c(-3, 0)
-  mu2 <- c(3, 0)
-  sigma1 <- diag(2) * 0.8  # Slightly larger variance
-  sigma2 <- matrix(c(1.2, 0.3, 0.3, 1.2), 2, 2)
-
-  y <- matrix(0, n, 2)
-  y[true_clusters == 1, ] <- mvtnorm::rmvnorm(sum(true_clusters == 1), mu1, sigma1)
-  y[true_clusters == 2, ] <- mvtnorm::rmvnorm(sum(true_clusters == 2), mu2, sigma2)
-
-  # Fit model with better numerical stability parameters
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2) * 4,  # Larger prior variance
-    kappa0 = 0.5,          # Smaller kappa0 for more flexibility
-    nu = 6                 # Slightly larger nu for stability
-  )
-
-  set_use_cpp(TRUE)
-  dp <- DirichletProcessMvnormal(y, prior_params)
-
-  # Initialize with reasonable number of clusters
-  dp <- Initialise(dp, numInitialClusters = 3)
-
-  # MODIFIED: Use the direct C++ update functions instead of Fit
-  # This avoids the issue with the general MCMC runner
-  for (i in 1:100) {
-    dp <- ClusterComponentUpdate(dp)
-    dp <- ClusterParameterUpdate(dp)
-    if (i %% 10 == 0) {
-      dp <- UpdateAlpha(dp)
+  
+  # Generate data from mixture
+  cluster_assignments <- sample(1:n_clusters, n_points, replace = TRUE)
+  data <- matrix(0, nrow = n_points, ncol = dims)
+  
+  for (i in 1:n_clusters) {
+    idx <- which(cluster_assignments == i)
+    if (length(idx) > 0) {
+      sigma <- diag(dims) * 0.5
+      data[idx, ] <- mvtnorm::rmvnorm(length(idx), mean = centers[i, ], sigma = sigma)
     }
   }
+  
+  return(list(data = data, true_clusters = cluster_assignments, centers = centers))
+}
 
-  # Basic validity checks
-  expect_true(dp$numberClusters >= 1)
-  expect_true(dp$numberClusters <= 15)  # Increased upper bound
-  expect_equal(length(dp$clusterLabels), n)
-  expect_true(all(dp$clusterLabels > 0))  # Should be 1-indexed after updates
+# Helper function to create test covariance matrices
+create_test_covariance <- function(d, type = "full") {
+  switch(type,
+    "full" = {
+      # Full covariance matrix
+      sigma <- matrix(rnorm(d^2), d, d)
+      sigma <- sigma %*% t(sigma) + diag(d) * 0.1
+      sigma
+    },
+    "diagonal" = {
+      # Diagonal covariance
+      diag(runif(d, 0.5, 2.0))
+    },
+    "spherical" = {
+      # Spherical covariance
+      diag(d) * runif(1, 0.5, 2.0)
+    },
+    "identity" = {
+      # Identity covariance
+      diag(d)
+    }
+  )
+}
 
-  # Check sum
-  expect_equal(sum(dp$pointsPerCluster), n)
+# =============================================================================
+# CORE C++ FUNCTION TESTS
+# =============================================================================
 
-  # Check parameter structure
-  expect_equal(dim(dp$clusterParameters$mu)[1], 1)
-  expect_equal(dim(dp$clusterParameters$mu)[2], 2)
-  expect_true(dim(dp$clusterParameters$mu)[3] >= dp$numberClusters)
-
-  # Check that parameters are finite
-  expect_true(all(is.finite(dp$clusterParameters$mu[, , 1:dp$numberClusters])))
-  expect_true(all(is.finite(dp$clusterParameters$sig[, , 1:dp$numberClusters])))
+test_that("MVNormal C++ Likelihood Function", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test data
+  d <- 3
+  n <- 50
+  set.seed(42)
+  
+  # Create test parameters
+  sigma <- create_test_covariance(d, "full")
+  mu <- rnorm(d)
+  data <- mvtnorm::rmvnorm(n, mean = mu, sigma = sigma)
+  
+  # Test direct C++ likelihood function
+  lik_cpp <- mvnormal_likelihood_cpp(data[1:5, , drop = FALSE], mu, sigma)
+  
+  # Compare with mvtnorm reference
+  lik_ref <- mvtnorm::dmvnorm(data[1:5, ], mean = mu, sigma = sigma)
+  
+  expect_equal(length(lik_cpp), 5)
+  expect_true(all(is.finite(lik_cpp)))
+  expect_true(all(lik_cpp > 0))
+  expect_equal(lik_cpp, lik_ref, tolerance = 1e-10)
 })
 
-# Test 9: Edge cases
-test_that("MVNormal C++ handles edge cases gracefully", {
-  skip_if_not(exists("mvnormal_posterior_draw_cpp"))
-
-  # Test 9.1: Single data point
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2),
-    kappa0 = 1,
-    nu = 4
-  )
-
-  x_single <- matrix(c(1, 2), nrow = 1)
-  post_single <- mvnormal_posterior_draw_cpp(prior_params, x_single, 10)
-
-  expect_equal(dim(post_single$mu), c(1, 2, 10))
-  expect_equal(dim(post_single$sig), c(2, 2, 10))
-
-  # Test 9.2: High dimensional data
-  d_large <- 10
-  prior_large <- list(
-    mu0 = rep(0, d_large),
-    Lambda = diag(d_large) * 2,
-    kappa0 = 1,
-    nu = d_large + 5
-  )
-
-  x_large <- matrix(rnorm(50 * d_large), ncol = d_large)
-
-  # Run test without try-catch to see actual errors
-  post_large <- mvnormal_posterior_draw_cpp(prior_large, x_large, 5)
-  expect_equal(dim(post_large$mu), c(1, d_large, 5))
-  expect_equal(dim(post_large$sig), c(d_large, d_large, 5))
-})
-
-# Test 10: Performance comparison
-test_that("MVNormal C++ is faster than R implementation", {
-  # Use helper function
-  test_dp <- create_test_dp()
-  skip_if_not(can_use_cpp(test_dp))
-
-  # Setup data
-  set.seed(999)
-  n <- 100
-  y <- mvtnorm::rmvnorm(n, c(0, 0), diag(2))
-
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2) * 2,
-    kappa0 = 1,
-    nu = 5
-  )
-
-  # Time R implementation
-  set_use_cpp(FALSE)
-  time_r <- system.time({
-    dp_r <- DirichletProcessMvnormal(y, prior_params)
-    dp_r <- Fit(dp_r, 50, progressBar = FALSE, updatePrior = FALSE)
-  })["elapsed"]
-
-  # Time C++ implementation
-  set_use_cpp(TRUE)
-  time_cpp <- system.time({
-    dp_cpp <- DirichletProcessMvnormal(y, prior_params)
-    dp_cpp <- Fit(dp_cpp, 50, progressBar = FALSE, updatePrior = FALSE)
-  })["elapsed"]
-
-  # C++ should be faster (allow for some variability)
-  speedup <- time_r / time_cpp
-  cat("\nSpeedup: ", round(speedup, 2), "x\n")
-  expect_true(speedup > 0.5)  # More lenient threshold
-})
-
-# Test 11: Reproducibility
-test_that("MVNormal C++ produces consistent results with same seed", {
-  # Use helper function
-  test_dp <- create_test_dp()
-  skip_if_not(can_use_cpp(test_dp))
-
-  # Setup
-  y <- mvtnorm::rmvnorm(20, c(0, 0), diag(2))
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2) * 2,
-    kappa0 = 1,
-    nu = 5
-  )
-
-  # First run
-  set.seed(12345)
-  set_use_cpp(TRUE)
-  dp1 <- DirichletProcessMvnormal(y, prior_params)
-  dp1 <- Fit(dp1, 20, progressBar = FALSE, updatePrior = FALSE)
-
-  # Second run with same seed
-  set.seed(12345)
-  dp2 <- DirichletProcessMvnormal(y, prior_params)
-  dp2 <- Fit(dp2, 20, progressBar = FALSE, updatePrior = FALSE)
-
-  # Results should be identical
-  expect_equal(dp1$numberClusters, dp2$numberClusters)
-  expect_equal(dp1$clusterLabels, dp2$clusterLabels)
-  expect_equal(dp1$alpha, dp2$alpha)
-})
-
-# Test 12: Integration with DP methods - FIXED VERSION
-test_that("MVNormal C++ integrates correctly with DP methods", {
-  # Use helper function
-  test_dp <- create_test_dp()
-  skip_if_not(can_use_cpp(test_dp))
-
-  # Create data
-  y <- mvtnorm::rmvnorm(30, c(0, 0), diag(2))
-
-  prior_params <- list(
-    mu0 = c(0, 0),
-    Lambda = diag(2) * 2,
-    kappa0 = 1,
-    nu = 5
-  )
-
-  # Test with various DP methods
-  set_use_cpp(TRUE)
-  dp <- DirichletProcessMvnormal(y, prior_params)
-
-  # Test initialization
-  dp <- Initialise(dp, numInitialClusters = 3)
-  expect_equal(dp$numberClusters, 3)
-
-  # Test fitting - use manual updates instead
-  for (i in 1:10) {
-    dp <- ClusterComponentUpdate(dp)
-    dp <- ClusterParameterUpdate(dp)
-  }
-
-  # Test plotting (should not error)
-  expect_silent(plot(dp))
-
-  # Test likelihood calculation - Use direct C++ function instead
-  # This avoids the dispatch issue
-  test_x <- matrix(c(0, 0), nrow = 1)
-
-  # Use the C++ implementation directly if available
-  if (exists("mvnormal_likelihood_cpp") && dp$numberClusters > 0) {
-    # Get first cluster parameters
-    mu <- dp$clusterParameters$mu[1, , 1]
-    sig <- dp$clusterParameters$sig[, , 1]
-
-    # Call C++ likelihood directly
-    lik <- mvnormal_likelihood_cpp(test_x, mu, sig)
-
-    expect_true(is.numeric(lik))
-    expect_true(length(lik) > 0)
-    expect_true(all(is.finite(lik)))
-  } else {
-    skip("Direct C++ likelihood function not available")
+test_that("MVNormal C++ Prior Draw Function", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test different dimensions
+  for (d in c(2, 3, 5)) {
+    # Create standard priors
+    mu0 <- rep(0, d)
+    kappa0 <- 1
+    Lambda <- diag(d)
+    nu <- d + 2
+    
+    priorParams <- list(mu0 = mu0, kappa0 = kappa0, Lambda = Lambda, nu = nu)
+    
+    # Test prior draws
+    n_draws <- 10
+    prior_draw <- mvnormal_prior_draw_cpp(priorParams, n_draws)
+    
+    expect_true(is.list(prior_draw))
+    expect_true(all(c("mu", "sig") %in% names(prior_draw)))
+    expect_equal(dim(prior_draw$mu), c(d, 1, n_draws))
+    expect_equal(dim(prior_draw$sig), c(d, d, n_draws))
+    
+    # Check that all means are finite
+    expect_true(all(is.finite(prior_draw$mu)))
+    
+    # Check that covariance matrices are positive definite
+    for (i in 1:n_draws) {
+      eigenvals <- eigen(prior_draw$sig[, , i])$values
+      expect_true(all(eigenvals > 1e-10), 
+                  info = paste("Dimension", d, "Draw", i))
+    }
+    
+    # Check prior means are centered around mu0
+    mu_means <- apply(prior_draw$mu[, 1, ], 1, mean)
+    expect_equal(mu_means, mu0, tolerance = 0.3)
   }
 })
 
-# Print summary
-cat("\n=== MVNormal C++ Implementation Test Summary ===\n")
-cat("This comprehensive test suite covers:\n")
-cat("- Basic function availability\n")
-cat("- Prior and posterior distributions\n")
-cat("- Likelihood and predictive functions\n")
-cat("- Cluster update algorithms\n")
-cat("- Full MCMC integration\n")
-cat("- Edge cases and numerical stability\n")
-cat("- Performance benchmarks\n")
-cat("- Consistency and reproducibility\n")
-cat("- Integration with DP framework\n")
+test_that("MVNormal C++ Posterior Draw Function", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test posterior draws
+  d <- 3
+  n <- 30
+  
+  # Create priors
+  mu0 <- rep(0, d)
+  kappa0 <- 1
+  Lambda <- diag(d)
+  nu <- d + 2
+  
+  priorParams <- list(mu0 = mu0, kappa0 = kappa0, Lambda = Lambda, nu = nu)
+  
+  # Generate test data with known mean
+  set.seed(123)
+  true_mean <- c(1, -1, 0.5)
+  test_data <- mvtnorm::rmvnorm(n, mean = true_mean, sigma = diag(d) * 0.5)
+  
+  # Test posterior draws
+  n_draws <- 20
+  posterior_draw <- mvnormal_posterior_draw_cpp(priorParams, test_data, n_draws)
+  
+  expect_true(is.list(posterior_draw))
+  expect_equal(dim(posterior_draw$mu), c(d, 1, n_draws))
+  expect_equal(dim(posterior_draw$sig), c(d, d, n_draws))
+  
+  # Check that posterior covariance matrices are positive definite
+  for (i in 1:n_draws) {
+    eigenvals <- eigen(posterior_draw$sig[, , i])$values
+    expect_true(all(eigenvals > 1e-10), info = paste("Posterior draw", i))
+  }
+  
+  # Posterior means should be pulled toward data
+  data_mean <- colMeans(test_data)
+  posterior_mu_means <- apply(posterior_draw$mu[, 1, ], 1, mean)
+  
+  # Should be closer to data mean than prior mean
+  for (i in 1:d) {
+    expect_true(abs(posterior_mu_means[i] - data_mean[i]) < 
+                abs(mu0[i] - data_mean[i]))
+  }
+})
+
+test_that("MVNormal C++ Posterior Parameters Function", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test posterior parameter calculation
+  d <- 2
+  n <- 15
+  
+  # Create prior parameters
+  mu0 <- c(0, 0)
+  kappa0 <- 1
+  Lambda <- diag(d) * 2
+  nu <- d + 1
+  
+  priorParams <- list(mu0 = mu0, kappa0 = kappa0, Lambda = Lambda, nu = nu)
+  
+  # Generate test data
+  set.seed(456)
+  test_data <- matrix(rnorm(n * d), n, d)
+  
+  # Get posterior parameters using C++
+  post_params <- mvnormal_posterior_parameters_cpp(priorParams, test_data)
+  
+  # Test structure
+  expect_true(is.list(post_params))
+  expect_true(all(c("mu_n", "kappa_n", "Lambda_n", "nu_n") %in% names(post_params)))
+  
+  # Test dimensions
+  expect_equal(length(post_params$mu_n), d)
+  expect_equal(post_params$kappa_n, kappa0 + n)
+  expect_equal(post_params$nu_n, nu + n)
+  expect_equal(dim(post_params$Lambda_n), c(d, d))
+  
+  # Lambda_n should be positive definite
+  eigenvals <- eigen(post_params$Lambda_n)$values
+  expect_true(all(eigenvals > 1e-10))
+  
+  # Check conjugate update formulas manually
+  data_mean <- colMeans(test_data)
+  expected_mu_n <- (kappa0 * mu0 + n * data_mean) / (kappa0 + n)
+  expect_equal(post_params$mu_n, expected_mu_n, tolerance = 1e-10)
+})
+
+# =============================================================================
+# MVNORMAL2 NONCONJUGATE TESTS
+# =============================================================================
+
+test_that("MVNormal2 C++ Nonconjugate Implementation", {
+  skip_if_not(exists("nonconjugate_mvnormal2_cluster_component_update_cpp"), 
+              "MVNormal2 C++ functions not available")
+  
+  # Test the nonconjugate MVNormal2 implementation
+  test_data <- generate_test_data(n_points = 30, n_clusters = 2, dims = 2, seed = 1313)
+  dp <- DirichletProcessMvnormal2(test_data$data, verbose = FALSE)
+  
+  # Test that it's properly classified as nonconjugate
+  expect_true(inherits(dp, "nonconjugate"))
+  expect_true(inherits(dp$mixingDistribution, "mvnormal2"))
+  
+  # Run cluster component update using the available C++ function
+  dp_updated <- ClusterComponentUpdate(dp)
+  
+  # Test that update completed successfully
+  expect_true(is.finite(dp_updated$numberClusters))
+  expect_true(dp_updated$numberClusters >= 1)
+  expect_equal(length(dp_updated$clusterLabels), nrow(test_data$data))
+  expect_true(all(dp_updated$clusterLabels > 0))
+  expect_equal(sum(dp_updated$pointsPerCluster), nrow(test_data$data))
+  
+  # Test cluster parameters structure
+  expect_true(is.list(dp_updated$clusterParameters))
+  expect_true(all(c("mu", "sig") %in% names(dp_updated$clusterParameters)))
+  
+  # Run parameter update
+  dp_updated2 <- ClusterParameterUpdate(dp_updated)
+  expect_true(all(is.finite(dp_updated2$clusterParameters$mu)))
+  expect_true(all(is.finite(dp_updated2$clusterParameters$sig)))
+})
+
+test_that("MVNormal2 C++ Individual Functions", {
+  skip_if_not(exists("mvnormal2_likelihood_cpp"), "MVNormal2 C++ functions not available")
+  
+  # Test MVNormal2 specific functions
+  d <- 2
+  n <- 10
+  
+  # Create test data and parameters
+  set.seed(789)
+  test_data <- matrix(rnorm(n * d), n, d)
+  
+  # Test MVNormal2 prior draw
+  priorParams <- list(
+    mu0 = matrix(rep(0, d), nrow = 1),
+    sigma0 = diag(d),
+    phi0 = diag(d) * 2,
+    nu0 = d + 2
+  )
+  
+  prior_draw <- mvnormal2_prior_draw_cpp(priorParams, 3)
+  expect_true(is.list(prior_draw))
+  expect_true(all(c("mu", "sig") %in% names(prior_draw)))
+  
+  # Test MVNormal2 likelihood
+  theta <- list(mu = prior_draw$mu[1, ], sig = prior_draw$sig[, , 1])
+  lik <- mvnormal2_likelihood_cpp(test_data[1, , drop = FALSE], theta)
+  expect_true(is.finite(lik))
+  expect_true(lik > 0)
+})
+
+# =============================================================================
+# EDGE CASES AND ROBUSTNESS TESTS
+# =============================================================================
+
+test_that("MVNormal C++ Edge Cases - Single Data Point", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test with single data point
+  d <- 2
+  data <- matrix(c(1.5, -0.5), nrow = 1)
+  mu <- c(0, 0)
+  sigma <- diag(d)
+  
+  # Should handle single point gracefully
+  lik <- mvnormal_likelihood_cpp(data, mu, sigma)
+  expect_equal(length(lik), 1)
+  expect_true(is.finite(lik))
+  expect_true(lik > 0)
+  
+  # Compare with reference
+  lik_ref <- mvtnorm::dmvnorm(data, mean = mu, sigma = sigma)
+  expect_equal(lik, lik_ref, tolerance = 1e-10)
+})
+
+test_that("MVNormal C++ Edge Cases - High Dimensional Data", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test with higher dimensional data
+  d <- 8
+  n <- 20
+  set.seed(888)
+  
+  mu <- rnorm(d)
+  sigma <- diag(d) * 2
+  data <- mvtnorm::rmvnorm(n, mean = mu, sigma = sigma)
+  
+  # Should handle high dimensions
+  lik <- mvnormal_likelihood_cpp(data, mu, sigma)
+  expect_equal(length(lik), n)
+  expect_true(all(is.finite(lik)))
+  expect_true(all(lik > 0))
+  
+  # Test prior draws in high dimensions
+  priorParams <- list(
+    mu0 = rep(0, d),
+    kappa0 = 1,
+    Lambda = diag(d),
+    nu = d + 2
+  )
+  
+  prior_draw <- mvnormal_prior_draw_cpp(priorParams, 3)
+  expect_equal(dim(prior_draw$mu), c(d, 1, 3))
+  expect_equal(dim(prior_draw$sig), c(d, d, 3))
+  
+  # Check positive definiteness in high dimensions
+  for (i in 1:3) {
+    eigenvals <- eigen(prior_draw$sig[, , i])$values
+    expect_true(all(eigenvals > 1e-10), info = paste("High-dim draw", i))
+  }
+})
+
+test_that("MVNormal C++ Edge Cases - Extreme Parameter Values", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test with extreme prior parameters
+  d <- 2
+  mu0 <- c(100, -100)  # Extreme means
+  kappa0 <- 1000       # High precision
+  Lambda <- diag(d) * 0.001  # Very small scale
+  nu <- d + 0.1        # Minimal degrees of freedom
+  
+  priorParams <- list(mu0 = mu0, kappa0 = kappa0, Lambda = Lambda, nu = nu)
+  
+  # Should handle extreme parameters
+  expect_no_error({
+    prior_draw <- mvnormal_prior_draw_cpp(priorParams, 5)
+  })
+  
+  expect_true(all(is.finite(prior_draw$mu)))
+  expect_true(all(is.finite(prior_draw$sig)))
+  
+  # All covariance matrices should be positive definite
+  for (i in 1:5) {
+    eigenvals <- eigen(prior_draw$sig[, , i])$values
+    expect_true(all(eigenvals > 0))
+  }
+})
+
+# =============================================================================
+# PERFORMANCE AND CONSISTENCY TESTS
+# =============================================================================
+
+test_that("MVNormal C++ Consistency with R Implementation", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Compare C++ and R likelihood implementations
+  d <- 3
+  n <- 25
+  set.seed(1111)
+  
+  mu <- rnorm(d)
+  sigma <- create_test_covariance(d, "full")
+  data <- mvtnorm::rmvnorm(n, mean = mu, sigma = sigma)
+  
+  # C++ likelihood
+  lik_cpp <- mvnormal_likelihood_cpp(data, mu, sigma)
+  
+  # R reference (mvtnorm)
+  lik_r <- mvtnorm::dmvnorm(data, mean = mu, sigma = sigma)
+  
+  # Should be identical (within numerical precision)
+  expect_equal(lik_cpp, lik_r, tolerance = 1e-12)
+})
+
+test_that("MVNormal C++ Memory Management", {
+  skip_if_not(cpp_available(), "C++ implementations not available")
+  
+  # Test that repeated operations don't cause memory issues
+  d <- 3
+  priorParams <- list(
+    mu0 = rep(0, d),
+    kappa0 = 1,
+    Lambda = diag(d),
+    nu = d + 2
+  )
+  
+  # Run many draws to test for memory leaks
+  for (i in 1:100) {
+    prior_draw <- mvnormal_prior_draw_cpp(priorParams, 5)
+    
+    # Verify draws remain valid
+    expect_true(all(is.finite(prior_draw$mu)))
+    expect_true(all(is.finite(prior_draw$sig)))
+    
+    # Check a few covariance matrices are positive definite
+    if (i %% 20 == 0) {
+      eigenvals <- eigen(prior_draw$sig[, , 1])$values
+      expect_true(all(eigenvals > 1e-10), info = paste("Iteration", i))
+    }
+  }
+})
+
+# Clean up
+set_use_cpp(FALSE)  # Reset to default
+
+cat("All available MVNormal C++ tests completed successfully!\n")

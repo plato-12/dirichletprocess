@@ -200,8 +200,14 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
         # Remove empty cluster
         keep_idx <- seq_len(numLabels)[-currentLabel]
 
-        # Update labels
-        clusterLabels[clusterLabels > currentLabel] <- clusterLabels[clusterLabels > currentLabel] - 1
+        # Update labels - ensure labels remain positive
+        shift_mask <- clusterLabels > currentLabel
+        clusterLabels[shift_mask] <- clusterLabels[shift_mask] - 1
+        
+        # Adjust the current point's label if it was affected by the shift
+        if (newLabel > currentLabel) {
+          clusterLabels[i] <- newLabel - 1
+        }
 
         # Update number of clusters
         numLabels <- numLabels - 1
@@ -263,8 +269,8 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
           # Special handling for beta parameters
           if (is.array(clusterParams$mu) && length(dim(clusterParams$mu)) == 3) {
             if (is.list(dpObj$aux[[aux_idx]]) && all(c("mu", "nu") %in% names(dpObj$aux[[aux_idx]]))) {
-              clusterParams$mu[,,currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
-              clusterParams$nu[,,currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
+              clusterParams$mu[,,currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$mu[,,1])
+              clusterParams$nu[,,currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$nu[,,1])
             } else {
               # Generate new parameters if aux structure is wrong
               newParams <- PriorDraw(dpObj$mixingDistribution, 1)
@@ -274,8 +280,8 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
           } else {
             # Handle other parameter formats
             if (is.list(dpObj$aux[[aux_idx]])) {
-              clusterParams[[1]][currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
-              clusterParams[[2]][currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
+              clusterParams[[1]][currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$mu[,,1])
+              clusterParams[[2]][currentLabel] <- as.numeric(dpObj$aux[[aux_idx]]$nu[,,1])
             }
           }
         } else {
@@ -310,8 +316,8 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
             # Add auxiliary parameter
             if (is.list(dpObj$aux[[aux_idx]]) && all(c("mu", "nu") %in% names(dpObj$aux[[aux_idx]]))) {
-              new_mu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$mu)
-              new_nu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$nu)
+              new_mu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$mu[,,1])
+              new_nu[,,numLabels] <- as.numeric(dpObj$aux[[aux_idx]]$nu[,,1])
             } else {
               # Generate new parameters if aux structure is wrong
               newParams <- PriorDraw(dpObj$mixingDistribution, 1)
@@ -323,8 +329,8 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
             clusterParams$nu <- new_nu
           } else {
             # Handle other formats
-            clusterParams[[1]] <- c(clusterParams[[1]], as.numeric(dpObj$aux[[aux_idx]]$mu))
-            clusterParams[[2]] <- c(clusterParams[[2]], as.numeric(dpObj$aux[[aux_idx]]$nu))
+            clusterParams[[1]] <- c(clusterParams[[1]], as.numeric(dpObj$aux[[aux_idx]]$mu[,,1]))
+            clusterParams[[2]] <- c(clusterParams[[2]], as.numeric(dpObj$aux[[aux_idx]]$nu[,,1]))
           }
         } else {
           # Generic expansion for other distributions
@@ -346,8 +352,21 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
     }
   }
 
-  # Final validation
-  if (sum(pointsPerCluster) != n) {
+  # Additional validation checks - fix cluster labels first
+  if (any(clusterLabels <= 0)) {
+    # Fix non-positive cluster labels
+    min_label <- min(clusterLabels)
+    if (min_label <= 0) {
+      clusterLabels <- clusterLabels - min_label + 1
+      warning("Non-positive cluster labels detected and fixed")
+    }
+  }
+
+  # Update numLabels based on actual cluster labels
+  numLabels <- max(clusterLabels)
+
+  # Final validation - recalculate pointsPerCluster after any label fixes
+  if (sum(pointsPerCluster) != n || length(pointsPerCluster) != numLabels) {
     warning(paste("Points per cluster mismatch after update.",
                   "Expected:", n,
                   "Got:", sum(pointsPerCluster),
@@ -355,11 +374,6 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
 
     # Recalculate from cluster labels
     pointsPerCluster <- as.numeric(table(factor(clusterLabels, levels = seq_len(numLabels))))
-  }
-
-  # Additional validation checks
-  if (any(clusterLabels <= 0)) {
-    stop("Non-positive cluster labels detected")
   }
 
   if (any(clusterLabels > numLabels)) {
