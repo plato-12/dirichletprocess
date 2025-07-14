@@ -49,10 +49,10 @@ public:
 
   // Core functions
   Rcpp::NumericVector likelihood(const arma::vec& x, const Rcpp::List& theta) const override;
-  Rcpp::List posteriorParameters(const arma::mat& x) const override;
+  Rcpp::List posteriorParameters(const arma::mat& x) const;
   Rcpp::List priorDraw(int n) const override;
   Rcpp::List posteriorDraw(const arma::mat& x, int n) const override;
-  Rcpp::NumericVector predictive(const arma::mat& x) const override;
+  Rcpp::NumericVector predictive(const arma::mat& x) const;
 
   // MVNormal specific likelihood
   arma::vec mvnLikelihood(const arma::mat& x, const arma::vec& mu,
