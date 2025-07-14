@@ -13,6 +13,8 @@ MvnormalCreate(priorParameters)
   \item{kappa0}{Prior precision parameter for the mean}
   \item{nu}{Prior degrees of freedom for the covariance}
   \item{Lambda}{Prior scale matrix for the covariance}
+  \item{covModel}{Covariance model: "FULL" (default), "E", "V", "EII", "VII",
+                  "EEI", "VEI", "EVI", or "VVI"}
 }}
 }
 \value{

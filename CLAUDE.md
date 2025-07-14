@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-### Package Development
+### Package Development (R Console)
 - `devtools::test()` - Run the complete test suite
 - `devtools::check()` - Full R CMD check (includes tests, documentation, examples)
 - `devtools::build()` - Build the package tarball
@@ -12,9 +12,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `devtools::document()` - Generate documentation from roxygen2 comments
 - `devtools::load_all()` - Load package for interactive development
 
+### Package Development (Bash Terminal)
+- `R -e "devtools::test()"` - Run the complete test suite
+- `R -e "devtools::check()"` - Full R CMD check (includes tests, documentation, examples)
+- `R -e "devtools::build()"` - Build the package tarball
+- `R -e "devtools::install()"` - Install package locally for testing
+- `R -e "devtools::document()"` - Generate documentation from roxygen2 comments
+- `R -e "devtools::load_all()"` - Load package for interactive development
+
 ### Testing
-- `testthat::test_check("dirichletprocess")` - Run all tests via testthat
-- `testthat::test_file("tests/testthat/test-filename.R")` - Run specific test file
+- `testthat::test_check("dirichletprocess")` - Run all tests via testthat (R console)
+- `testthat::test_file("tests/testthat/test-filename.R")` - Run specific test file (R console)
+- `R -e "testthat::test_check('dirichletprocess')"` - Run all tests via testthat (bash terminal)
+- `R -e "testthat::test_file('tests/testthat/test-filename.R')"` - Run specific test file (bash terminal)
 
 ### C++ Development
 - Package uses Rcpp and RcppArmadillo for C++ integration
@@ -90,6 +100,15 @@ Key C++ interface functions:
 - Comprehensive test suite covering all distributions and algorithms
 - Tests for R/C++ consistency
 - Performance benchmarks in `benchmark/`
+
+## Standard Workflow
+
+1. First think through the problem, read the codebase for relevant files, and write a plan to tasks/todo.md.
+2. The plan should have a list of todo items that you can check off as you complete them
+3. Before you begin working, check in with me and I will verify the plan.
+4. Then, begin working on the todo items, marking them as complete as you go.
+5. Every step of the way just give me a high level explanation of what changes you made
+6. Folder papers/ contain the research papers relevant to the algorithms used in the package.
 
 ## Development Guidelines
 

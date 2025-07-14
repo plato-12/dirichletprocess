@@ -585,7 +585,7 @@ void ConjugateMVNormalDP::initialize(const Rcpp::List& dpObj) {
 
   // Extract cluster labels (already 0-indexed from R wrapper)
   Rcpp::IntegerVector labels = dpObj["clusterLabels"];
-  clusterLabels = arma::conv_to<arma::uvec>::from(labels);
+  clusterLabels = Rcpp::as<arma::uvec>(labels);
 
   // Initialize mixing distribution
   Rcpp::List mdObj = dpObj["mixingDistribution"];
@@ -621,7 +621,7 @@ void ConjugateMVNormalDP::initialize(const Rcpp::List& dpObj) {
   // Extract points per cluster
   if (dpObj.containsElementNamed("pointsPerCluster")) {
     Rcpp::IntegerVector ppc = dpObj["pointsPerCluster"];
-    pointsPerCluster = arma::conv_to<arma::uvec>::from(ppc);
+    pointsPerCluster = Rcpp::as<arma::uvec>(ppc);
   }
 
   // Count clusters
