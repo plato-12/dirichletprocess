@@ -200,12 +200,6 @@ NULL
 #' @title Calculate MVNormal likelihood (C++)
 NULL
 
-#' @title Update cluster components for MVNormal (C++ conjugate)
-NULL
-
-#' @title Update cluster parameters for MVNormal (C++ conjugate)
-NULL
-
 mvnormal_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_mvnormal_prior_draw_cpp`, priorParams, n)
 }
@@ -224,14 +218,6 @@ mvnormal_predictive_cpp <- function(priorParams, x) {
 
 mvnormal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_mvnormal_likelihood_cpp`, x, mu, sigma)
-}
-
-conjugate_mvnormal_cluster_component_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp`, dpObj)
-}
-
-conjugate_mvnormal_cluster_parameter_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp`, dpObj)
 }
 
 #' @title Draw from a Multivariate Normal semi-conjugate prior (C++)
