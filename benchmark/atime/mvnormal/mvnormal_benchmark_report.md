@@ -97,31 +97,7 @@ The MVNormal distribution poses unique computational challenges:
 - **Sampling:** Efficient Wishart and MVNormal sampling
 - **Neal's Algorithm 2:** For non-conjugate extensions
 
-## Practical Implications
 
-1. **Dataset Size Limitations:**
-   - R: Practical limit ~200 observations for interactive use
-   - C++: Handles thousands of observations efficiently
-
-2. **High-Dimensional Data:**
-   - Performance gap widens with increasing dimensions
-   - C++ critical for d > 10 dimensions
-
-3. **Real-World Applications:**
-   - Clustering high-dimensional data
-   - Multivariate density estimation
-   - Bayesian mixture modeling
-
-## Recommendations
-
-1. **Always use C++ for MVNormal:** The performance gains are too significant to ignore
-2. **Memory Considerations:** Monitor memory usage for high-dimensional data
-3. **Dimension Reduction:** Consider PCA/embeddings for very high dimensions
-4. **Initialization:** Use informed initialization for faster convergence
-
-## Conclusion
-
-The C++ implementation of the MVNormal distribution achieves exceptional performance improvements, with speedups reaching 711x. This makes Dirichlet Process mixture models with multivariate normal components practical for real-world applications. The dramatic improvements in both speed and memory efficiency are particularly important for multivariate data, where computational costs scale with dimension.
 
 ## Technical Notes
 

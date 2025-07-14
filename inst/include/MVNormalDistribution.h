@@ -72,9 +72,21 @@ class ConjugateMVNormalDP {
 private:
   MVNormalMixingDistribution* mixingDistribution;
   arma::mat data;
-  arma::vec clusterLabels;
+  arma::uvec clusterLabels;
   int numberClusters;
   Rcpp::List clusterParameters;
+  arma::uvec pointsPerCluster;
+  double alpha;
+  Rcpp::List alphaPriorParameters;
+  int n;
+  Rcpp::NumericVector predictiveArray;
+
+  // Internal methods
+  void initialisePredictive();
+  void clusterComponentUpdate();
+  void clusterParameterUpdate();
+  void updateAlpha();
+  Rcpp::List clusterLabelChange(int i, int newLabel, int currentLabel);
 
 public:
   ConjugateMVNormalDP();
