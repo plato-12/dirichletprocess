@@ -41,7 +41,7 @@ private:
   // Helper functions for different covariance structures
   arma::mat constructCovarianceMatrix(const arma::vec& params, int d) const;
   arma::vec extractCovarianceParams(const arma::mat& sigma) const;
-  int getNumCovParams(int d) const;
+  // Remove getNumCovParams from here
 
 public:
   MVNormalMixingDistribution(const Rcpp::List& priorParams);
@@ -65,6 +65,9 @@ public:
 
   // Get covariance model
   CovarianceModel getCovarianceModel() const { return covModel; }
+
+  // Add this method as public
+  int getNumCovParams(int d) const;
 };
 
 // Conjugate MVNormal Dirichlet Process
