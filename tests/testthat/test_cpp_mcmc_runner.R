@@ -1,5 +1,28 @@
 context("C++ MCMC Runner Tests")
 
+# Enable C++ mode
+set_use_cpp(TRUE)
+
+# Helper function to check if C++ implementations are available
+cpp_available <- function() {
+  if (!using_cpp()) return(FALSE)
+  
+  pkg_ns <- getNamespace("dirichletprocess")
+  required_functions <- c(
+    "_dirichletprocess_run_mcmc_cpp",
+    "run_mcmc_cpp"
+  )
+  
+  all_exist <- all(sapply(required_functions, function(f) exists(f, where = pkg_ns)))
+  return(all_exist)
+}
+
+# Access functions from namespace if available
+if (cpp_available()) {
+  pkg_ns <- getNamespace("dirichletprocess")
+  run_mcmc_cpp <- get("run_mcmc_cpp", pkg_ns)
+}
+
 # Helper function to create test data
 create_test_data <- function(n = 50, seed = 123) {
   set.seed(seed)
@@ -32,7 +55,7 @@ test_that("MCMC Runner basic functionality", {
   skip_if_not_installed("dirichletprocess")
 
   # Only test if C++ implementation actually exists
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+  if (!cpp_available()) {
     skip("C++ MCMC implementation not compiled")
   }
 
@@ -52,7 +75,7 @@ test_that("MCMC Runner basic functionality", {
 
 test_that("MCMC Runner parameter validation", {
   # Only test if C++ implementation actually exists
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+  if (!cpp_available()) {
     skip("C++ MCMC implementation not compiled")
   }
 
@@ -90,7 +113,7 @@ test_that("C++ backend switching", {
   skip_if_not_installed("dirichletprocess")
 
   # Only test C++ if it's actually available
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+  if (!cpp_available()) {
     skip("C++ MCMC implementation not compiled")
   }
 
@@ -110,7 +133,7 @@ test_that("C++ backend switching", {
 
 test_that("Invalid input handling", {
   # Only test if C++ implementation actually exists
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+  if (!cpp_available()) {
     skip("C++ MCMC implementation not compiled")
   }
 

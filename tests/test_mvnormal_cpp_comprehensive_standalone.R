@@ -47,10 +47,22 @@ expect_true <- function(condition, info = "") {
 
 # Helper function to check if C++ implementations are available
 cpp_available <- function() {
-  return(using_cpp() && 
-         exists("mvnormal_likelihood_cpp") &&
-         exists("mvnormal_prior_draw_cpp") &&
-         exists("mvnormal_posterior_draw_cpp"))
+  if (!using_cpp()) return(FALSE)
+  
+  # Check for MVNormal C++ functions in the package namespace
+  # These functions exist in the namespace when C++ is properly compiled
+  pkg_ns <- getNamespace("dirichletprocess")
+  
+  required_functions <- c(
+    "mvnormal_prior_draw_cpp",
+    "mvnormal_posterior_draw_cpp", 
+    "mvnormal_likelihood_cpp"
+  )
+  
+  # Check if all required functions exist in the package namespace
+  all_exist <- all(sapply(required_functions, function(f) exists(f, where = pkg_ns)))
+  
+  return(all_exist)
 }
 
 # Helper function to generate test data with known structure
@@ -97,6 +109,16 @@ if (!cpp_available()) {
   quit()
 }
 cat("✓ C++ implementations available\n\n")
+
+# Helper functions to access C++ functions from namespace
+pkg_ns <- getNamespace("dirichletprocess")
+mvnormal_likelihood_cpp <- get("mvnormal_likelihood_cpp", pkg_ns)
+mvnormal_prior_draw_cpp <- get("mvnormal_prior_draw_cpp", pkg_ns)
+mvnormal_posterior_draw_cpp <- get("mvnormal_posterior_draw_cpp", pkg_ns)
+mvnormal_posterior_parameters_cpp <- get("mvnormal_posterior_parameters_cpp", pkg_ns)
+mvnormal2_likelihood_cpp <- get("mvnormal2_likelihood_cpp", pkg_ns)
+mvnormal2_prior_draw_cpp <- get("mvnormal2_prior_draw_cpp", pkg_ns)
+mvnormal2_posterior_draw_cpp <- get("mvnormal2_posterior_draw_cpp", pkg_ns)
 
 # =============================================================================
 # CORE C++ FUNCTION TESTS

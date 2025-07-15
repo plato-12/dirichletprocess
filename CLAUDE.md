@@ -60,6 +60,72 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - C++ source files are in `src/`
 - Build system automatically compiles all .cpp files in src/
 
+### Testing Best Practices for C++ Functions
+
+**CRITICAL**: When writing tests for C++ functions, follow these guidelines to ensure environment consistency:
+
+#### C++ Availability Check
+```r
+# ✅ CORRECT: Check package namespace
+cpp_available <- function() {
+  if (!using_cpp()) return(FALSE)
+  
+  pkg_ns <- getNamespace("dirichletprocess")
+  required_functions <- c(
+    "function_name_cpp",
+    "another_function_cpp"
+  )
+  
+  all_exist <- all(sapply(required_functions, function(f) exists(f, where = pkg_ns)))
+  return(all_exist)
+}
+
+# ❌ WRONG: Check global environment (environment-dependent)
+cpp_available <- function() {
+  return(using_cpp() && exists("function_name_cpp"))
+}
+```
+
+#### Accessing C++ Functions in Tests
+```r
+# ✅ CORRECT: Access functions from package namespace
+pkg_ns <- getNamespace("dirichletprocess")
+function_name_cpp <- get("function_name_cpp", pkg_ns)
+another_function_cpp <- get("another_function_cpp", pkg_ns)
+
+# ❌ WRONG: Direct access (may fail in some environments)
+# function_name_cpp() # This may not work consistently
+```
+
+#### Test Structure Template
+```r
+# Enable C++ mode
+set_use_cpp(TRUE)
+
+# Check availability with proper namespace checking
+cpp_available <- function() {
+  if (!using_cpp()) return(FALSE)
+  pkg_ns <- getNamespace("dirichletprocess")
+  required_functions <- c("your_cpp_functions_here")
+  return(all(sapply(required_functions, function(f) exists(f, where = pkg_ns))))
+}
+
+# Skip tests if C++ not available
+if (!cpp_available()) {
+  skip("C++ implementations not available")
+}
+
+# Access functions from namespace
+pkg_ns <- getNamespace("dirichletprocess")
+your_cpp_function <- get("your_cpp_function", pkg_ns)
+```
+
+**Why This Matters**:
+- Ensures tests work consistently across all development environments
+- Follows R package namespace conventions
+- Prevents environment-specific test failures
+- Maintains proper separation between internal and external functions
+
 ## Package Architecture
 
 ### Core Object Structure

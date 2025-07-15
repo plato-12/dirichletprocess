@@ -6,6 +6,36 @@ library(dirichletprocess)
 
 context("Normal Distribution C++ Implementation - Comprehensive Tests")
 
+# Enable C++ mode
+set_use_cpp(TRUE)
+
+# Helper function to check if C++ implementations are available
+cpp_available <- function() {
+  if (!using_cpp()) return(FALSE)
+  
+  pkg_ns <- getNamespace("dirichletprocess")
+  required_functions <- c(
+    "normal_prior_draw_cpp",
+    "normal_posterior_draw_cpp",
+    "normal_posterior_parameters_cpp",
+    "conjugate_cluster_component_update_cpp",
+    "conjugate_cluster_parameter_update_cpp"
+  )
+  
+  all_exist <- all(sapply(required_functions, function(f) exists(f, where = pkg_ns)))
+  return(all_exist)
+}
+
+# Access functions from namespace if available
+if (cpp_available()) {
+  pkg_ns <- getNamespace("dirichletprocess")
+  normal_prior_draw_cpp <- get("normal_prior_draw_cpp", pkg_ns)
+  normal_posterior_draw_cpp <- get("normal_posterior_draw_cpp", pkg_ns)
+  normal_posterior_parameters_cpp <- get("normal_posterior_parameters_cpp", pkg_ns)
+  conjugate_cluster_component_update_cpp <- get("conjugate_cluster_component_update_cpp", pkg_ns)
+  conjugate_cluster_parameter_update_cpp <- get("conjugate_cluster_parameter_update_cpp", pkg_ns)
+}
+
 # Helper function to check if arrays are statistically similar
 check_statistical_similarity <- function(x, y, tol = 0.1, check_mean = TRUE, check_var = TRUE) {
   if (check_mean) {
@@ -20,7 +50,7 @@ check_statistical_similarity <- function(x, y, tol = 0.1, check_mean = TRUE, che
 
 # Test 1: Prior Draw functionality
 test_that("Normal PriorDraw C++ implementation works correctly", {
-  skip_if_not(exists("normal_prior_draw_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   # Test parameters
   prior_params <- c(mu0 = 0, kappa0 = 1, alpha0 = 2, beta0 = 1)
@@ -69,7 +99,7 @@ test_that("Normal PriorDraw C++ implementation works correctly", {
 
 # Test 2: Posterior Draw functionality
 test_that("Normal PosteriorDraw C++ implementation works correctly", {
-  skip_if_not(exists("normal_posterior_draw_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   prior_params <- c(0, 1, 2, 1)
 
@@ -103,7 +133,7 @@ test_that("Normal PosteriorDraw C++ implementation works correctly", {
 
 # Test 3: Posterior Parameters calculation
 test_that("Normal posterior parameters calculation is correct", {
-  skip_if_not(exists("normal_posterior_parameters_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   prior_params <- c(mu0 = 0, kappa0 = 1, alpha0 = 2, beta0 = 1)
 
@@ -132,7 +162,7 @@ test_that("Normal posterior parameters calculation is correct", {
 
 # Test 4: Conjugate cluster component update
 test_that("Conjugate cluster component update works", {
-  skip_if_not(exists("conjugate_cluster_component_update_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   # Create a simple DP object
   set.seed(789)
@@ -164,7 +194,7 @@ test_that("Conjugate cluster component update works", {
 
 # Test 5: Conjugate cluster parameter update
 test_that("Conjugate cluster parameter update works", {
-  skip_if_not(exists("conjugate_cluster_parameter_update_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   # Create DP object with two clear clusters
   set.seed(101112)
@@ -191,8 +221,7 @@ test_that("Conjugate cluster parameter update works", {
 
 # Test 6: Prior vs Posterior consistency
 test_that("Prior and posterior draws are consistent", {
-  skip_if_not(exists("normal_prior_draw_cpp") && exists("normal_posterior_draw_cpp"),
-              "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   prior_params <- c(0, 0.01, 2, 1)  # Weak prior
 
@@ -227,7 +256,7 @@ test_that("Prior and posterior draws are consistent", {
 
 # Test 7: Numerical stability
 test_that("C++ implementation handles numerical edge cases", {
-  skip_if_not(exists("normal_prior_draw_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   # Test 7.1: Very small/large parameters
   extreme_params <- list(
@@ -261,7 +290,7 @@ test_that("C++ implementation handles numerical edge cases", {
 
 # Test 8: Performance comparison
 test_that("C++ implementation is faster than R", {
-  skip_if_not(exists("normal_prior_draw_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
   skip_if_not(exists("PriorDraw.normal"), "R implementation not available")
 
   prior_params <- c(0, 1, 2, 1)
@@ -343,7 +372,7 @@ test_that("Complete MCMC cycle works with C++ backend", {
 
 # Test 10: Memory and bounds checking
 test_that("C++ implementation handles memory correctly", {
-  skip_if_not(exists("conjugate_cluster_component_update_cpp"), "C++ functions not available")
+  skip_if_not(cpp_available(), "C++ functions not available")
 
   # Test with single data point
   dp_single <- list(
