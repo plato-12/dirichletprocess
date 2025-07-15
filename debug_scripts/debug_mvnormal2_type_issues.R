@@ -29,11 +29,11 @@ mvnormal2_functions <- c(
 )
 
 for (func_name in mvnormal2_functions) {
-  exists_result <- exists(func_name)
+  exists_result <- exists(func_name, envir = asNamespace("dirichletprocess"))
   cat("  ", func_name, ":", if(exists_result) "✓ EXISTS" else "✗ MISSING", "\n")
   
   if (exists_result) {
-    func_obj <- get(func_name)
+    func_obj <- get(func_name, envir = asNamespace("dirichletprocess"))
     cat("    Type:", class(func_obj), "\n")
     if (is.function(func_obj)) {
       cat("    Arguments:", paste(names(formals(func_obj)), collapse = ", "), "\n")
@@ -127,7 +127,7 @@ tryCatch({
 
 cat("\n4. Testing mvnormal2_prior_draw_cpp Incrementally...\n")
 
-if (exists("mvnormal2_prior_draw_cpp")) {
+if (exists("mvnormal2_prior_draw_cpp", envir = asNamespace("dirichletprocess"))) {
   
   # Test with different parameter formats
   test_params <- list(
@@ -166,6 +166,7 @@ if (exists("mvnormal2_prior_draw_cpp")) {
       
       # Test with minimal draws first
       cat("    Attempting mvnormal2_prior_draw_cpp with n=1...\n")
+      mvnormal2_prior_draw_cpp <- get("mvnormal2_prior_draw_cpp", envir = asNamespace("dirichletprocess"))
       result <- mvnormal2_prior_draw_cpp(params, 1)
       
       cat("    ✓ SUCCESS with", format_name, "\n")
@@ -201,7 +202,7 @@ if (exists("mvnormal2_prior_draw_cpp")) {
 
 cat("\n5. Testing mvnormal2_likelihood_cpp Incrementally...\n")
 
-if (exists("mvnormal2_likelihood_cpp")) {
+if (exists("mvnormal2_likelihood_cpp", envir = asNamespace("dirichletprocess"))) {
   
   tryCatch({
     # First, get a working prior draw to use for likelihood testing
@@ -214,6 +215,7 @@ if (exists("mvnormal2_likelihood_cpp")) {
       nu0 = 4
     )
     
+    mvnormal2_prior_draw_cpp <- get("mvnormal2_prior_draw_cpp", envir = asNamespace("dirichletprocess"))
     prior_result <- mvnormal2_prior_draw_cpp(priorParams, 1)
     cat("    ✓ Prior draw successful\n")
     
@@ -224,49 +226,46 @@ if (exists("mvnormal2_likelihood_cpp")) {
     cat("    sig structure:\n") 
     str(prior_result$sig)
     
-    # Test different ways to extract parameters for likelihood
-    cat("  Step 5c: Testing parameter extraction methods...\n")
-    
-    extraction_methods <- list(
-      "Method 1" = list(
-        mu = prior_result$mu[1, , 1],
-        sig = prior_result$sig[, , 1]
-      ),
-      "Method 2" = list(
-        mu = as.vector(prior_result$mu[1, , 1]),
-        sig = as.matrix(prior_result$sig[, , 1])
-      ),
-      "Method 3" = list(
-        mu = c(prior_result$mu[1, , 1]),
-        sig = prior_result$sig[, , 1]
-      )
-    )
+    # Test the correct theta format for likelihood function
+    cat("  Step 5c: Testing correct theta format for likelihood...\n")
     
     # Create test data
-    test_data_single <- matrix(c(0.5, -0.3), nrow = 1)
-    cat("    Test data dimensions:", dim(test_data_single), "\n")
+    test_data_single <- c(0.5, -0.3)  # Vector input, not matrix
+    cat("    Test data length:", length(test_data_single), "\n")
     
-    for (method_name in names(extraction_methods)) {
-      cat("    Testing", method_name, "...\n")
+    # CORRECT theta format: list(mu_array, sig_array)
+    cat("    Creating correct theta format...\n")
+    theta_correct <- list(prior_result$mu, prior_result$sig)
+    
+    cat("    theta structure:\n")
+    cat("      theta[[1]] (mu) dimensions:", dim(theta_correct[[1]]), "\n")
+    cat("      theta[[2]] (sig) dimensions:", dim(theta_correct[[2]]), "\n")
+    
+    tryCatch({
+      # Test the likelihood function
+      mvnormal2_likelihood_cpp <- get("mvnormal2_likelihood_cpp", envir = asNamespace("dirichletprocess"))
       
-      tryCatch({
-        theta <- extraction_methods[[method_name]]
-        
-        cat("      theta$mu class:", class(theta$mu), 
-            if(is.matrix(theta$mu)) paste("dims:", paste(dim(theta$mu), collapse="x")) else paste("length:", length(theta$mu)), "\n")
-        cat("      theta$sig class:", class(theta$sig), "dims:", paste(dim(theta$sig), collapse="x"), "\n")
-        cat("      theta$mu values:", paste(theta$mu, collapse=", "), "\n")
-        
-        # Test the likelihood function
-        lik_result <- mvnormal2_likelihood_cpp(test_data_single, theta)
-        
-        cat("      ✓ SUCCESS with", method_name, "\n")
-        cat("      Likelihood result:", lik_result, "class:", class(lik_result), "\n")
-        
-      }, error = function(e) {
-        cat("      ✗ FAILED with", method_name, ":", e$message, "\n")
-      })
-    }
+      lik_result <- mvnormal2_likelihood_cpp(test_data_single, theta_correct)
+      
+      cat("      ✓ SUCCESS with correct theta format\n")
+      cat("      Likelihood result:", lik_result, "class:", class(lik_result), "\n")
+      cat("      Result length:", length(lik_result), "(should match number of draws)\n")
+      
+    }, error = function(e) {
+      cat("      ✗ FAILED with correct theta format:", e$message, "\n")
+    })
+    
+    # Test with different input formats
+    cat("    Testing different input data formats...\n")
+    
+    # Test with matrix input (single row)
+    test_data_matrix <- matrix(c(0.5, -0.3), nrow = 1)
+    tryCatch({
+      lik_result2 <- mvnormal2_likelihood_cpp(test_data_matrix, theta_correct)
+      cat("      ✓ Matrix input also works! Result:", lik_result2, "\n")
+    }, error = function(e) {
+      cat("      ✗ Matrix input failed:", e$message, "\n")
+    })
     
   }, error = function(e) {
     cat("  ✗ Likelihood testing failed:", e$message, "\n")
@@ -315,14 +314,22 @@ cat("1. Function existence and signatures\n")
 cat("2. MVNormal2 object creation\n") 
 cat("3. Parameter format variations\n")
 cat("4. mvnormal2_prior_draw_cpp with different inputs\n")
-cat("5. mvnormal2_likelihood_cpp with different parameter extractions\n")
+cat("5. mvnormal2_likelihood_cpp with CORRECT theta format\n")
 cat("6. Memory and object inspection\n")
 
-cat("\nReview the output above to identify:\n")
-cat("- Which parameter formats work vs fail\n")
-cat("- Exact error messages and their contexts\n")
-cat("- Where the type conversion issues occur\n")
-cat("- Memory or object lifecycle problems\n")
+cat("\n=== SOLUTION FOUND ===\n")
+cat("The 'type conversion' issue was actually a parameter format problem:\n")
+cat("❌ WRONG: theta <- list(mu = ..., sig = ...)  # Named list\n")
+cat("✅ CORRECT: theta <- list(mu_array, sig_array)  # Indexed list with full arrays\n")
+cat("\nThe C++ function expects:\n")
+cat("- theta[0] = mu array with dimensions (1, d, n_clusters)\n")
+cat("- theta[1] = sig array with dimensions (d, d, n_clusters)\n")
+cat("- x = vector or matrix input\n")
+
+cat("\nCorrect usage:\n")
+cat("prior_result <- mvnormal2_prior_draw_cpp(priorParams, n_draws)\n")
+cat("theta_correct <- list(prior_result$mu, prior_result$sig)\n")
+cat("lik <- mvnormal2_likelihood_cpp(data_vector, theta_correct)\n")
 
 # Cleanup
 rm(list = ls())

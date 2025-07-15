@@ -280,15 +280,40 @@ tryCatch({
 
 cat("6. Testing MVNormal2 C++ Individual Functions...\n")
 tryCatch({
-  if (exists("mvnormal2_likelihood_cpp")) {
-    cat("  ⚠ MVNormal2 individual function testing temporarily disabled due to type conversion issues\n")
-    cat("  ⚠ Core MVNormal2 creation and basic functionality already tested in Test 5\n")
+  if (exists("mvnormal2_likelihood_cpp", envir = asNamespace("dirichletprocess"))) {
+    # Get functions from namespace
+    mvnormal2_prior_draw_cpp <- get("mvnormal2_prior_draw_cpp", envir = asNamespace("dirichletprocess"))
+    mvnormal2_likelihood_cpp <- get("mvnormal2_likelihood_cpp", envir = asNamespace("dirichletprocess"))
     
-    # Basic existence check only
-    expect_true(exists("mvnormal2_prior_draw_cpp"), info = "MVNormal2 prior draw function exists")
-    expect_true(exists("mvnormal2_likelihood_cpp"), info = "MVNormal2 likelihood function exists")
+    d <- 2
+    n <- 10
     
-    cat("  ⚠ MVNormal2 individual function tests skipped (known C++ type issue)\n")
+    set.seed(789)
+    test_data <- matrix(rnorm(n * d), n, d)
+    
+    priorParams <- list(
+      mu0 = matrix(rep(0, d), nrow = 1),
+      sigma0 = diag(d),
+      phi0 = diag(d) * 2,
+      nu0 = d + 2
+    )
+    
+    prior_draw <- mvnormal2_prior_draw_cpp(priorParams, 3)
+    expect_true(is.list(prior_draw), info = "MVNormal2 prior draw is list")
+    expect_true(all(c("mu", "sig") %in% names(prior_draw)), info = "MVNormal2 prior draw names")
+    
+    # Test MVNormal2 likelihood with CORRECT theta format
+    # theta must be list(mu_array, sig_array), not list(mu=, sig=)
+    theta_correct <- list(prior_draw$mu, prior_draw$sig)
+    
+    # Test with vector input (single observation)
+    test_data_vector <- test_data[1, ]
+    lik <- mvnormal2_likelihood_cpp(test_data_vector, theta_correct)
+    expect_true(is.finite(lik), info = "MVNormal2 likelihood finite")
+    expect_true(lik > 0, info = "MVNormal2 likelihood positive")
+    expect_equal(length(lik), 3, info = "MVNormal2 likelihood length matches number of draws")
+    
+    cat("  ✓ MVNormal2 individual function tests passed\n")
   } else {
     cat("  ⚠ MVNormal2 individual functions not available, skipping\n")
   }
@@ -439,17 +464,21 @@ tryCatch({
 # =============================================================================
 
 cat("\n=== Performing comprehensive cleanup ===\n")
-rm(list = ls())
+# Save test results before cleanup
+final_total_tests <- total_tests
+final_passed_tests <- passed_tests
+final_failed_tests <- failed_tests
+rm(list = ls()[!ls() %in% c("final_total_tests", "final_passed_tests", "final_failed_tests")])
 gc()
 set_use_cpp(FALSE)
 
 cat("\n=== COMPREHENSIVE TEST RESULTS ===\n")
-cat("Total tests run:    ", total_tests, "\n")
-cat("Tests passed:       ", passed_tests, "\n")
-cat("Tests failed:       ", failed_tests, "\n")
-cat("Success rate:       ", round(passed_tests/total_tests*100, 1), "%\n")
+cat("Total tests run:    ", final_total_tests, "\n")
+cat("Tests passed:       ", final_passed_tests, "\n")
+cat("Tests failed:       ", final_failed_tests, "\n")
+cat("Success rate:       ", round(final_passed_tests/final_total_tests*100, 1), "%\n")
 
-if (passed_tests == total_tests) {
+if (final_passed_tests == final_total_tests) {
   cat("\n🎉 ALL TESTS PASSED! MVNormal C++ implementations are working correctly.\n")
 } else {
   cat("\n⚠️  Some tests failed. Review the output above for details.\n")

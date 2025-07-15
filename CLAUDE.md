@@ -13,32 +13,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `devtools::load_all()` - Load package for interactive development
 
 ### Package Development (Bash Terminal)
-- `R -e "devtools::test()"` - Run the complete test suite
-- `R -e "devtools::check()"` - Full R CMD check (includes tests, documentation, examples)
-- `R -e "devtools::build()"` - Build the package tarball
-- `R -e "devtools::install()"` - Install package locally for testing
-- `R -e "devtools::document()"` - Generate documentation from roxygen2 comments
-- `R -e "devtools::load_all()"` - Load package for interactive development
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::test()"` - Run the complete test suite
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::check()"` - Full R CMD check (includes tests, documentation, examples)  
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::build()"` - Build the package tarball
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::install()"` - Install package locally for testing
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::document()"` - Generate documentation from roxygen2 comments
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::load_all()"` - Load package for interactive development
 
 ### Testing
 - `testthat::test_check("dirichletprocess")` - Run all tests via testthat (R console)
 - `testthat::test_file("tests/testthat/test-filename.R")` - Run specific test file (R console)
-- `R -e "testthat::test_check('dirichletprocess')"` - Run all tests via testthat (bash terminal)
-- `R -e "testthat::test_file('tests/testthat/test-filename.R')"` - Run specific test file (bash terminal)
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "testthat::test_check('dirichletprocess')"` - Run all tests via testthat (bash terminal)
+- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "testthat::test_file('tests/testthat/test-filename.R')"` - Run specific test file (bash terminal)
 
 ### MVNormal C++ Testing (Known Issues)
 - **Issue 1**: `testthat::test_file("tests/testthat/test-mvnormal-cpp-comprehensive.R")` causes R session crashes during cleanup
   - **Root Cause**: testthat/devtools framework has cleanup conflicts with C++ object management
-  - **Solution**: Use `source("tests/test_mvnormal_cpp_comprehensive_standalone.R")` for comprehensive C++ testing
-- **Issue 2**: MVNormal2 individual C++ functions have type conversion issues
-  - **Root Cause**: C++ type conversion error "Not compatible with requested type: [type=NULL; target=integer]"
-  - **Status**: MVNormal2 basic functionality works (object creation, nonconjugate classification), but individual function calls crash
-  - **Workaround**: MVNormal2 testing limited to basic functionality until C++ type issues are resolved
+  - **Solution**: Use `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "source('tests/test_mvnormal_cpp_comprehensive_standalone.R')"` for comprehensive C++ testing
+- **Issue 2**: MVNormal2 individual C++ functions have parameter format issues [RESOLVED]
+  - **Root Cause**: C++ functions expect specific parameter format: `theta <- list(mu_array, sig_array)` not `list(mu=, sig=)`
+  - **Error Message**: "Not compatible with requested type: [type=NULL; target=integer]" (misleading error)
+  - **Solution**: Use correct theta format for `mvnormal2_likelihood_cpp()`:
+    ```r
+    # ❌ Wrong: theta <- list(mu = prior_result$mu[1,,1], sig = prior_result$sig[,,1])
+    # ✅ Correct: theta <- list(prior_result$mu, prior_result$sig)
+    ```
+  - **Status**: ✅ RESOLVED - MVNormal2 C++ functions work correctly with proper parameter format
+  - **Debug Script**: `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "source('debug_scripts/debug_mvnormal2_type_issues.R')"` demonstrates correct usage
 
 ### Benchmarking
 - Benchmark scripts are in `benchmark/atime/` directory
 - `benchmark-[distribution]-atime.R` - Performance benchmarks for each distribution type
 - Results include timing comparisons between R and C++ implementations
+
+### Claude Code R Integration
+- **Rscript Path**: `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe"`
+- **Usage**: Claude Code can execute R commands via Rscript from bash terminal
+- **Examples**:
+  - `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "library(devtools); test()"`
+  - `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "source('script.R')"`
+- **Benefits**: Enables Claude Code to run R/devtools commands without requiring separate R console interaction
 
 ### C++ Development
 - Package uses Rcpp and RcppArmadillo for C++ integration
@@ -122,7 +136,7 @@ Key C++ interface functions:
 3. Before you begin working, check in with me and I will verify the plan.
 4. Then, begin working on the todo items, marking them as complete as you go.
 5. Every step of the way just give me a high level explanation of what changes you made
-6. Folder papers/ contain the research papers relevant to the algorithms used in the package.
+6. Finally, add a review section to the todo.md file with a summary of the changes you made and any other relevant information.
 
 ## Development Guidelines
 
