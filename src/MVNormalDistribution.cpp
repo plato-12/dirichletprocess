@@ -391,6 +391,14 @@ Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) c
 Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
   int d = mu0.n_elem;
 
+  // Validate input parameters
+  if (n <= 0) {
+    Rcpp::stop("Number of draws must be positive");
+  }
+  if (d <= 0) {
+    Rcpp::stop("Dimension must be positive");
+  }
+
   // Arrays to store results
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
   Rcpp::NumericVector sig_arr;
@@ -400,6 +408,9 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
     sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
   } else {
     int nCovParams = getNumCovParams(d);
+    if (nCovParams <= 0) {
+      Rcpp::stop("Invalid number of covariance parameters");
+    }
     sig_arr = Rcpp::NumericVector(Rcpp::Dimension(nCovParams, n));
   }
 
@@ -417,9 +428,9 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
     arma::mat cov_mu = arma::inv_sympd(prec_draw / kappa0);
     arma::vec mu_draw = arma::mvnrnd(mu0, cov_mu);
 
-    // Store mu
+    // Store mu (array has dimensions 1 x d x n)
     for (int j = 0; j < d; j++) {
-      mu_arr[j + i * d] = mu_draw(j);
+      mu_arr[0 + j * 1 + i * 1 * d] = mu_draw(j);
     }
 
     // Store covariance parameters based on model
@@ -447,6 +458,14 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
 }
 
 Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+  // Validate input parameters
+  if (n <= 0) {
+    Rcpp::stop("Number of draws must be positive");
+  }
+  if (x.n_rows == 0 || x.n_cols == 0) {
+    Rcpp::stop("Data matrix cannot be empty");
+  }
+
   // Get posterior parameters
   Rcpp::List post_params = posteriorParameters(x);
 
@@ -456,6 +475,10 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   double nu_n = Rcpp::as<double>(post_params["nu_n"]);
 
   int d = mu_n.n_elem;
+  
+  if (d <= 0) {
+    Rcpp::stop("Dimension must be positive");
+  }
 
   // Arrays to store results
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
@@ -466,6 +489,9 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
     sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
   } else {
     int nCovParams = getNumCovParams(d);
+    if (nCovParams <= 0) {
+      Rcpp::stop("Invalid number of covariance parameters");
+    }
     sig_arr = Rcpp::NumericVector(Rcpp::Dimension(nCovParams, n));
   }
 
@@ -483,9 +509,9 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
     arma::mat cov_mu = arma::inv_sympd(ensureSymmetric(prec_draw / kappa_n));
     arma::vec mu_draw = arma::mvnrnd(mu_n, cov_mu);
 
-    // Store mu
+    // Store mu (array has dimensions 1 x d x n)
     for (int j = 0; j < d; j++) {
-      mu_arr[j + i * d] = mu_draw(j);
+      mu_arr[0 + j * 1 + i * 1 * d] = mu_draw(j);
     }
 
     // Store covariance parameters based on model

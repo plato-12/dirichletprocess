@@ -114,7 +114,15 @@ Rcpp::NumericVector MVNormal2MixingDistribution::likelihood(const arma::vec& x, 
 }
 
 Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
+  // Validate input parameters
+  if (n <= 0) {
+    Rcpp::stop("Number of draws must be positive");
+  }
+  
   int d = mu0.n_elem;
+  if (d <= 0) {
+    Rcpp::stop("Dimension must be positive");
+  }
 
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
   Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
@@ -152,9 +160,9 @@ Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
     // Draw mu from Multivariate Normal given Sigma
     arma::vec mu_draw = arma::mvnrnd(mu0.t(), sigma0_reg);
 
-    // Store in arrays
+    // Store in arrays (mu_arr has dimensions 1 x d x n)
     for (int j = 0; j < d; j++) {
-      mu_arr[j + i * d] = mu_draw(j);
+      mu_arr[0 + j * 1 + i * 1 * d] = mu_draw(j);
     }
 
     for (int j = 0; j < d; j++) {
@@ -171,6 +179,10 @@ Rcpp::List MVNormal2MixingDistribution::priorDraw(int n) const {
 }
 
 Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+  // Validate input parameters
+  if (n <= 0) {
+    Rcpp::stop("Number of draws must be positive");
+  }
   if (!x.is_finite()) {
     Rcpp::stop("Input data contains non-finite values");
   }
@@ -311,9 +323,9 @@ Rcpp::List MVNormal2MixingDistribution::posteriorDraw(const arma::mat& x, int n)
       }
     }
 
-    // Store results
+    // Store results (mu_arr has dimensions 1 x d x n)
     for (int j = 0; j < d; j++) {
-      mu_arr[j + i * d] = mu_original(j);
+      mu_arr[0 + j * 1 + i * 1 * d] = mu_original(j);
     }
 
     for (int j = 0; j < d; j++) {

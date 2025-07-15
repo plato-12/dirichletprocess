@@ -26,6 +26,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `R -e "testthat::test_check('dirichletprocess')"` - Run all tests via testthat (bash terminal)
 - `R -e "testthat::test_file('tests/testthat/test-filename.R')"` - Run specific test file (bash terminal)
 
+### MVNormal C++ Testing (Known Issues)
+- **Issue 1**: `testthat::test_file("tests/testthat/test-mvnormal-cpp-comprehensive.R")` causes R session crashes during cleanup
+  - **Root Cause**: testthat/devtools framework has cleanup conflicts with C++ object management
+  - **Solution**: Use `source("tests/test_mvnormal_cpp_comprehensive_standalone.R")` for comprehensive C++ testing
+- **Issue 2**: MVNormal2 individual C++ functions have type conversion issues
+  - **Root Cause**: C++ type conversion error "Not compatible with requested type: [type=NULL; target=integer]"
+  - **Status**: MVNormal2 basic functionality works (object creation, nonconjugate classification), but individual function calls crash
+  - **Workaround**: MVNormal2 testing limited to basic functionality until C++ type issues are resolved
+
+### Benchmarking
+- Benchmark scripts are in `benchmark/atime/` directory
+- `benchmark-[distribution]-atime.R` - Performance benchmarks for each distribution type
+- Results include timing comparisons between R and C++ implementations
+
 ### C++ Development
 - Package uses Rcpp and RcppArmadillo for C++ integration
 - C++ headers are in `inst/include/`
@@ -129,3 +143,33 @@ The package heavily uses S3 method dispatch based on class inheritance:
 - C++ implementation provides significant speedup for large datasets
 - Automatic fallback ensures compatibility if C++ fails
 - Vectorized operations are used extensively in R implementation
+
+## Repository Structure
+
+### Documentation and Examples
+- **`vignettes/`**: Package documentation with LaTeX vignette and graphics
+- **`man/`**: Generated roxygen2 documentation (77 files)
+- **`data/`**: Contains `rats.rda` dataset for examples
+- **`docs/`**: Generated pkgdown website
+- **`papers/`**: Research papers documenting theoretical foundations
+
+### Build Configuration
+- **`DESCRIPTION`**: Package metadata, dependencies, and configuration
+- **`NAMESPACE`**: Auto-generated package namespace (managed by roxygen2)
+- **`_pkgdown.yml`**: Website configuration for documentation
+- **`Makevars`/`Makevars.win`**: C++ compilation settings for Unix/Windows
+
+## Important Notes
+
+### Dependencies and Requirements
+- **R Version**: R (>= 2.10)
+- **C++ Standard**: C++11 required for compilation
+- **Key Dependencies**: Rcpp (>= 1.0.11), RcppArmadillo, ggplot2, mvtnorm, gtools
+- **System Requirements**: LAPACK, BLAS, optional OpenMP support
+
+### Package URLs
+- **Original Repository**: https://github.com/dm13450/dirichletprocess
+- **Current Branch**: https://github.com/plato-12/dirichletprocess/tree/cpp-implementation
+- **Documentation**: https://dm13450.github.io/dirichletprocess/
+- **CRAN**: Available as stable release
+- **Issues**: https://github.com/dm13450/dirichletprocess/issues
