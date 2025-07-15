@@ -46,7 +46,14 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
         d <- mu_dim[1]
         n_clusters <- mu_dim[2]
         dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
-        dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+        # For constrained models, sig dimensions are different
+        if (exists("priorParameters", dpObj$mixingDistribution) && 
+            !is.null(dpObj$mixingDistribution$priorParameters$covModel) &&
+            dpObj$mixingDistribution$priorParameters$covModel != "FULL") {
+          # Keep sig as is for constrained models
+        } else {
+          dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+        }
       }
       # Update dimensions
       mu_dim <- dim(dpObj$clusterParameters$mu)
@@ -62,17 +69,39 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
 
       # Create new arrays with more space
       new_mu <- array(NA_real_, dim = c(1, d, min_slots))
-      new_sig <- array(NA_real_, dim = c(d, d, min_slots))
-
-      # Copy existing parameters
-      new_mu[, , 1:mu_dim[3]] <- dpObj$clusterParameters$mu
-      new_sig[, , 1:sig_dim[3]] <- dpObj$clusterParameters$sig
-
-      # Fill remaining slots with prior draws
-      if (mu_dim[3] < min_slots) {
-        extra_params <- PriorDraw(dpObj$mixingDistribution, min_slots - mu_dim[3])
-        new_mu[, , (mu_dim[3]+1):min_slots] <- extra_params$mu
-        new_sig[, , (sig_dim[3]+1):min_slots] <- extra_params$sig
+      
+      # For constrained models, sig dimensions are different
+      if (exists("priorParameters", dpObj$mixingDistribution) && 
+          !is.null(dpObj$mixingDistribution$priorParameters$covModel) &&
+          dpObj$mixingDistribution$priorParameters$covModel != "FULL") {
+        # Get number of parameters for this covariance model
+        nParams <- dim(dpObj$clusterParameters$sig)[1]
+        new_sig <- array(NA_real_, dim = c(nParams, min_slots))
+        
+        # Copy existing parameters
+        new_mu[, , 1:mu_dim[3]] <- dpObj$clusterParameters$mu
+        new_sig[, 1:sig_dim[2]] <- dpObj$clusterParameters$sig
+        
+        # Fill remaining slots with prior draws
+        if (mu_dim[3] < min_slots) {
+          extra_params <- PriorDraw(dpObj$mixingDistribution, min_slots - mu_dim[3])
+          new_mu[, , (mu_dim[3]+1):min_slots] <- extra_params$mu
+          new_sig[, (sig_dim[2]+1):min_slots] <- extra_params$sig
+        }
+      } else {
+        # Full covariance model
+        new_sig <- array(NA_real_, dim = c(d, d, min_slots))
+        
+        # Copy existing parameters
+        new_mu[, , 1:mu_dim[3]] <- dpObj$clusterParameters$mu
+        new_sig[, , 1:sig_dim[3]] <- dpObj$clusterParameters$sig
+        
+        # Fill remaining slots with prior draws
+        if (mu_dim[3] < min_slots) {
+          extra_params <- PriorDraw(dpObj$mixingDistribution, min_slots - mu_dim[3])
+          new_mu[, , (mu_dim[3]+1):min_slots] <- extra_params$mu
+          new_sig[, , (sig_dim[3]+1):min_slots] <- extra_params$sig
+        }
       }
 
       dpObj$clusterParameters$mu <- new_mu
@@ -129,6 +158,56 @@ InitialisePredictive.conjugate <- function(dpObj) {
 
 InitialisePredictive.nonconjugate <- function(dpObj) {
   return(dpObj)
+}
+
+# Covariance model-specific Initialise methods
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.E <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  # Call base mvnormal initialise with covariance model handling
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
+}
+
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.V <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
+}
+
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.EII <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
+}
+
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.VII <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
+}
+
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.EEI <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
+}
+
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.VEI <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
+}
+
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.EVI <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
+}
+
+#' @export
+#' @rdname Initialise
+Initialise.mvnormal.VVI <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
+  return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
 }
 
 

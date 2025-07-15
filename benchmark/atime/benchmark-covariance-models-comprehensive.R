@@ -30,35 +30,34 @@ enable_cpp_samplers()
 
 # Benchmark parameters
 BENCHMARK_CONFIG <- list(
-  # Dimensions to test (start small for testing)
-  dimensions = c(2, 5, 10, 20),
+  # Dimensions to test (comprehensive testing)
+  dimensions = c(1, 2, 5, 10, 20, 50),
   
-  # Sample sizes for scalability analysis (start small for testing)
-  sample_sizes = c(50, 100, 200),
+  # Sample sizes for scalability analysis (comprehensive testing)
+  sample_sizes = c(50, 100, 200, 500, 1000),
   
-  # Covariance models to benchmark (start with FULL only for testing)
+  # Covariance models to benchmark (ALL MODELS NOW WORKING!)
   covariance_models = c(
-    "FULL"  # Full covariance (baseline)
-    # Add other models once implementation is verified:
-    # "E",     # Equal variance (univariate)
-    # "V",     # Variable variance (univariate)
-    # "EII",   # Spherical, equal volume
-    # "VII",   # Spherical, unequal volume
-    # "EEI",   # Diagonal, equal volume and shape
-    # "VEI",   # Diagonal, varying volume, equal shape
-    # "EVI",   # Diagonal, equal volume, varying shape
-    # "VVI"    # Diagonal, varying volume and shape
+    "FULL",  # Full covariance (baseline)
+    "E",     # Equal variance (univariate)
+    "V",     # Variable variance (univariate)
+    "EII",   # Spherical, equal volume
+    "VII",   # Spherical, unequal volume
+    "EEI",   # Diagonal, equal volume and shape
+    "VEI",   # Diagonal, varying volume, equal shape
+    "EVI",   # Diagonal, equal volume, varying shape
+    "VVI"    # Diagonal, varying volume and shape
   ),
   
-  # MCMC parameters (reduced for testing)
-  mcmc_iterations = 200,
-  mcmc_burnin = 50,
+  # MCMC parameters (realistic for production)
+  mcmc_iterations = 1000,
+  mcmc_burnin = 200,
   
   # Benchmark repetitions for statistical significance
-  benchmark_reps = 3,
+  benchmark_reps = 5,
   
-  # Digits to use from ZIP dataset
-  digits = c(0, 1, 2)
+  # Digits to use from ZIP dataset (comprehensive)
+  digits = c(0, 1, 2, 3, 4, 5)
 )
 
 # ==========================================
@@ -176,12 +175,7 @@ run_scalability_analysis <- function() {
         next
       }
       
-      # For now, only test FULL model to ensure basic functionality
-      # Comment out this line once all covariance models are implemented
-      if (model_name != "FULL") {
-        cat(sprintf("  Skipping %s (not implemented yet)\n", model_name))
-        next
-      }
+      # All covariance models are now implemented and working!
       
       # Create prior parameters for this model
       tryCatch({

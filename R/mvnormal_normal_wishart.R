@@ -100,14 +100,15 @@ MvnormalCreate <- function(priorParameters) {
     stop("nu must be a scalar greater than d-1")
   }
 
-  # Create the object
-  mdObj <- list(
-    priorParameters = priorParameters,
-    distribution = "mvnormal",
-    conjugate = TRUE
-  )
+  # Create the object using MixingDistribution constructor
+  mdObj <- MixingDistribution("mvnormal", priorParameters, "conjugate")
 
-  class(mdObj) <- c("mvnormal", "MixingDistribution", "NonHierarchical")
+  # Add covariance model-specific class
+  if (priorParameters$covModel != "FULL") {
+    class(mdObj) <- c("list", paste0("mvnormal.", priorParameters$covModel), 
+                      "mvnormal", "conjugate")
+  }
+  # For FULL model, keep the existing class structure from MixingDistribution
 
   return(mdObj)
 }
@@ -128,7 +129,7 @@ Likelihood.mvnormal <- function(mdObj, x, theta) {
 
   # R implementation
   if (!is.matrix(x)) {
-    x <- matrix(x, nrow = 1)
+    x <- matrix(x, ncol = 1)
   }
 
   # Extract parameters accounting for covariance model
@@ -160,7 +161,7 @@ PosteriorParameters.mvnormal <- function(mdObj, x) {
 
   # R implementation
   if (!is.matrix(x)) {
-    x <- matrix(x, nrow = 1)
+    x <- matrix(x, ncol = 1)
   }
 
   priorParameters <- mdObj$priorParameters
@@ -317,7 +318,7 @@ Predictive.mvnormal <- function(mdObj, x) {
 
   # R implementation
   if (!is.matrix(x)) {
-    x <- matrix(x, nrow = 1)
+    x <- matrix(x, ncol = 1)
   }
 
   priorParameters <- mdObj$priorParameters
@@ -417,7 +418,7 @@ extractCovarianceParams <- function(sigma, covModel) {
   } else if (covModel == "VEI") {
     diag_vals <- diag(sigma)
     volume <- prod(diag_vals)
-    shape <- diag_vals / volume^(1/d)
+    shape <- diag_vals / (volume^(1/d))
     return(c(volume, shape))
   } else {
     # Full - extract lower triangular
@@ -459,4 +460,102 @@ mvnormal_likelihood_wrapper_cpp <- function(x, theta, priorParams) {
   x_mat <- matrix(x, nrow = 1)
   return(mvnormal_likelihood_cpp(x_mat, theta_cpp$mu[1,,1],
                                  matrix(theta_cpp$sig, ncol = d)))
+}
+
+# Covariance model-specific PosteriorDraw methods
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.E <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.V <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.EII <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.VII <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.EEI <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.VEI <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.EVI <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+#' @export
+#' @rdname PosteriorDraw
+PosteriorDraw.mvnormal.VVI <- function(mdObj, x, n = 1, ...) {
+  return(PosteriorDraw.mvnormal(mdObj, x, n, ...))
+}
+
+# Covariance model-specific PriorDraw methods
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.E <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
+}
+
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.V <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
+}
+
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.EII <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
+}
+
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.VII <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
+}
+
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.EEI <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
+}
+
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.VEI <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
+}
+
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.EVI <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
+}
+
+#' @export
+#' @rdname PriorDraw
+PriorDraw.mvnormal.VVI <- function(mdObj, n = 1, ...) {
+  return(PriorDraw.mvnormal(mdObj, n, ...))
 }

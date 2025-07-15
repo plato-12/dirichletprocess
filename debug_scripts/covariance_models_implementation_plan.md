@@ -1,17 +1,17 @@
 # Covariance Models Implementation Plan
 
-## 🎯 **Objective**
+## **Objective**
 Fix the missing S3 method dispatch and backend integration for covariance models (E, V, EII, VII, EEI, VEI, EVI, VVI) in the dirichletprocess package.
 
-## 🔍 **Current Status**
+## **Current Status**
 
-### ✅ **What's Working**
+### **What's Working**
 - `MvnormalCreate()` function validates all covariance models
 - `extractCovarianceParams()` and `reconstructCovarianceMatrix()` helper functions exist
 - Model-specific parameter handling implemented
 - Documentation complete
 
-### ❌ **Critical Issue**
+### **Critical Issue**
 ```
 Error: no applicable method for 'Initialise' applied to an object of class 
 "c('list', 'dirichletprocess', 'MixingDistribution', 'NonHierarchical')"
@@ -19,7 +19,7 @@ Error: no applicable method for 'Initialise' applied to an object of class
 
 **Root Cause**: When `covModel` parameter is used, the resulting object doesn't have proper S3 method dispatch for the dirichletprocess framework.
 
-## 📋 **Step-by-Step Implementation Plan**
+## **Step-by-Step Implementation Plan**
 
 ### **Phase 1: Investigate Current Architecture**
 
@@ -175,7 +175,7 @@ PosteriorDraw.mvnormal.EII <- function(mdObj, x, n = 1, ...) {
 - **Task**: Compare performance across models
 - **Metrics**: Speed, memory usage, clustering quality
 
-## 🔧 **Implementation Priority**
+## **Implementation Priority**
 
 ### **High Priority (Must Fix)**
 1. **Fix class hierarchy** (Step 2.1)
@@ -191,7 +191,7 @@ PosteriorDraw.mvnormal.EII <- function(mdObj, x, n = 1, ...) {
 7. **C++ integration** (Step 6.1-6.2)
 8. **Performance testing** (Step 7.3)
 
-## 📝 **Implementation Template**
+## **Implementation Template**
 
 ### **File Structure**
 ```
@@ -225,14 +225,14 @@ PosteriorDraw.mvnormal.{MODEL} <- function(mdObj, x, n = 1, ...) {
 }
 ```
 
-## 🚨 **Critical Files to Modify**
+## **Critical Files to Modify**
 
 1. **`R/mvnormal_normal_wishart.R`** - Update class assignment in `MvnormalCreate()`
 2. **`R/initialise.R`** - Add `Initialise.mvnormal.{MODEL}` methods
 3. **`R/cpp_mvnormal_wrappers.R`** - Update C++ integration
 4. **`tests/testthat/test_covariance_models.R`** - Create comprehensive tests
 
-## 🎯 **Success Criteria**
+## **Success Criteria**
 
 - [ ] All covariance models create objects successfully
 - [ ] `DirichletProcessMvnormal()` works with all models
@@ -242,7 +242,7 @@ PosteriorDraw.mvnormal.{MODEL} <- function(mdObj, x, n = 1, ...) {
 - [ ] Unit tests pass for all models
 - [ ] Benchmark script can use all models
 
-## 🔄 **Next Steps**
+## **Steps**
 
 1. **Start with Phase 1** - Investigate current architecture
 2. **Implement Phase 2** - Fix class hierarchy (quickest fix)
@@ -250,17 +250,7 @@ PosteriorDraw.mvnormal.{MODEL} <- function(mdObj, x, n = 1, ...) {
 4. **Iterate** - Fix issues as they arise
 5. **Document** - Update this plan as implementation progresses
 
-## 📊 **Estimated Timeline**
-
-- **Phase 1-2**: 2-4 hours (investigation + class fix)
-- **Phase 3-4**: 4-6 hours (S3 methods implementation)
-- **Phase 5**: 2-3 hours (parameter handling)
-- **Phase 6**: 3-4 hours (C++ integration)
-- **Phase 7**: 2-3 hours (testing)
-
-**Total Estimated Time**: 13-20 hours
-
-## 🎉 **End Goal**
+## **End Goal**
 
 All covariance models working in the benchmark script:
 ```r
