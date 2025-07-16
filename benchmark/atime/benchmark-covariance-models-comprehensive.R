@@ -23,8 +23,64 @@ library(microbenchmark)
 library(pryr)
 library(mvtnorm)
 
-# Source data loading utilities
-source("datasets/load_zip_data.R")
+# Data generation utilities (inline to avoid dependencies)
+generate_benchmark_data <- function(n, d, seed = 42) {
+  set.seed(seed)
+  
+  # Create multivariate normal data with some structure
+  if (d == 1) {
+    # Univariate case
+    data <- rnorm(n, mean = 0, sd = 1)
+  } else {
+    # Multivariate case - create mixture of components
+    k_clusters <- 3
+    cluster_sizes <- rep(n %/% k_clusters, k_clusters)
+    cluster_sizes[k_clusters] <- cluster_sizes[k_clusters] + (n %% k_clusters)
+    
+    # Well-separated cluster means
+    means <- list()
+    for (i in 1:k_clusters) {
+      mean_vec <- rep(0, d)
+      mean_vec[1] <- (i - 2) * 2  # Separate along first dimension
+      if (d > 1) mean_vec[2] <- (i - 2) * 1.5  # Separate along second dimension
+      means[[i]] <- mean_vec
+    }
+    
+    # Common covariance matrix
+    sigma <- diag(d) * 0.5
+    
+    data <- matrix(NA, n, d)
+    idx <- 1
+    
+    for (i in 1:k_clusters) {
+      cluster_data <- mvtnorm::rmvnorm(cluster_sizes[i],
+                                       mean = means[[i]],
+                                       sigma = sigma)
+      data[idx:(idx + cluster_sizes[i] - 1), ] <- cluster_data
+      idx <- idx + cluster_sizes[i]
+    }
+  }
+  
+  return(data)
+}
+
+prepare_benchmark_data <- function(dimensions, sample_sizes, digits = NULL) {
+  datasets <- list()
+  
+  for (d in dimensions) {
+    for (n in sample_sizes) {
+      dataset_name <- sprintf("d%d_n%d", d, n)
+      
+      datasets[[dataset_name]] <- list(
+        data = generate_benchmark_data(n, d),
+        dimensions = d,
+        sample_size = n
+      )
+    }
+  }
+  
+  return(datasets)
+}
 
 # Enable C++ implementations for better performance
 set_use_cpp(TRUE)
@@ -227,7 +283,7 @@ run_atime_benchmark <- function() {
   cat("=== ATIME BENCHMARK ===\n")
   
   # Load a representative dataset
-  zip_data <- load_zip_data(max_samples = 2000, digits = BENCHMARK_CONFIG$digits)
+  zip_data <- list(data = generate_benchmark_data(2000, 10))
   
   # Define benchmark across increasing data sizes (comprehensive testing)
   atime_results <- atime::atime(
@@ -328,7 +384,7 @@ create_prior_parameters <- function(dimensions, model_name) {
     mu0 <- 0
     kappa0 <- 1
     nu <- 3
-    Lambda <- 1
+    Lambda <- matrix(1, 1, 1)  # Ensure Lambda is always a matrix
   } else {
     # Multivariate case
     mu0 <- rep(0, dimensions)
