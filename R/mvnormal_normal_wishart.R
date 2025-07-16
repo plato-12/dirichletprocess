@@ -27,6 +27,12 @@ MvnormalCreate <- function(priorParameters) {
     )
   }
 
+  # Handle the case where a mixing distribution object is passed
+  if (is.list(priorParameters) && !is.null(priorParameters$priorParameters)) {
+    # A mixing distribution object was passed, extract the priorParameters
+    priorParameters <- priorParameters$priorParameters
+  }
+  
   # Handle the case where a vector is passed instead of a list
   if (is.numeric(priorParameters) && !is.list(priorParameters)) {
     # Assume it's the mean vector
