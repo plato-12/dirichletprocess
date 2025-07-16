@@ -212,9 +212,16 @@ run_optimized_atime_benchmark <- function(max_n = 100, dimensions = 2,
   # Add times parameter
   expressions$times <- repetitions
   
-  # Create N sequence
-  n_sequence <- unique(c(10, 20, min(50, max_n), max_n))
+  # Create N sequence - optimized for faster execution
+  n_sequence <- unique(c(20, max_n))  # Reduced from 4 to 2 sample sizes for speed
   expressions$N <- n_sequence
+  
+  # Show progress information
+  total_combinations <- length(n_sequence) * length(valid_models) * repetitions
+  estimated_minutes <- (total_combinations * mcmc_iter) / 60
+  cat(sprintf("Running atime benchmark: %d sample sizes × %d models × %d repetitions = %d total runs\n", 
+              length(n_sequence), length(valid_models), repetitions, total_combinations))
+  cat(sprintf("Estimated time: %.1f minutes\n", estimated_minutes))
   
   # Run benchmark
   result <- do.call(atime::atime, expressions)

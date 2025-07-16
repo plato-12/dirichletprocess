@@ -34,13 +34,28 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
 
     # Handle case where mu_dim might not have 3 dimensions (e.g., 1D data)
     if (is.null(mu_dim) || length(mu_dim) < 3) {
-      # For 1D data, mu might be a vector or 2D array
+      # For 1D data, mu might be a scalar or vector
       if (is.null(mu_dim)) {
-        # It's a vector, convert to proper 3D array
-        d <- 1
-        n_clusters <- length(dpObj$clusterParameters$mu)
-        dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
-        dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+        # It's a scalar or vector, convert to proper 3D array
+        d <- ncol(dpObj$data)  # Get dimensions from data
+        if (is.null(d) || d <= 0) d <- 1  # Default to 1D if issues
+        
+        # For scalars, convert to array format
+        if (length(dpObj$clusterParameters$mu) == 1) {
+          n_clusters <- 1
+          dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
+        } else {
+          n_clusters <- length(dpObj$clusterParameters$mu)
+          dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
+        }
+        
+        # Handle sig dimensions - ensure it's properly formatted
+        if (length(dim(dpObj$clusterParameters$sig)) == 3) {
+          # Already in 3D format, keep as is
+        } else {
+          # Convert to 3D if needed
+          dpObj$clusterParameters$sig <- array(dpObj$clusterParameters$sig, dim = c(d, d, n_clusters))
+        }
       } else if (length(mu_dim) == 2) {
         # It's a 2D array, add the third dimension
         d <- mu_dim[1]
@@ -48,7 +63,7 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
         dpObj$clusterParameters$mu <- array(dpObj$clusterParameters$mu, dim = c(1, d, n_clusters))
         # For constrained models, sig dimensions are different
         if (exists("priorParameters", dpObj$mixingDistribution) && 
-            !is.null(dpObj$mixingDistribution$priorParameters$covModel) &&
+            is.null(dpObj$mixingDistribution$priorParameters$covModel) == FALSE &&
             dpObj$mixingDistribution$priorParameters$covModel != "FULL") {
           # Keep sig as is for constrained models
         } else {
