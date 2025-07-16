@@ -2,6 +2,60 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## **PROJECT MISSION: C++ IMPLEMENTATION PRIORITY**
+
+**CRITICAL DIRECTIVE**: This project is focused on implementing and maintaining high-performance C++ implementations for the Dirichlet Process algorithms. The primary goal is to provide C++ backends that significantly improve performance over pure R implementations.
+
+### **C++ Implementation Philosophy**
+
+1. **Never Fall Back to R as a Solution**: When C++ implementations fail or have issues, the correct approach is to **fix the C++ code**, not to disable C++ and fall back to R
+2. **Performance is Key**: C++ implementations should provide substantial performance improvements over R
+3. **Correctness**: C++ implementations must produce identical results to R implementations
+4. **Completeness**: All major functionality should have C++ implementations where performance matters
+
+### **Development Guidelines for C++ Issues**
+
+When encountering C++ implementation problems:
+
+1. **✅ CORRECT Approach**: 
+   - Analyze the root cause of the C++ issue
+   - Fix the C++ code, function signatures, parameter handling, or integration
+   - Test thoroughly to ensure C++ and R produce identical results
+   - Document the fix and add regression tests
+
+2. **❌ INCORRECT Approach**:
+   - Disabling C++ with `set_use_cpp(FALSE)` as a solution
+   - Falling back to R implementation when C++ fails
+   - Using `if (FALSE && using_cpp_samplers())` to bypass C++
+   - Implementing "easy workarounds" that avoid fixing the real issue
+
+### **Current C++ Implementation Status**
+
+- **✅ Working**: Basic MVNormal, MVNormal2, Beta, Weibull, Normal distributions
+- **⚠️ Needs Attention**: MVNormal covariance models parameter structure integration
+- **🔧 In Progress**: C++ dispatch integration in mixing_distribution_likelihood.R
+
+### **Priority Areas for C++ Development**
+
+1. **High Priority**: Fix MVNormal parameter structure mismatch (see `debug_scripts/mvnormal_cpp_parameter_mismatch_analysis.md`)
+2. **Medium Priority**: Complete C++ dispatch for all distributions in mixing_distribution_likelihood.R  
+3. **Low Priority**: Optimize C++ implementations for memory usage and speed
+
+### **Current Issue: MVNormal C++ Parameter Structure Mismatch**
+
+**Problem**: Benchmark fails with "values must be length 2, but FUN(X[[1]]) result is length 1" when C++ is enabled
+**Root Cause**: `mvnormal_likelihood_wrapper_cpp` function not properly exported and parameter structure handling incorrect
+**Analysis**: Complete analysis in `debug_scripts/mvnormal_cpp_parameter_mismatch_analysis.md`
+
+**Required Fixes**:
+1. Export `mvnormal_likelihood_wrapper_cpp` function properly
+2. Fix multi-cluster parameter handling in `Likelihood.mvnormal` C++ path
+3. Complete mvnormal handler in `mixing_distribution_likelihood.R`
+4. Test all 9 covariance models with C++ enabled
+
+**Status**: ⚠️ CRITICAL - Blocking benchmark functionality
+**Next Steps**: Follow implementation plan in analysis document
+
 ## Development Commands
 
 ### Package Development (R Console)

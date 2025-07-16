@@ -10,6 +10,14 @@
 \alias{PriorDraw.exponential}
 \alias{PriorDraw}
 \alias{PriorDraw.mvnormal}
+\alias{PriorDraw.mvnormal.E}
+\alias{PriorDraw.mvnormal.V}
+\alias{PriorDraw.mvnormal.EII}
+\alias{PriorDraw.mvnormal.VII}
+\alias{PriorDraw.mvnormal.EEI}
+\alias{PriorDraw.mvnormal.VEI}
+\alias{PriorDraw.mvnormal.EVI}
+\alias{PriorDraw.mvnormal.VVI}
 \alias{PriorDraw.mvnormal2}
 \alias{PriorDraw.normalFixedVariance}
 \alias{PriorDraw.normal}
@@ -25,6 +33,22 @@
 PriorDraw(mdObj, n)
 
 \method{PriorDraw}{mvnormal}(mdObj, n = 1)
+
+\method{PriorDraw}{mvnormal.E}(mdObj, n = 1, ...)
+
+\method{PriorDraw}{mvnormal.V}(mdObj, n = 1, ...)
+
+\method{PriorDraw}{mvnormal.EII}(mdObj, n = 1, ...)
+
+\method{PriorDraw}{mvnormal.VII}(mdObj, n = 1, ...)
+
+\method{PriorDraw}{mvnormal.EEI}(mdObj, n = 1, ...)
+
+\method{PriorDraw}{mvnormal.VEI}(mdObj, n = 1, ...)
+
+\method{PriorDraw}{mvnormal.EVI}(mdObj, n = 1, ...)
+
+\method{PriorDraw}{mvnormal.VVI}(mdObj, n = 1, ...)
 
 \method{PriorDraw}{mvnormal2}(mdObj, n = 1)
 

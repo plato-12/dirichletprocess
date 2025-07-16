@@ -28,6 +28,7 @@ LikelihoodDP <- function(dpobj){
       }
     }
     clusters_parameters <- active_params
+    names(clusters_parameters) <- names(dpobj$clusterParameters)
   }
 
   likelihoodValues <- vapply(seq_len(nrow(dpobj$data)),

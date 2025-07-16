@@ -124,7 +124,87 @@ Likelihood.mvnormal <- function(mdObj, x, theta) {
       }
       x <- as.vector(x)
     }
-    return(mvnormal_likelihood_wrapper_cpp(x, theta, mdObj$priorParameters))
+    
+    # The theta parameter is the full cluster parameters structure
+    # We need to process it for multiple clusters
+    d <- length(x)
+    
+    # Check if theta contains mu and sig fields
+    if (!is.list(theta)) {
+      stop("theta must be a list")
+    }
+    
+    # Handle different parameter formats
+    if (all(c("mu", "sig") %in% names(theta))) {
+      # Named list format: list(mu = ..., sig = ...)
+      mu_array <- theta$mu
+      sig_array <- theta$sig
+    } else if (length(theta) >= 2 && is.null(names(theta))) {
+      # Unnamed list format from LikelihoodDP: list(mu_array, sig_array)
+      mu_array <- theta[[1]]
+      sig_array <- theta[[2]]
+    } else {
+      stop("theta must be a list with either named components (mu, sig) or two unnamed components")
+    }
+    
+    # Get dimensions
+    mu_dim <- dim(mu_array)
+    sig_dim <- dim(sig_array)
+    
+    # Extract number of clusters
+    if (is.null(mu_dim) || length(mu_dim) < 3) {
+      # Handle case where parameters are not 3D arrays yet
+      if (is.null(mu_dim)) {
+        # mu_array is a vector, likely single cluster
+        num_clusters <- 1
+      } else if (length(mu_dim) == 2) {
+        # mu_array is a 2D array, clusters are in the second dimension
+        num_clusters <- mu_dim[2]
+      } else {
+        num_clusters <- 1
+      }
+    } else {
+      num_clusters <- mu_dim[3]
+    }
+    
+    # Calculate likelihood for each cluster
+    result <- numeric(num_clusters)
+    for (k in 1:num_clusters) {
+      # Extract parameters for cluster k
+      if (is.null(mu_dim)) {
+        # mu_array is a vector, single cluster
+        cluster_mu <- mu_array
+        cluster_sig <- sig_array
+      } else if (length(mu_dim) == 2) {
+        # 2D array, clusters in second dimension
+        cluster_mu <- mu_array[, k]
+        if (mdObj$priorParameters$covModel == "FULL") {
+          cluster_sig <- sig_array[, , k]
+        } else {
+          cluster_sig <- sig_array[, k]
+        }
+      } else if (length(mu_dim) == 3) {
+        # 3D array, clusters in third dimension
+        cluster_mu <- mu_array[, , k]
+        if (mdObj$priorParameters$covModel == "FULL") {
+          cluster_sig <- sig_array[, , k]
+        } else {
+          cluster_sig <- sig_array[, k]
+        }
+      } else {
+        # Single value case
+        cluster_mu <- mu_array
+        cluster_sig <- sig_array
+      }
+      
+      # Create individual cluster theta
+      cluster_theta <- list(mu = cluster_mu, sig = cluster_sig)
+      
+      # Call wrapper for this cluster
+      result[k] <- mvnormal_likelihood_wrapper_cpp(x, cluster_theta, mdObj$priorParameters)
+    }
+    
+    return(result)
   }
 
   # R implementation
@@ -132,23 +212,95 @@ Likelihood.mvnormal <- function(mdObj, x, theta) {
     x <- matrix(x, ncol = 1)
   }
 
+  # Check if theta contains mu and sig fields
+  if (!is.list(theta)) {
+    stop("theta must be a list")
+  }
+  
+  # Handle different parameter formats
+  if (all(c("mu", "sig") %in% names(theta))) {
+    # Named list format: list(mu = ..., sig = ...)
+    mu_array <- theta$mu
+    sig_array <- theta$sig
+  } else if (length(theta) >= 2 && is.null(names(theta))) {
+    # Unnamed list format from LikelihoodDP: list(mu_array, sig_array)
+    mu_array <- theta[[1]]
+    sig_array <- theta[[2]]
+  } else {
+    stop("theta must be a list with either named components (mu, sig) or two unnamed components")
+  }
+  
+  # Get dimensions
+  mu_dim <- dim(mu_array)
+  sig_dim <- dim(sig_array)
+  
   # Extract parameters accounting for covariance model
   d <- ncol(x)
-  mu <- as.vector(theta$mu)
-
-  # Handle covariance based on model
-  if (mdObj$priorParameters$covModel == "FULL") {
-    # sig is precision matrix for full model
-    sig_inv <- matrix(theta$sig, ncol = d)
-    sig_matrix <- solve(sig_inv)
+  
+  # Extract number of clusters
+  if (is.null(mu_dim) || length(mu_dim) < 3) {
+    # Handle case where parameters are not 3D arrays yet
+    if (is.null(mu_dim)) {
+      # mu_array is a vector, likely single cluster
+      num_clusters <- 1
+    } else if (length(mu_dim) == 2) {
+      # mu_array is a 2D array, clusters are in the second dimension
+      num_clusters <- mu_dim[2]
+    } else {
+      num_clusters <- 1
+    }
   } else {
-    # Reconstruct covariance from parameters
-    sig_matrix <- reconstructCovarianceMatrix(theta$sig, d,
-                                              mdObj$priorParameters$covModel)
+    num_clusters <- mu_dim[3]
   }
-
-  # Use mvtnorm for likelihood calculation
-  result <- mvtnorm::dmvnorm(x, mean = mu, sigma = sig_matrix)
+  
+  # Calculate likelihood for each cluster
+  result <- numeric(num_clusters)
+  for (k in 1:num_clusters) {
+    # Extract parameters for cluster k
+    if (is.null(mu_dim)) {
+      # mu_array is a vector, single cluster
+      cluster_mu <- mu_array
+      cluster_sig <- sig_array
+    } else if (length(mu_dim) == 2) {
+      # 2D array, clusters in second dimension
+      cluster_mu <- mu_array[, k]
+      if (mdObj$priorParameters$covModel == "FULL") {
+        cluster_sig <- sig_array[, , k]
+      } else {
+        cluster_sig <- sig_array[, k]
+      }
+    } else if (length(mu_dim) == 3) {
+      # 3D array, clusters in third dimension
+      cluster_mu <- mu_array[, , k]
+      if (mdObj$priorParameters$covModel == "FULL") {
+        cluster_sig <- sig_array[, , k]
+      } else {
+        cluster_sig <- sig_array[, k]
+      }
+    } else {
+      # Single value case
+      cluster_mu <- mu_array
+      cluster_sig <- sig_array
+    }
+    
+    # Convert to vectors/matrices for computation
+    mu <- as.vector(cluster_mu)
+    
+    # Handle covariance based on model
+    if (mdObj$priorParameters$covModel == "FULL") {
+      # sig is precision matrix for full model
+      sig_inv <- matrix(cluster_sig, ncol = d)
+      sig_matrix <- solve(sig_inv)
+    } else {
+      # Reconstruct covariance from parameters
+      sig_matrix <- reconstructCovarianceMatrix(cluster_sig, d,
+                                                mdObj$priorParameters$covModel)
+    }
+    
+    # Use mvtnorm for likelihood calculation
+    result[k] <- mvtnorm::dmvnorm(x, mean = mu, sigma = sig_matrix)
+  }
+  
   return(result)
 }
 
@@ -436,30 +588,28 @@ extractCovarianceParams <- function(sigma, covModel) {
 
 #' C++ wrapper for likelihood calculation
 #' @keywords internal
+#' @export
 mvnormal_likelihood_wrapper_cpp <- function(x, theta, priorParams) {
-  # Prepare theta in the expected format
+  # Prepare data and parameters
   d <- length(x)
-
-  # Create properly formatted theta list
-  if (priorParams$covModel == "FULL") {
-    # For full model, sig should be d x d
-    theta_cpp <- list(
-      mu = array(theta$mu, dim = c(1, d, 1)),
-      sig = array(theta$sig, dim = c(d, d, 1))
-    )
-  } else {
-    # For other models, sig contains parameters
-    nParams <- getNumCovParams(d, priorParams$covModel)
-    theta_cpp <- list(
-      mu = array(theta$mu, dim = c(1, d, 1)),
-      sig = array(theta$sig, dim = c(nParams, 1))
-    )
-  }
-
-  # Call C++ function
   x_mat <- matrix(x, nrow = 1)
-  return(mvnormal_likelihood_cpp(x_mat, theta_cpp$mu[1,,1],
-                                 matrix(theta_cpp$sig, ncol = d)))
+  mu <- as.vector(theta$mu)
+  
+  # Handle covariance based on model
+  if (priorParams$covModel == "FULL") {
+    # For FULL model, sig is already a precision matrix that needs to be inverted
+    if (is.matrix(theta$sig)) {
+      sig_matrix <- solve(theta$sig)  # Convert precision to covariance
+    } else {
+      sig_matrix <- solve(matrix(theta$sig, nrow = d, ncol = d))
+    }
+  } else {
+    # For constrained models, reconstruct the covariance matrix from parameters
+    sig_matrix <- reconstructCovarianceMatrix(theta$sig, d, priorParams$covModel)
+  }
+  
+  # Call C++ function with proper covariance matrix
+  return(mvnormal_likelihood_cpp(x_mat, mu, sig_matrix))
 }
 
 # Covariance model-specific PosteriorDraw methods

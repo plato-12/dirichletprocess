@@ -3,6 +3,14 @@
 \name{Initialise.beta}
 \alias{Initialise.beta}
 \alias{Initialise}
+\alias{Initialise.mvnormal.E}
+\alias{Initialise.mvnormal.V}
+\alias{Initialise.mvnormal.EII}
+\alias{Initialise.mvnormal.VII}
+\alias{Initialise.mvnormal.EEI}
+\alias{Initialise.mvnormal.VEI}
+\alias{Initialise.mvnormal.EVI}
+\alias{Initialise.mvnormal.VVI}
 \title{Initialise a Dirichlet process object}
 \usage{
 \method{Initialise}{beta}(dpObj, m = 3, verbose = TRUE, ...)
@@ -12,6 +20,70 @@ Initialise(
   posterior = TRUE,
   m = 3,
   verbose = TRUE,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.E}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.V}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.EII}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.VII}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.EEI}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.VEI}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.EVI}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{mvnormal.VVI}(
+  dpObj,
+  posterior = TRUE,
+  m = NULL,
+  verbose = NULL,
   numInitialClusters = 1
 )
 }
