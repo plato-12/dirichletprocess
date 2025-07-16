@@ -72,7 +72,13 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
 
     if (current_clusters < min_slots) {
       # Expand arrays
-      d <- mu_dim[2]
+      # Handle dimension access safely
+      if (is.null(mu_dim) || length(mu_dim) < 2) {
+        # For E/V models, mu is a vector, infer dimension from data
+        d <- ncol(dpObj$data)
+      } else {
+        d <- mu_dim[2]
+      }
 
       # Create new arrays with more space
       new_mu <- array(NA_real_, dim = c(1, d, min_slots))
@@ -87,13 +93,39 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
         
         # Copy existing parameters
         new_mu[, , 1:current_clusters] <- dpObj$clusterParameters$mu
-        new_sig[, 1:sig_dim[2]] <- dpObj$clusterParameters$sig
+        
+        # For constrained models, sig might be 3D but we need 2D
+        if (length(sig_dim) == 3) {
+          # Convert 3D sig to 2D for constrained models
+          sig_2d <- matrix(dpObj$clusterParameters$sig, nrow = sig_dim[1], ncol = sig_dim[3])
+          new_sig[, 1:sig_dim[3]] <- sig_2d
+        } else {
+          new_sig[, 1:sig_dim[2]] <- dpObj$clusterParameters$sig
+        }
         
         # Fill remaining slots with prior draws
         if (current_clusters < min_slots) {
           extra_params <- PriorDraw(dpObj$mixingDistribution, min_slots - current_clusters)
-          new_mu[, , (current_clusters+1):min_slots] <- extra_params$mu
-          new_sig[, (sig_dim[2]+1):min_slots] <- extra_params$sig
+          
+          # Convert extra mu to 3D if needed
+          if (is.null(dim(extra_params$mu))) {
+            # Vector to 3D array
+            extra_mu <- array(extra_params$mu, dim = c(1, d, length(extra_params$mu)))
+          } else {
+            extra_mu <- extra_params$mu
+          }
+          
+          new_mu[, , (current_clusters+1):min_slots] <- extra_mu
+          
+          # Convert extra sig to 2D if needed
+          if (length(dim(extra_params$sig)) == 3) {
+            # Convert 3D sig to 2D for constrained models
+            extra_sig_dims <- dim(extra_params$sig)
+            extra_sig_2d <- matrix(extra_params$sig, nrow = extra_sig_dims[1], ncol = extra_sig_dims[3])
+            new_sig[, (current_clusters+1):min_slots] <- extra_sig_2d
+          } else {
+            new_sig[, (current_clusters+1):min_slots] <- extra_params$sig
+          }
         }
       } else {
         # Full covariance model

@@ -404,8 +404,8 @@ PriorDraw.mvnormal <- function(mdObj, n = 1) {
   priorParameters <- mdObj$priorParameters
   d <- length(priorParameters$mu0)
 
-  # Draw from prior
-  sig <- rWishart(n, priorParameters$nu, priorParameters$Lambda)
+  # Draw from prior using safe rWishart
+  sig <- safe_rWishart(n, priorParameters$nu, priorParameters$Lambda)
 
   if (mdObj$priorParameters$covModel == "FULL") {
     # Full model - return precision matrices
@@ -448,7 +448,8 @@ PosteriorDraw.mvnormal <- function(mdObj, x, n = 1, ...) {
   post_parameters <- PosteriorParameters(mdObj, x)
   d <- length(post_parameters$mu_n)
 
-  sig <- rWishart(n, post_parameters$nu_n, post_parameters$t_n)
+  # Use safe rWishart to handle numerical edge cases
+  sig <- safe_rWishart(n, post_parameters$nu_n, post_parameters$t_n)
 
   if (mdObj$priorParameters$covModel == "FULL") {
     # Full model

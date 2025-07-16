@@ -29,8 +29,8 @@ generate_benchmark_data <- function(n, d, seed = 42) {
   
   # Create multivariate normal data with some structure
   if (d == 1) {
-    # Univariate case
-    data <- rnorm(n, mean = 0, sd = 1)
+    # Univariate case - ensure it's a matrix
+    data <- matrix(rnorm(n, mean = 0, sd = 1), ncol = 1)
   } else {
     # Multivariate case - create mixture of components
     k_clusters <- 3
@@ -169,7 +169,7 @@ collect_performance_metrics <- function(model_name, data_matrix, prior_params,
     # Convergence quality metrics
     log_likelihood <- if(length(dp$likelihoodTrace) > 0) tail(dp$likelihoodTrace, 1) else NA
     n_clusters <- if(!is.null(dp$numberClusters)) dp$numberClusters else 1
-    cluster_sizes <- if(!is.null(dp$pointsPerCluster)) dp$pointsPerCluster else n_samples
+    cluster_sizes <- if(!is.null(dp$pointsPerCluster)) dp$pointsPerCluster else c(n_samples, 0)  # Ensure length 2
     
     # Update metrics
     metrics$success <- TRUE
