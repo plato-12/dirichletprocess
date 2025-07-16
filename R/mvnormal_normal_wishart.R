@@ -44,6 +44,23 @@ MvnormalCreate <- function(priorParameters) {
   if (is.null(priorParameters$covModel)) {
     priorParameters$covModel <- "FULL"
   }
+  
+  # Fill in missing parameters with defaults
+  # Default to 2D if mu0 is not specified
+  default_d <- if (is.null(priorParameters$mu0)) 2 else length(priorParameters$mu0)
+  
+  if (is.null(priorParameters$mu0)) {
+    priorParameters$mu0 <- rep(0, default_d)
+  }
+  if (is.null(priorParameters$kappa0)) {
+    priorParameters$kappa0 <- 1
+  }
+  if (is.null(priorParameters$nu)) {
+    priorParameters$nu <- default_d + 1
+  }
+  if (is.null(priorParameters$Lambda)) {
+    priorParameters$Lambda <- diag(default_d)
+  }
 
   # Validate covariance model
   valid_models <- c("FULL", "E", "V", "EII", "VII", "EEI", "VEI", "EVI", "VVI")
@@ -540,8 +557,26 @@ reconstructCovarianceMatrix <- function(params, d, covModel) {
     # Diagonal with volume and shape
     volume <- params[1]
     shape <- params[2:(d+1)]
-    shape <- shape / prod(shape)^(1/d)
-    return(diag(volume^(1/d) * shape))
+    
+    # Add numerical stability checks
+    if (volume <= 0) {
+      volume <- 1e-6  # Small positive value
+    }
+    
+    shape_prod <- prod(shape)
+    if (shape_prod <= 0 || is.na(shape_prod) || is.infinite(shape_prod)) {
+      shape <- rep(1, d)  # Fall back to identity shape
+    } else {
+      shape <- shape / (shape_prod^(1/d))
+    }
+    
+    # Ensure volume^(1/d) is valid
+    vol_root <- volume^(1/d)
+    if (is.na(vol_root) || is.infinite(vol_root)) {
+      vol_root <- 1
+    }
+    
+    return(diag(vol_root * shape))
   } else {
     # Full covariance matrix
     idx <- 1
@@ -569,8 +604,26 @@ extractCovarianceParams <- function(sigma, covModel) {
     return(diag(sigma))
   } else if (covModel == "VEI") {
     diag_vals <- diag(sigma)
+    
+    # Ensure diagonal values are positive
+    diag_vals <- pmax(diag_vals, 1e-6)
+    
     volume <- prod(diag_vals)
-    shape <- diag_vals / (volume^(1/d))
+    
+    # Add numerical stability checks
+    if (volume <= 0 || is.na(volume) || is.infinite(volume)) {
+      volume <- 1
+      shape <- rep(1, d)
+    } else {
+      vol_root <- volume^(1/d)
+      if (is.na(vol_root) || is.infinite(vol_root)) {
+        vol_root <- 1
+        shape <- rep(1, d)
+      } else {
+        shape <- diag_vals / vol_root
+      }
+    }
+    
     return(c(volume, shape))
   } else {
     # Full - extract lower triangular

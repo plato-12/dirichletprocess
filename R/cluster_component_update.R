@@ -49,13 +49,16 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
         for (k in seq_along(clusterParams)) {
           param_dims <- dim(clusterParams[[k]])
           if (length(param_dims) == 3) {
-            # For 3D arrays, extract the slice for cluster j
+            # For 3D arrays (FULL covariance models), extract the slice for cluster j
             single_cluster_params[[k]] <- array(
               clusterParams[[k]][, , j],
               dim = c(param_dims[1], param_dims[2], 1)
             )
+          } else if (length(param_dims) == 2) {
+            # For 2D arrays (constrained covariance models), extract column j
+            single_cluster_params[[k]] <- clusterParams[[k]][, j, drop = FALSE]
           } else {
-            # Fallback for other structures
+            # Fallback for 1D or scalar structures
             single_cluster_params[[k]] <- clusterParams[[k]][j]
           }
         }

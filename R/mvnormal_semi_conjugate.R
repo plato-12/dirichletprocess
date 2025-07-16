@@ -20,8 +20,36 @@ Likelihood.mvnormal2 <- function(mdObj, x, theta) {
   if (!is.matrix(x)) {
     x <- matrix(x, nrow = 1)
   }
-  y <- vapply(seq_len(dim(theta[[1]])[3]),
-              function(i) mvtnorm::dmvnorm(x, theta[[1]][, , i], theta[[2]][, , i]),
+  # Get dimensions and handle both 2D and 3D parameter arrays
+  theta1_dim <- dim(theta[[1]])
+  theta2_dim <- dim(theta[[2]])
+  
+  # Determine number of clusters from mu array
+  num_clusters <- if (length(theta1_dim) >= 3) theta1_dim[3] else 1
+  
+  y <- vapply(seq_len(num_clusters),
+              function(i) {
+                # Extract mu for cluster i
+                if (length(theta1_dim) >= 3) {
+                  mu_i <- theta[[1]][, , i]
+                } else {
+                  mu_i <- theta[[1]][, i]
+                }
+                
+                # Extract sigma for cluster i - handle different dimensions
+                if (length(theta2_dim) >= 3) {
+                  # Full covariance model - 3D array
+                  sigma_i <- theta[[2]][, , i]
+                } else if (length(theta2_dim) == 2) {
+                  # Constrained covariance models - 2D array
+                  sigma_i <- theta[[2]][, i]
+                } else {
+                  # Single cluster case
+                  sigma_i <- theta[[2]]
+                }
+                
+                mvtnorm::dmvnorm(x, mu_i, sigma_i)
+              },
               numeric(nrow(x)))
 
   return(y)
