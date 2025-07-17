@@ -135,7 +135,7 @@ std::string getDistributionType(const Rcpp::List& dpObj) {
 
 std::unique_ptr<DirichletProcess> createDPFromR(const Rcpp::List& rObj) {
   // Create base DirichletProcess object using smart pointer
-  auto dp = std::make_unique<DirichletProcess>();
+  std::unique_ptr<DirichletProcess> dp(new DirichletProcess());
 
   try {
     if (dp && rObj.containsElementNamed("data") && rObj.containsElementNamed("n")

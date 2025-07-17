@@ -33,7 +33,7 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
         Rcpp::List dp_obj = indDP_list[i];
 
         // Create NonConjugateBetaDP from R object using smart pointer
-        auto betaDP = std::make_unique<NonConjugateBetaDP>();
+        std::unique_ptr<NonConjugateBetaDP> betaDP(new NonConjugateBetaDP());
 
         // Set common DP properties with validation
         if (dp_obj.containsElementNamed("data")) {
@@ -61,7 +61,6 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
               // Labels should already be 0-indexed from R wrapper
               // Just check they're not negative
               if (labels.min() < 0) {
-                delete betaDP;
                 throw Rcpp::exception("Invalid cluster labels (must be >= 0 after conversion)");
               }
               betaDP->clusterLabels = labels;  // Already 0-indexed
@@ -97,8 +96,8 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
           Rcpp::List mixDist_obj = Rcpp::as<Rcpp::List>(dp_obj["mixingDistribution"]);
 
           if (mixDist_obj.containsElementNamed("priorParameters")) {
-            betaDP->mixingDistribution = std::make_unique<BetaMixingDistribution>(
-              Rcpp::as<Rcpp::NumericVector>(mixDist_obj["priorParameters"]));
+            betaDP->mixingDistribution = std::unique_ptr<BetaMixingDistribution>(
+              new BetaMixingDistribution(Rcpp::as<Rcpp::NumericVector>(mixDist_obj["priorParameters"])));
 
             betaDP->mixingDistribution->maxT = mixDist_obj.containsElementNamed("maxT") ?
             Rcpp::as<double>(mixDist_obj["maxT"]) : 1.0;
@@ -388,7 +387,7 @@ void HierarchicalBetaDP::updateG0() {
 
   // Draw new parameters for the additional breaks
   BetaMixingDistribution* betaMD = dynamic_cast<BetaMixingDistribution*>(
-    dynamic_cast<NonConjugateBetaDP*>(indDP[0])->mixingDistribution);
+    dynamic_cast<NonConjugateBetaDP*>(indDP[0])->mixingDistribution.get());
 
   if (betaMD) {
     Rcpp::List new_params = betaMD->priorDraw(num_breaks);

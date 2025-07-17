@@ -615,7 +615,7 @@ void ConjugateMVNormalDP::initialize(const Rcpp::List& dpObj) {
   Rcpp::List mdObj = dpObj["mixingDistribution"];
   Rcpp::List priorParams = mdObj["priorParameters"];
   try {
-    mixingDistribution = std::make_unique<MVNormalMixingDistribution>(priorParams);
+    mixingDistribution = std::unique_ptr<MVNormalMixingDistribution>(new MVNormalMixingDistribution(priorParams));
   } catch (const std::exception& e) {
     Rcpp::stop("Failed to initialize mixing distribution: %s", e.what());
   }

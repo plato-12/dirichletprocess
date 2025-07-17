@@ -62,7 +62,7 @@ public:
   Rcpp::List toR() const override;
 
   // Override getMixingDistribution
-  MixingDistribution* getMixingDistribution() override { return mixingDistribution; }
+  MixingDistribution* getMixingDistribution() override { return mixingDistribution.get(); }
 };
 
 } // namespace dp

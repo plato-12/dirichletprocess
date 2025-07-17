@@ -55,7 +55,7 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
     Rcpp::stop("alpha must be positive");
   }
 
-  state = std::make_unique<DPState>(data.n_rows, initial_alpha);
+  state = std::unique_ptr<DPState>(new DPState(data.n_rows, initial_alpha));
 
   // Pre-allocate storage
   alpha_samples.reserve(n_iter);
