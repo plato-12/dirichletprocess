@@ -215,10 +215,7 @@ cat("Running E model MCMC (this may take a moment)...\n")
 
 ``` r
 start_time <- Sys.time()
-# Suppress C++ fallback warnings for cleaner output
-suppressWarnings({
-  dp_e_fitted <- Fit(dp_e, its = 25, progressBar = FALSE)
-})
+dp_e_fitted <- Fit(dp_e, its = 50, progressBar = FALSE)
 ```
 
 ```
@@ -326,9 +323,7 @@ cat("Running V model MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_v_fitted <- Fit(dp_v, its = 25, progressBar = FALSE)
-})
+dp_v_fitted <- Fit(dp_v, its = 50, progressBar = FALSE)
 ```
 
 ```
@@ -435,9 +430,7 @@ cat("Running FULL model (1D) MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_full_1d_fitted <- Fit(dp_full_1d, its = 25, progressBar = FALSE)
-})
+dp_full_1d_fitted <- Fit(dp_full_1d, its = 50, progressBar = FALSE)
 ```
 
 ```
@@ -541,9 +534,7 @@ cat("Running FULL model (2D) MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_full_fitted <- Fit(dp_full, its = 25, progressBar = FALSE)
-})
+dp_full_fitted <- Fit(dp_full, its = 50, progressBar = FALSE)
 end_time <- Sys.time()
 
 cat("\n=== FULL MODEL (2D) RESULTS ===\n")
@@ -559,7 +550,7 @@ cat("  Execution time:", round(as.numeric(end_time - start_time), 2), "seconds\n
 ```
 
 ```
-##   Execution time: 4.94 seconds
+##   Execution time: 16.7 seconds
 ```
 
 ``` r
@@ -567,7 +558,7 @@ cat("  Clusters found:", dp_full_fitted$numberClusters, "\n")
 ```
 
 ```
-##   Clusters found: 57
+##   Clusters found: 60
 ```
 
 ``` r
@@ -591,7 +582,7 @@ cat("  Data points per cluster:", paste(dp_full_fitted$pointsPerCluster, collaps
 ```
 
 ```
-##   Data points per cluster: 9, 1, 1, 3, 4, 4, 1, 2, 1, 1, 1, 3, 3, 7, 9, 2, 4, 1, 1, 4, 2, 6, 1, 8, 2, 5, 3, 2, 2, 2, 1, 1, 4, 14, 6, 5, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1
+##   Data points per cluster: 1, 3, 2, 1, 1, 16, 1, 2, 1, 3, 3, 14, 3, 3, 2, 2, 4, 1, 1, 2, 1, 5, 1, 3, 4, 4, 1, 9, 2, 1, 1, 1, 7, 3, 3, 1, 3, 1, 1, 3, 2, 3, 2, 1, 1, 3, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1
 ```
 
 ``` r
@@ -650,9 +641,7 @@ cat("Running EII model MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_eii_fitted <- Fit(dp_eii, its = 25, progressBar = FALSE)
-})
+dp_eii_fitted <- Fit(dp_eii, its = 50, progressBar = FALSE)
 end_time <- Sys.time()
 
 cat("\n=== EII MODEL RESULTS ===\n")
@@ -668,7 +657,7 @@ cat("  Execution time:", round(as.numeric(end_time - start_time), 2), "seconds\n
 ```
 
 ```
-##   Execution time: 5.81 seconds
+##   Execution time: 12.47 seconds
 ```
 
 ``` r
@@ -700,7 +689,7 @@ cat("  Data points per cluster:", paste(dp_eii_fitted$pointsPerCluster, collapse
 ```
 
 ```
-##   Data points per cluster: 3, 3, 4, 4, 1, 1, 2, 6, 1, 2, 1, 3, 3, 3, 4, 7, 9, 20, 4, 4, 1, 3, 2, 1, 2, 1, 1, 4, 5, 2, 3, 2, 1, 6, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 3, 4, 1, 1, 1, 1
+##   Data points per cluster: 1, 3, 2, 3, 7, 22, 1, 1, 3, 2, 1, 5, 1, 2, 3, 1, 1, 1, 5, 1, 1, 2, 2, 2, 10, 5, 4, 9, 1, 4, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 5, 1, 5, 1, 2, 1, 2, 2, 2, 1, 2, 1, 3, 4, 1
 ```
 
 ``` r
@@ -753,9 +742,7 @@ cat("Running VII model MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_vii_fitted <- Fit(dp_vii, its = 25, progressBar = FALSE)
-})
+dp_vii_fitted <- Fit(dp_vii, its = 50, progressBar = FALSE)
 end_time <- Sys.time()
 
 cat("\n=== VII MODEL RESULTS ===\n")
@@ -771,7 +758,7 @@ cat("  Execution time:", round(as.numeric(end_time - start_time), 2), "seconds\n
 ```
 
 ```
-##   Execution time: 5.62 seconds
+##   Execution time: 8.91 seconds
 ```
 
 ``` r
@@ -779,7 +766,7 @@ cat("  Clusters found:", dp_vii_fitted$numberClusters, "\n")
 ```
 
 ```
-##   Clusters found: 52
+##   Clusters found: 59
 ```
 
 ``` r
@@ -803,7 +790,7 @@ cat("  Data points per cluster:", paste(dp_vii_fitted$pointsPerCluster, collapse
 ```
 
 ```
-##   Data points per cluster: 3, 6, 2, 7, 4, 4, 2, 1, 5, 12, 1, 2, 2, 2, 1, 3, 4, 8, 1, 1, 2, 1, 5, 2, 2, 1, 1, 6, 2, 4, 7, 5, 2, 7, 3, 1, 4, 3, 4, 1, 2, 1, 1, 2, 2, 1, 1, 2, 1, 1, 1, 1
+##   Data points per cluster: 10, 1, 2, 8, 1, 1, 2, 3, 6, 3, 1, 1, 2, 3, 1, 2, 2, 3, 1, 2, 3, 1, 2, 3, 1, 1, 3, 1, 6, 4, 1, 6, 3, 2, 6, 1, 6, 1, 1, 1, 1, 3, 4, 1, 1, 2, 3, 3, 7, 1, 5, 3, 2, 1, 1, 1, 1, 1, 1
 ```
 
 ### EEI Model (Equal Volume, Equal Shape, Isotropic)
@@ -832,9 +819,7 @@ cat("Running EEI model MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_eei_fitted <- Fit(dp_eei, its = 25, progressBar = FALSE)
-})
+dp_eei_fitted <- Fit(dp_eei, its = 50, progressBar = FALSE)
 end_time <- Sys.time()
 
 cat("\n=== EEI MODEL RESULTS ===\n")
@@ -850,7 +835,7 @@ cat("  Execution time:", round(as.numeric(end_time - start_time), 2), "seconds\n
 ```
 
 ```
-##   Execution time: 3.09 seconds
+##   Execution time: 8.8 seconds
 ```
 
 ``` r
@@ -858,7 +843,7 @@ cat("  Clusters found:", dp_eei_fitted$numberClusters, "\n")
 ```
 
 ```
-##   Clusters found: 65
+##   Clusters found: 77
 ```
 
 ``` r
@@ -882,7 +867,7 @@ cat("  Data points per cluster:", paste(dp_eei_fitted$pointsPerCluster, collapse
 ```
 
 ```
-##   Data points per cluster: 1, 2, 2, 3, 1, 1, 1, 6, 1, 2, 7, 5, 1, 2, 2, 1, 1, 1, 1, 4, 2, 6, 6, 2, 1, 1, 3, 2, 5, 1, 1, 5, 5, 1, 8, 1, 2, 1, 1, 2, 2, 2, 5, 1, 2, 4, 3, 1, 1, 1, 2, 3, 3, 5, 1, 1, 1, 1, 3, 1, 2, 1, 1, 1, 1
+##   Data points per cluster: 1, 3, 1, 10, 1, 3, 2, 2, 1, 1, 1, 1, 1, 4, 2, 3, 3, 1, 6, 1, 2, 1, 1, 1, 2, 2, 3, 1, 7, 1, 4, 1, 1, 2, 1, 3, 1, 5, 1, 2, 1, 2, 3, 6, 1, 1, 1, 2, 1, 3, 1, 2, 4, 2, 1, 1, 2, 1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 2, 1, 1
 ```
 
 ### VEI Model (Variable Volume, Equal Shape, Isotropic)
@@ -911,9 +896,7 @@ cat("Running VEI model MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_vei_fitted <- Fit(dp_vei, its = 25, progressBar = FALSE)
-})
+dp_vei_fitted <- Fit(dp_vei, its = 50, progressBar = FALSE)
 end_time <- Sys.time()
 
 cat("\n=== VEI MODEL RESULTS ===\n")
@@ -929,7 +912,7 @@ cat("  Execution time:", round(as.numeric(end_time - start_time), 2), "seconds\n
 ```
 
 ```
-##   Execution time: 1.67 seconds
+##   Execution time: 8 seconds
 ```
 
 ``` r
@@ -937,7 +920,7 @@ cat("  Clusters found:", dp_vei_fitted$numberClusters, "\n")
 ```
 
 ```
-##   Clusters found: 66
+##   Clusters found: 58
 ```
 
 ``` r
@@ -961,7 +944,7 @@ cat("  Data points per cluster:", paste(dp_vei_fitted$pointsPerCluster, collapse
 ```
 
 ```
-##   Data points per cluster: 1, 1, 5, 1, 3, 1, 1, 1, 1, 5, 3, 3, 3, 1, 3, 1, 1, 2, 1, 8, 6, 1, 6, 4, 3, 2, 3, 1, 3, 8, 7, 2, 1, 3, 4, 1, 1, 1, 1, 1, 1, 1, 4, 2, 1, 1, 6, 1, 1, 1, 4, 2, 2, 2, 2, 2, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1
+##   Data points per cluster: 1, 1, 1, 2, 1, 5, 1, 1, 1, 2, 3, 1, 1, 1, 2, 1, 1, 6, 1, 2, 1, 1, 1, 8, 5, 1, 3, 1, 9, 6, 2, 2, 10, 5, 14, 7, 2, 5, 2, 2, 1, 2, 1, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 4, 2, 2, 2, 1
 ```
 
 ### EVI Model (Equal Volume, Variable Shape, Isotropic)
@@ -990,9 +973,7 @@ cat("Running EVI model MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_evi_fitted <- Fit(dp_evi, its = 25, progressBar = FALSE)
-})
+dp_evi_fitted <- Fit(dp_evi, its = 50, progressBar = FALSE)
 end_time <- Sys.time()
 
 cat("\n=== EVI MODEL RESULTS ===\n")
@@ -1008,7 +989,7 @@ cat("  Execution time:", round(as.numeric(end_time - start_time), 2), "seconds\n
 ```
 
 ```
-##   Execution time: 1.91 seconds
+##   Execution time: 6.41 seconds
 ```
 
 ``` r
@@ -1016,7 +997,7 @@ cat("  Clusters found:", dp_evi_fitted$numberClusters, "\n")
 ```
 
 ```
-##   Clusters found: 60
+##   Clusters found: 78
 ```
 
 ``` r
@@ -1040,7 +1021,7 @@ cat("  Data points per cluster:", paste(dp_evi_fitted$pointsPerCluster, collapse
 ```
 
 ```
-##   Data points per cluster: 1, 1, 2, 5, 1, 2, 9, 4, 5, 1, 6, 1, 4, 2, 6, 7, 4, 2, 3, 2, 1, 2, 1, 2, 1, 1, 1, 2, 3, 1, 10, 4, 4, 3, 4, 1, 2, 2, 3, 1, 1, 1, 1, 1, 3, 5, 2, 1, 1, 1, 2, 1, 3, 1, 4, 1, 1, 1, 1, 1
+##   Data points per cluster: 7, 1, 1, 1, 5, 2, 1, 2, 1, 1, 2, 1, 5, 1, 3, 1, 3, 3, 1, 7, 1, 1, 2, 1, 1, 2, 3, 1, 2, 1, 3, 5, 1, 1, 3, 1, 1, 2, 1, 4, 2, 2, 3, 1, 2, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1, 1, 1, 5, 2, 4, 6, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 ```
 
 ### VVI Model (Variable Volume, Variable Shape, Isotropic)
@@ -1069,9 +1050,7 @@ cat("Running VVI model MCMC...\n")
 
 ``` r
 start_time <- Sys.time()
-suppressWarnings({
-  dp_vvi_fitted <- Fit(dp_vvi, its = 25, progressBar = FALSE)
-})
+dp_vvi_fitted <- Fit(dp_vvi, its = 50, progressBar = FALSE)
 end_time <- Sys.time()
 
 cat("\n=== VVI MODEL RESULTS ===\n")
@@ -1087,7 +1066,7 @@ cat("  Execution time:", round(as.numeric(end_time - start_time), 2), "seconds\n
 ```
 
 ```
-##   Execution time: 1.95 seconds
+##   Execution time: 7.66 seconds
 ```
 
 ``` r
@@ -1095,7 +1074,7 @@ cat("  Clusters found:", dp_vvi_fitted$numberClusters, "\n")
 ```
 
 ```
-##   Clusters found: 69
+##   Clusters found: 67
 ```
 
 ``` r
@@ -1119,7 +1098,7 @@ cat("  Data points per cluster:", paste(dp_vvi_fitted$pointsPerCluster, collapse
 ```
 
 ```
-##   Data points per cluster: 1, 4, 2, 1, 2, 2, 2, 1, 5, 2, 3, 2, 1, 1, 2, 1, 2, 1, 1, 2, 1, 1, 1, 3, 1, 6, 1, 1, 7, 1, 2, 3, 1, 1, 1, 10, 1, 16, 4, 1, 2, 1, 1, 1, 5, 1, 2, 2, 1, 2, 1, 9, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2
+##   Data points per cluster: 1, 4, 1, 2, 1, 1, 6, 2, 2, 2, 2, 1, 1, 2, 1, 3, 1, 10, 3, 2, 3, 1, 1, 2, 12, 2, 6, 3, 4, 4, 3, 3, 2, 2, 6, 5, 1, 1, 2, 1, 1, 2, 1, 1, 1, 3, 1, 1, 2, 3, 1, 3, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1
 ```
 
 ## Model Comparison
@@ -1129,15 +1108,13 @@ cat("  Data points per cluster:", paste(dp_vvi_fitted$pointsPerCluster, collapse
 
 ``` r
 # Function to fit and evaluate model
-fit_and_evaluate <- function(data, prior_params, model_name, iterations = 15) {
+fit_and_evaluate <- function(data, prior_params, model_name, iterations = 25) {
   md <- MvnormalCreate(prior_params)
   dp <- DirichletProcessCreate(data, md)
   dp <- Initialise(dp, numInitialClusters = 1)
   
   start_time <- Sys.time()
-  suppressWarnings({
-    dp_fitted <- Fit(dp, its = iterations, progressBar = FALSE)
-  })
+  dp_fitted <- Fit(dp, its = iterations, progressBar = FALSE)
   end_time <- Sys.time()
   
   return(list(
@@ -1178,13 +1155,41 @@ for (model_name in names(models_2d)) {
 ```
 
 ```
-## Fitting FULL model... ✓ Done
-## Fitting EII model... ✓ Done
-## Fitting VII model... ✓ Done
-## Fitting EEI model... ✓ Done
-## Fitting VEI model... ✓ Done
-## Fitting EVI model... ✓ Done
-## Fitting VVI model... ✓ Done
+## Fitting FULL model...
+```
+
+```
+##  ✓ Done
+## Fitting EII model...
+```
+
+```
+##  ✓ Done
+## Fitting VII model...
+```
+
+```
+##  ✓ Done
+## Fitting EEI model...
+```
+
+```
+##  ✓ Done
+## Fitting VEI model...
+```
+
+```
+##  ✓ Done
+## Fitting EVI model...
+```
+
+```
+##  ✓ Done
+## Fitting VVI model...
+```
+
+```
+##  ✓ Done
 ```
 
 ``` r
@@ -1365,7 +1370,7 @@ for (model in models_5d) {
   cat("Testing", model, "model...")
   
   prior_5d$covModel <- model
-  result <- fit_and_evaluate(data_5d, prior_5d, model, iterations = 15)
+  result <- fit_and_evaluate(data_5d, prior_5d, model, iterations = 25)
   results_5d[[model]] <- result
   
   cat(sprintf(" ✓ %d clusters, %.2f sec, LL=%.2f\n", 
@@ -1374,7 +1379,19 @@ for (model in models_5d) {
 ```
 
 ```
-## Testing FULL model...Testing EII model...Testing VII model...Testing VVI model...
+## Testing FULL model...
+```
+
+```
+## Testing EII model...
+```
+
+```
+## Testing VII model...
+```
+
+```
+## Testing VVI model...
 ```
 
 ``` r
@@ -1444,7 +1461,7 @@ cat("  Mean time per model:", round(mean(all_times), 2), "seconds\n")
 ```
 
 ```
-##   Mean time per model: 14.86 seconds
+##   Mean time per model: 8.18 seconds
 ```
 
 ``` r
@@ -1452,7 +1469,7 @@ cat("  Median time per model:", round(median(all_times), 2), "seconds\n")
 ```
 
 ```
-##   Median time per model: 5.7 seconds
+##   Median time per model: 3.41 seconds
 ```
 
 ``` r
@@ -1461,7 +1478,7 @@ cat("  Fastest model overall:", all_models[which.min(all_times)],
 ```
 
 ```
-##   Fastest model overall: VEI ( 1.04 sec )
+##   Fastest model overall: VVI ( 2.34 sec )
 ```
 
 ``` r
@@ -1470,7 +1487,7 @@ cat("  Slowest model overall:", all_models[which.max(all_times)],
 ```
 
 ```
-##   Slowest model overall: EVI ( 49.54 sec )
+##   Slowest model overall: VVI ( 26.09 sec )
 ```
 
 ``` r
@@ -1507,7 +1524,7 @@ cat("  Average clusters found:", round(mean(c(
 ```
 
 ```
-##   Average clusters found: 96.8
+##   Average clusters found: 99.4
 ```
 
 ``` r

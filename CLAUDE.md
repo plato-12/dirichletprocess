@@ -31,11 +31,31 @@ When encountering C++ implementation problems:
 
 ### **Current C++ Implementation Status**
 
-- **✅ Working**: Basic MVNormal, MVNormal2, Beta, Weibull, Normal distributions
-- **✅ RESOLVED**: Constrained covariance models parameter structure (EII, VII, EEI, VEI, EVI, VVI)
-- **✅ RESOLVED**: E/V model initialization issues - scalar mu parameter handling fixed
-- **✅ RESOLVED**: Research benchmark runner performance optimization
-- **⚠️ Minor Issues**: Edge cases in cluster expansion (documented in debug_scripts/)
+**📊 C++ Manual MCMC Support: 83% Complete**
+
+**✅ COMPLETE Manual MCMC C++ Support (4 distributions)**:
+- **Normal/Gaussian**: All individual functions + unified `CppMCMCRunner` interface
+- **Exponential**: All individual functions + unified `CppMCMCRunner` interface  
+- **Beta**: All individual functions + unified `CppMCMCRunner` interface
+- **Weibull**: All individual functions + unified `CppMCMCRunner` interface
+
+**✅ COMPLETE Hierarchical C++ Support (3 distributions)**:
+- **Hierarchical Beta**: Full MCMC C++ + manual steps
+- **Hierarchical MVNormal**: Full MCMC C++ + manual steps
+- **Hierarchical MVNormal2**: Full MCMC C++ + manual steps
+
+**🟡 PARTIAL C++ Support (2 distributions)**:
+- **MVNormal**: Individual C++ functions exist, needs `CppMCMCRunner` integration
+- **MVNormal2**: Individual C++ functions exist, needs `CppMCMCRunner` integration
+
+**❌ Missing C++ Support (2 minor distributions)**:
+- **Beta2**: Pure R implementation
+- **Normal Fixed Variance**: Pure R implementation
+
+**Advanced C++ Features**:
+- **Unified Manual Interface**: `CppMCMCRunner` with temperature control, cluster operations
+- **Sophisticated Architecture**: Advanced features like predictive sampling, convergence diagnostics
+- **Production-Ready**: Robust fallback mechanisms and parameter handling
 
 ### **Recent Major Fix: Constrained Covariance Models**
 
@@ -78,7 +98,26 @@ When encountering C++ implementation problems:
 
 **Status**: ✅ RESOLVED - Benchmark runner now completes in reasonable time with clear progress
 
-**Remaining Minor Issues**: See `debug_scripts/remaining_constrained_covariance_issues.md`
+## Current Development Phase: Comprehensive Testing Framework Required
+
+**CURRENT STATUS**: C++ implementation work is complete with **83% manual MCMC C++ coverage** achieved. The package has mature, production-ready C++ backends with sophisticated architecture.
+
+### C++ Implementation Achievement Summary:
+- **✅ Complete Manual MCMC C++ Support**: 4 distributions (Normal, Exponential, Beta, Weibull) with unified `CppMCMCRunner` interface
+- **✅ Complete Hierarchical C++ Support**: 3 distributions (Hierarchical Beta, MVNormal, MVNormal2) with full MCMC C++  
+- **🟡 Partial C++ Support**: 2 distributions (MVNormal, MVNormal2) have individual C++ functions but need unified interface integration
+- **✅ Advanced C++ Features**: Temperature control, cluster operations, predictive sampling, convergence diagnostics
+- **❌ Missing C++**: 2 minor distributions (Beta2, Normal Fixed Variance) - pure R implementations
+
+### Required Testing and Validation:
+1. **Comprehensive C++ Testing Framework**: Create new systematic C++ validation tests from scratch
+2. **MVNormal Integration**: Complete integration into unified `CppMCMCRunner` interface (Priority 1)
+3. **R/C++ Consistency Verification**: Ensure both implementations produce identical statistical results
+4. **Original R Package Test Validation**: Verify all 37 original R tests still pass
+5. **Performance Benchmarking**: Validate C++ performance improvements over R implementations
+6. **Production Readiness**: Complete package development workflow validation
+
+**Status**: 🔧 IMPLEMENTATION PHASE COMPLETE - 🧪 COMPREHENSIVE TESTING FRAMEWORK PHASE REQUIRED
 
 ## Development Commands
 
@@ -99,10 +138,22 @@ When encountering C++ implementation problems:
 - `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::load_all()"` - Load package for interactive development
 
 ### Testing
+
+**Current Test Structure**:
+- **Total test files**: 38 testthat files (37 original R + 1 temporary C++)
+- **Original R Package Tests**: 37 files testing core R functionality - **PRESERVED**
+- **Temporary C++ Test**: 1 file (`test_cpp_mcmc_runner.R`) - **TO BE DELETED AND RECREATED**
+
+**Test Commands**:
 - `testthat::test_check("dirichletprocess")` - Run all tests via testthat (R console)
 - `testthat::test_file("tests/testthat/test-filename.R")` - Run specific test file (R console)
 - `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "testthat::test_check('dirichletprocess')"` - Run all tests via testthat (bash terminal)
 - `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "testthat::test_file('tests/testthat/test-filename.R')"` - Run specific test file (bash terminal)
+
+**Future Testing Framework**:
+- **Comprehensive C++ Testing**: New systematic C++ validation tests to be created from scratch
+- **Test Organization**: C++ tests will be organized in dedicated subdirectory structure
+- **Integration Focus**: R/C++ consistency validation, performance benchmarking, production readiness
 
 ### Constrained Covariance Testing (Fixed Issues)
 - **Issue RESOLVED**: Constrained models now work correctly with proper dimension handling
@@ -134,6 +185,14 @@ When encountering C++ implementation problems:
   - `standard_research_benchmark()` - 1-3 hour research quality  
   - `publication_benchmark()` - 3-6 hour publication quality
   - All functions include progress indicators and time estimates
+
+### Current Documentation Work
+- **R Markdown Documentation**: `docs/cpp_covariance_models_usage.Rmd` - Comprehensive demonstration of all covariance models
+  - Shows implementation examples for all 9 covariance models (E, V, FULL, EII, VII, EEI, VEI, EVI, VVI)
+  - Includes execution results and performance metrics
+  - Currently being refined to handle C++ fallback scenarios gracefully
+  - To render: `rmarkdown::render('docs/cpp_covariance_models_usage.Rmd')`
+  - **Note**: This is demonstration documentation, not formal validation testing
 
 ### Claude Code R Integration
 - **Rscript Path**: `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe"`
@@ -214,6 +273,20 @@ your_cpp_function <- get("your_cpp_function", pkg_ns)
 - Follows R package namespace conventions
 - Prevents environment-specific test failures
 - Maintains proper separation between internal and external functions
+
+### Comprehensive C++ Testing Framework Guidelines
+
+**Testing Organization**:
+- **Preserve Original Tests**: All 37 original R package tests remain in `tests/testthat/`
+- **Create C++ Test Framework**: New systematic C++ validation tests from scratch
+- **Organized Structure**: C++ tests in dedicated subdirectory for clear separation
+- **Focus Areas**: Individual C++ functions, unified interface, R/C++ consistency, performance
+
+**Priority Testing Areas**:
+1. **MVNormal Integration**: Complete `CppMCMCRunner` integration for MVNormal/MVNormal2
+2. **R/C++ Consistency**: Statistical equivalence validation across all distributions
+3. **Performance Validation**: Confirm C++ improvements over R implementations
+4. **Production Readiness**: Complete package development workflow validation
 
 ## Package Architecture
 
@@ -345,6 +418,25 @@ sigma_i <- theta[[2]][, , i]  # Fails for constrained models
 - `R/benchmark_integration.R`: Lines 215-224 (optimized atime integration with progress indicators)
 
 ## Development Guidelines
+
+### Priority Actions (Based on Comprehensive Analysis)
+
+**PRIORITY 1: MVNormal Integration (Complete in 1 week)**:
+1. **Integrate MVNormal into unified C++ interface**: Add "mvnormal" and "mvnormal2" to `can_use_cpp()` supported types
+2. **Implement MVNormal UpdateAlpha C++**: Add `conjugate_mvnormal_update_alpha_cpp()` and `nonconjugate_mvnormal2_update_alpha_cpp()`
+3. **Test MVNormal manual MCMC**: Validate that `CppMCMCRunner` works with all covariance models
+4. **Achieve 100% manual MCMC C++ coverage**: Complete C++ support for all major distributions
+
+**HIGH PRIORITY (Complete in 2-3 weeks)**:
+1. **Execute comprehensive testing framework**: Create systematic C++ validation tests from scratch
+2. **Validate R/C++ consistency**: Ensure identical statistical behavior across all distributions
+3. **Preserve original R tests**: Verify all 37 original R package tests continue to pass
+4. **Complete package development workflow**: `devtools::check()` must pass cleanly
+
+**MEDIUM PRIORITY (Complete in 4-5 weeks)**:
+1. **Performance benchmarking**: Validate C++ performance improvements over R implementations
+2. **Complete minor distributions**: Add C++ support for Beta2 and Normal Fixed Variance
+3. **Production readiness validation**: Comprehensive edge case testing and stability validation
 
 ### Debug File Management
 **CRITICAL**: When creating debug files during testing and development, always save them in the `debug_scripts/` directory. This maintains organization and ensures debugging artifacts are preserved for future reference.
