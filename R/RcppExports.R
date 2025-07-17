@@ -220,6 +220,15 @@ mvnormal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_mvnormal_likelihood_cpp`, x, mu, sigma)
 }
 
+#' @title Update alpha for conjugate MVNormal DP (C++)
+#' @description C++ implementation of the concentration parameter update for conjugate MVNormal.
+#' @param dpObj A list representing the Dirichlet Process object.
+#' @return Updated alpha value.
+#' @export
+conjugate_mvnormal_update_alpha_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_mvnormal_update_alpha_cpp`, dpObj)
+}
+
 #' @title Draw from a Multivariate Normal semi-conjugate prior (C++)
 NULL
 
@@ -267,6 +276,15 @@ hierarchical_mvnormal2_fit_cpp <- function(dpList, iterations, updatePrior = FAL
 
 hierarchical_mvnormal2_mixing_create_cpp <- function(n, priorParameters, alphaPrior, gammaPrior, num_sticks) {
     .Call(`_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp`, n, priorParameters, alphaPrior, gammaPrior, num_sticks)
+}
+
+#' @title Update alpha for non-conjugate MVNormal2 DP (C++)
+#' @description C++ implementation of the concentration parameter update for MVNormal2.
+#' @param dpObj A list representing the Dirichlet Process object.
+#' @return Updated alpha value.
+#' @export
+nonconjugate_mvnormal2_update_alpha_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp`, dpObj)
 }
 
 mvnormal_log_likelihood_cpp <- function(x, mu, Sigma) {

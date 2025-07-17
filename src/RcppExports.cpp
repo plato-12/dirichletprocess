@@ -468,6 +468,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// conjugate_mvnormal_update_alpha_cpp
+double conjugate_mvnormal_update_alpha_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_mvnormal_update_alpha_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_update_alpha_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mvnormal2_prior_draw_cpp
 Rcpp::List mvnormal2_prior_draw_cpp(Rcpp::List priorParams, int n);
 RcppExport SEXP _dirichletprocess_mvnormal2_prior_draw_cpp(SEXP priorParamsSEXP, SEXP nSEXP) {
@@ -553,6 +564,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gammaPrior(gammaPriorSEXP);
     Rcpp::traits::input_parameter< int >::type num_sticks(num_sticksSEXP);
     rcpp_result_gen = Rcpp::wrap(hierarchical_mvnormal2_mixing_create_cpp(n, priorParameters, alphaPrior, gammaPrior, num_sticks));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_mvnormal2_update_alpha_cpp
+double nonconjugate_mvnormal2_update_alpha_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_mvnormal2_update_alpha_cpp(dpObj));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1174,6 +1196,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_mvnormal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_posterior_parameters_cpp, 2},
     {"_dirichletprocess_mvnormal_predictive_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_predictive_cpp, 2},
     {"_dirichletprocess_mvnormal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_likelihood_cpp, 3},
+    {"_dirichletprocess_conjugate_mvnormal_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_update_alpha_cpp, 1},
     {"_dirichletprocess_mvnormal2_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal2_prior_draw_cpp, 2},
     {"_dirichletprocess_mvnormal2_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal2_posterior_draw_cpp, 3},
     {"_dirichletprocess_mvnormal2_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal2_likelihood_cpp, 2},
@@ -1181,6 +1204,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_hierarchical_mvnormal2_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp, 5},
+    {"_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp, 1},
     {"_dirichletprocess_mvnormal_log_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_log_likelihood_cpp, 3},
     {"_dirichletprocess_markov_dp_create_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_create_cpp, 1},
     {"_dirichletprocess_markov_dp_fit_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_fit_cpp, 4},

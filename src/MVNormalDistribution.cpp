@@ -1070,4 +1070,5 @@ Rcpp::List conjugate_mvnormal_cluster_parameter_update_cpp(const Rcpp::List& dpO
   return dp.updateClusterParameters();
 }
 
+
 } // namespace dp
