@@ -3,6 +3,7 @@
 #define RCPP_CONVERSIONS_H
 
 #include <RcppArmadillo.h>
+#include <memory>
 #include "DirichletProcess.h"
 
 namespace dp {
@@ -24,7 +25,7 @@ bool isMarkov(const Rcpp::List& dpObj);
 std::string getDistributionType(const Rcpp::List& dpObj);
 
 // Factory functions to create appropriate C++ objects from R objects
-DirichletProcess* createDPFromR(const Rcpp::List& rObj);
+std::unique_ptr<DirichletProcess> createDPFromR(const Rcpp::List& rObj);
 MixingDistribution* createMDFromR(const Rcpp::List& rObj);
 
 } // namespace dp

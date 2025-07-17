@@ -3,6 +3,7 @@
 #include "../inst/include/BetaDistribution.h"
 #include "../inst/include/RcppConversions.h"
 #include <RcppArmadillo.h>
+#include <memory>
 
 namespace dp {
 
@@ -31,15 +32,14 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
       for (int i = 0; i < indDP_list.size(); i++) {
         Rcpp::List dp_obj = indDP_list[i];
 
-        // Create NonConjugateBetaDP from R object
-        NonConjugateBetaDP* betaDP = new NonConjugateBetaDP();
+        // Create NonConjugateBetaDP from R object using smart pointer
+        auto betaDP = std::make_unique<NonConjugateBetaDP>();
 
         // Set common DP properties with validation
         if (dp_obj.containsElementNamed("data")) {
           betaDP->data = Rcpp::as<arma::mat>(dp_obj["data"]);
           betaDP->n = betaDP->data.n_rows;
         } else {
-          delete betaDP;
           throw Rcpp::exception("Missing 'data' in DP object");
         }
 
@@ -97,7 +97,7 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
           Rcpp::List mixDist_obj = Rcpp::as<Rcpp::List>(dp_obj["mixingDistribution"]);
 
           if (mixDist_obj.containsElementNamed("priorParameters")) {
-            betaDP->mixingDistribution = new BetaMixingDistribution(
+            betaDP->mixingDistribution = std::make_unique<BetaMixingDistribution>(
               Rcpp::as<Rcpp::NumericVector>(mixDist_obj["priorParameters"]));
 
             betaDP->mixingDistribution->maxT = mixDist_obj.containsElementNamed("maxT") ?
@@ -107,15 +107,13 @@ HierarchicalBetaDP* HierarchicalBetaDP::fromR(const Rcpp::List& rObj) {
               betaDP->mixingDistribution->mhStepSize = Rcpp::as<Rcpp::NumericVector>(mixDist_obj["mhStepSize"]);
             }
           } else {
-            delete betaDP;
             throw Rcpp::exception("Missing prior parameters in mixing distribution");
           }
         } else {
-          delete betaDP;
           throw Rcpp::exception("Missing mixing distribution");
         }
 
-        hdp->indDP.push_back(betaDP);
+        hdp->indDP.push_back(betaDP.release());
       }
     }
 

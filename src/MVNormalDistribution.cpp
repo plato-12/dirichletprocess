@@ -600,9 +600,7 @@ ConjugateMVNormalDP::ConjugateMVNormalDP() : mixingDistribution(nullptr), number
 }
 
 ConjugateMVNormalDP::~ConjugateMVNormalDP() {
-  if (mixingDistribution) {
-    delete mixingDistribution;
-  }
+  // No manual delete needed - using smart pointer
 }
 
 void ConjugateMVNormalDP::initialize(const Rcpp::List& dpObj) {
@@ -616,7 +614,11 @@ void ConjugateMVNormalDP::initialize(const Rcpp::List& dpObj) {
   // Initialize mixing distribution
   Rcpp::List mdObj = dpObj["mixingDistribution"];
   Rcpp::List priorParams = mdObj["priorParameters"];
-  mixingDistribution = new MVNormalMixingDistribution(priorParams);
+  try {
+    mixingDistribution = std::make_unique<MVNormalMixingDistribution>(priorParams);
+  } catch (const std::exception& e) {
+    Rcpp::stop("Failed to initialize mixing distribution: %s", e.what());
+  }
 
   // Extract cluster parameters if they exist
   if (dpObj.containsElementNamed("clusterParameters")) {
@@ -874,9 +876,9 @@ void ConjugateMVNormalDP::clusterComponentUpdate() {
     int d = mu_dim[1];
     int max_clusters = mu_dim[2];
 
-    // Probability for existing clusters
+    // Probability for existing clusters with bounds checking
     for (int j = 0; j < numberClusters; j++) {
-      if (j >= max_clusters) {
+      if (j < 0 || j >= max_clusters) {
         Rcpp::stop("Cluster index %d exceeds parameter array size %d", j, max_clusters);
       }
 

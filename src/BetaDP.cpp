@@ -10,10 +10,7 @@ NonConjugateBetaDP::NonConjugateBetaDP() : mixingDistribution(nullptr), numberCl
 }
 
 NonConjugateBetaDP::~NonConjugateBetaDP() {
-  if (mixingDistribution) {
-    delete mixingDistribution;
-    mixingDistribution = nullptr;
-  }
+  // No manual delete needed - unique_ptr handles it
 }
 
 void NonConjugateBetaDP::clusterComponentUpdate() {

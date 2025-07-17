@@ -6,6 +6,7 @@
 #include "mixing_distribution_base.h"
 #include <RcppArmadillo.h>
 #include <string>
+#include <memory>
 
 namespace dp {
 
@@ -73,7 +74,7 @@ public:
 // Conjugate MVNormal Dirichlet Process
 class ConjugateMVNormalDP {
 private:
-  MVNormalMixingDistribution* mixingDistribution;
+  std::unique_ptr<MVNormalMixingDistribution> mixingDistribution;
   arma::mat data;
   arma::uvec clusterLabels;
   int numberClusters;

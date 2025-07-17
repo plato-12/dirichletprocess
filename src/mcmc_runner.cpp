@@ -5,6 +5,7 @@
 #include <set>
 #include <algorithm>
 #include <numeric>
+#include <memory>
 
 namespace dirichletprocess {
 
@@ -54,7 +55,7 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
     Rcpp::stop("alpha must be positive");
   }
 
-  state.reset(new DPState(data.n_rows, initial_alpha));
+  state = std::make_unique<DPState>(data.n_rows, initial_alpha);
 
   // Pre-allocate storage
   alpha_samples.reserve(n_iter);
@@ -208,9 +209,11 @@ void MCMCRunner::update_cluster_assignments_algorithm8() {
     arma::vec obs = data.row(i).t();
     int current_cluster = state->cluster_labels[i];
 
-    // Remove observation from current cluster
-    if (current_cluster < static_cast<int>(state->cluster_sizes.n_elem)) {
-      state->cluster_sizes[current_cluster]--;
+    // Remove observation from current cluster with bounds checking
+    if (current_cluster >= 0 && current_cluster < static_cast<int>(state->cluster_sizes.n_elem)) {
+      if (state->cluster_sizes[current_cluster] > 0) {
+        state->cluster_sizes[current_cluster]--;
+      }
     }
 
     // Prepare probabilities for existing clusters and auxiliary parameters
@@ -218,9 +221,10 @@ void MCMCRunner::update_cluster_assignments_algorithm8() {
     std::vector<arma::vec> candidate_params;
     std::vector<int> candidate_indices;  // Track if it's existing cluster or new
 
-    // Add existing clusters
+    // Add existing clusters with comprehensive bounds checking
     for (int k = 0; k < state->n_clusters; ++k) {
-      if (k < static_cast<int>(state->cluster_params.size())) {
+      if (k >= 0 && k < static_cast<int>(state->cluster_params.size()) && 
+          k < static_cast<int>(state->cluster_sizes.n_elem)) {
         double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
         double weight;
 
@@ -301,7 +305,9 @@ void MCMCRunner::update_cluster_assignments_algorithm8() {
       }
 
       state->cluster_labels[i] = new_cluster_idx;
-      state->cluster_sizes[new_cluster_idx] = 1;
+      if (new_cluster_idx >= 0 && new_cluster_idx < static_cast<int>(state->cluster_sizes.n_elem)) {
+        state->cluster_sizes[new_cluster_idx] = 1;
+      }
     }
   }
 

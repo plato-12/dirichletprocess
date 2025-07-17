@@ -133,30 +133,33 @@ std::string getDistributionType(const Rcpp::List& dpObj) {
   return "normal";
 }
 
-DirichletProcess* createDPFromR(const Rcpp::List& rObj) {
-  // For now, create a simple base DirichletProcess object
-  // This will be expanded later when we implement specific distribution types
-  DirichletProcess* dp = new DirichletProcess();
+std::unique_ptr<DirichletProcess> createDPFromR(const Rcpp::List& rObj) {
+  // Create base DirichletProcess object using smart pointer
+  auto dp = std::make_unique<DirichletProcess>();
 
-  if (dp && rObj.containsElementNamed("data") && rObj.containsElementNamed("n")
-        && rObj.containsElementNamed("alpha") && rObj.containsElementNamed("alphaPriorParameters")) {
+  try {
+    if (dp && rObj.containsElementNamed("data") && rObj.containsElementNamed("n")
+          && rObj.containsElementNamed("alpha") && rObj.containsElementNamed("alphaPriorParameters")) {
 
-    // Convert data safely
-    Rcpp::NumericMatrix dataMatrix;
-    if (Rcpp::is<Rcpp::NumericMatrix>(rObj["data"])) {
-      dataMatrix = Rcpp::as<Rcpp::NumericMatrix>(rObj["data"]);
-    } else if (Rcpp::is<Rcpp::NumericVector>(rObj["data"])) {
-      Rcpp::NumericVector dataVec = Rcpp::as<Rcpp::NumericVector>(rObj["data"]);
-      dataMatrix = Rcpp::NumericMatrix(dataVec.size(), 1, dataVec.begin());
-    } else {
-      Rcpp::stop("Data must be numeric matrix or vector");
+      // Convert data safely
+      Rcpp::NumericMatrix dataMatrix;
+      if (Rcpp::is<Rcpp::NumericMatrix>(rObj["data"])) {
+        dataMatrix = Rcpp::as<Rcpp::NumericMatrix>(rObj["data"]);
+      } else if (Rcpp::is<Rcpp::NumericVector>(rObj["data"])) {
+        Rcpp::NumericVector dataVec = Rcpp::as<Rcpp::NumericVector>(rObj["data"]);
+        dataMatrix = Rcpp::NumericMatrix(dataVec.size(), 1, dataVec.begin());
+      } else {
+        Rcpp::stop("Data must be numeric matrix or vector");
+      }
+
+      // Set common properties
+      dp->data = convertMatrix(dataMatrix);
+      dp->n = Rcpp::as<int>(rObj["n"]);
+      dp->alpha = Rcpp::as<double>(rObj["alpha"]);
+      dp->alphaPriorParameters = rObj["alphaPriorParameters"];
     }
-
-    // Set common properties
-    dp->data = convertMatrix(dataMatrix);
-    dp->n = Rcpp::as<int>(rObj["n"]);
-    dp->alpha = Rcpp::as<double>(rObj["alpha"]);
-    dp->alphaPriorParameters = rObj["alphaPriorParameters"];
+  } catch (const std::exception& e) {
+    Rcpp::stop("Failed to create DirichletProcess: %s", e.what());
   }
 
   return dp;

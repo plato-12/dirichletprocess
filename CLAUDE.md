@@ -156,12 +156,21 @@ When encountering C++ implementation problems:
 - `devtools::load_all()` - Load package for interactive development
 
 ### Package Development (Bash Terminal)
-- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::test()"` - Run the complete test suite
-- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::check()"` - Full R CMD check (includes tests, documentation, examples)  
-- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::build()"` - Build the package tarball
-- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::install()"` - Install package locally for testing
+⚠️ **RTOOLS COMPILATION ISSUE**: While Rtools is installed and C++ implementations are working, `devtools` commands that require recompilation fail due to shell configuration issues. Use RStudio terminal for development commands that require compilation.
+
+**Working Commands**:
 - `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::document()"` - Generate documentation from roxygen2 comments
 - `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "devtools::load_all()"` - Load package for interactive development
+
+**Commands Requiring RStudio Terminal**:
+- `devtools::test()` - Run the complete test suite
+- `devtools::check()` - Full R CMD check (includes tests, documentation, examples)  
+- `devtools::build()` - Build the package tarball
+- `devtools::install()` - Install package locally for testing
+
+**Root Cause**: R's build system is configured to use Git bash with spaces in path (`Files\Git\bin\bash.exe`), causing compilation failures. The package C++ components are already compiled and working (`"7 C++ implementations available"`), but `devtools` recompilation fails.
+
+**Status**: ✅ **Package functional with C++ support** - ❌ **devtools compilation blocked by shell configuration**
 
 ### Testing
 
@@ -173,8 +182,11 @@ When encountering C++ implementation problems:
 **Test Commands**:
 - `testthat::test_check("dirichletprocess")` - Run all tests via testthat (R console)
 - `testthat::test_file("tests/testthat/test-filename.R")` - Run specific test file (R console)
-- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "testthat::test_check('dirichletprocess')"` - Run all tests via testthat (bash terminal)
-- `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "testthat::test_file('tests/testthat/test-filename.R')"` - Run specific test file (bash terminal)
+
+**Bash Terminal Testing** (Limited due to Rtools compilation issue):
+- Package loads successfully: `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "library(dirichletprocess); print('C++ available')"`
+- Basic functionality works: `"C:/PROGRA~1/R/R-44~1.1/bin/x64/Rscript.exe" -e "library(dirichletprocess); dp <- DirichletProcessGaussian(c(1,2,3))"`
+- Note: `devtools::test()` fails due to recompilation requirements - use RStudio terminal for full testing
 
 **Future Testing Framework**:
 - **Comprehensive C++ Testing**: New systematic C++ validation tests to be created from scratch
