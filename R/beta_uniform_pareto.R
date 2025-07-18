@@ -17,9 +17,12 @@ BetaMixture2Create <- function(priorParameters = 2, mhStepSize = c(1, 1), maxT =
 #' @export
 #' @rdname Likelihood
 Likelihood.beta2 <- function(mdObj, x, theta){
-
-  Likelihood.beta(mdObj, x, theta)
-
+  
+  # Create a temporary beta object with the same parameters
+  temp_mdObj <- mdObj
+  class(temp_mdObj) <- c("list", "beta", "nonconjugate")
+  
+  Likelihood.beta(temp_mdObj, x, theta)
 }
 
 #' @export

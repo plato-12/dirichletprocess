@@ -1,5 +1,10 @@
 context("Metropolis Hastings Tests")
 
+# Access function from namespace if not available in global environment
+if (!exists("MetropolisHastings")) {
+  MetropolisHastings <- get("MetropolisHastings", getNamespace("dirichletprocess"))
+}
+
 test_that("Metropolis Hastings Full Sample Weibull", {
 
   test_data <- rweibull(100, 1, 1)

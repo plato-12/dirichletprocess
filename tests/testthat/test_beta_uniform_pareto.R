@@ -63,6 +63,10 @@ test_that("Beta2 Parameter Proposal",{
 
   pd <- PriorDraw(beta2Obj, 1)
 
+  # Access function from namespace if not available in global environment
+  if (!exists("MhParameterProposal")) {
+    MhParameterProposal <- get("MhParameterProposal", getNamespace("dirichletprocess"))
+  }
   newParams <- MhParameterProposal(beta2Obj, pd)
 
   expect_is(pd, "list")
