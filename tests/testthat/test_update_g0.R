@@ -1,5 +1,10 @@
 context("Update G0")
 
+# Access function from namespace if not available in global environment
+if (!exists("UpdateG0")) {
+  UpdateG0 <- get("UpdateG0", getNamespace("dirichletprocess"))
+}
+
 test_that("2 Data, 1 Cluster", {
 
   dataTest <- list(rbeta(100, 1, 3), rbeta(100, 1, 3))

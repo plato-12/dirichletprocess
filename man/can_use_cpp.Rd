@@ -4,7 +4,7 @@
 \alias{can_use_cpp}
 \title{Check if C++ can be used for a given DP object}
 \usage{
-can_use_cpp(dp_obj)
+can_use_cpp(dp_obj = NULL)
 }
 \arguments{
 \item{dp_obj}{Dirichlet process object}

@@ -39,8 +39,26 @@ PriorDraw.weibull <- function(mdObj, n = 1) {
 
   priorParameters <- mdObj$priorParameters
 
-  lambdas <- 1/rgamma(n, priorParameters[2], priorParameters[3])
-  theta <- list(array(runif(n, 0, priorParameters[1]), dim = c(1, 1, n)),
+  # Draw gamma values and handle potential NAs
+  gamma_values <- rgamma(n, priorParameters[2], priorParameters[3])
+  
+  # Handle NA values that can occur with extreme parameters
+  if (any(is.na(gamma_values))) {
+    gamma_values[is.na(gamma_values)] <- 1.0  # Default to reasonable value
+  }
+  
+  # Ensure we don't divide by zero
+  gamma_values[gamma_values == 0] <- 1e-04
+  
+  lambdas <- 1/gamma_values
+  
+  # Draw uniform values and handle potential NAs
+  alpha_values <- runif(n, 0, priorParameters[1])
+  if (any(is.na(alpha_values))) {
+    alpha_values[is.na(alpha_values)] <- 1.0  # Default to reasonable value
+  }
+  
+  theta <- list(array(alpha_values, dim = c(1, 1, n)),
                 array(lambdas, dim = c(1, 1, n)))
   return(theta)
 }
@@ -51,7 +69,28 @@ PriorDensity.weibull <- function(mdObj, theta) {
 
   priorParameters <- mdObj$priorParameters
 
-  theta_density <- dunif(as.numeric(theta[[1]][1,1,1]), 0, priorParameters[1])
+  # Handle different input types (matrix or list)
+  if (is.matrix(theta)) {
+    theta_val <- theta[1, 1]
+  } else if (is.list(theta)) {
+    # Handle different parameter dimensions safely
+    if (is.array(theta[[1]])) {
+      param_dims <- dim(theta[[1]])
+      if (length(param_dims) == 3) {
+        theta_val <- theta[[1]][1,1,1]
+      } else if (length(param_dims) == 2) {
+        theta_val <- theta[[1]][1,1]
+      } else {
+        theta_val <- theta[[1]][1]
+      }
+    } else {
+      theta_val <- theta[[1]]
+    }
+  } else {
+    theta_val <- theta[1]
+  }
+  
+  theta_density <- dunif(as.numeric(theta_val), 0, priorParameters[1])
   #theta_density <- thetaDensity * dgamma(1/theta[[2]], priorParameters[2], priorParameters[3])
   return(theta_density)
 }
@@ -102,7 +141,30 @@ MhParameterProposal.weibull <- function(mdObj, old_params) {
 
   mhStepSize <- mdObj$mhStepSize
   new_params <- old_params
-  new_params[[1]] <- array(abs(c(old_params[[1]]) + mhStepSize * rnorm(1, 0, 1.7)), dim=c(1,1,1))
-
+  
+  # Extract current values
+  old_alpha <- as.numeric(old_params[[1]])
+  old_lambda <- as.numeric(old_params[[2]])
+  
+  # Propose new alpha (ensure positive)
+  new_alpha <- abs(old_alpha + mhStepSize[1] * rnorm(1, 0, 1.7))
+  
+  # Handle NA values and ensure minimum values
+  if (is.na(new_alpha) || new_alpha == 0) {
+    new_alpha <- 1e-04
+  }
+  
+  # Propose new lambda (ensure positive)
+  new_lambda <- abs(old_lambda + mhStepSize[2] * rnorm(1, 0, 1.7))
+  
+  # Handle NA values and ensure minimum values
+  if (is.na(new_lambda) || new_lambda == 0) {
+    new_lambda <- 1e-04
+  }
+  
+  # Return in proper format
+  new_params[[1]] <- array(new_alpha, dim = c(1, 1, 1))
+  new_params[[2]] <- array(new_lambda, dim = c(1, 1, 1))
+  
   return(new_params)
 }

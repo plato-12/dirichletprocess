@@ -32,13 +32,31 @@ PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
   numLabels <- length(pointsPerCluster)
   mdobj <- dpobj$mixingDistribution
 
-  dirichlet_draws <- gtools::rdirichlet(1, c(pointsPerCluster, alpha))
+  # Remove zero clusters to avoid invalid arguments in rdirichlet
+  non_zero_clusters <- pointsPerCluster > 0
+  active_pointsPerCluster <- pointsPerCluster[non_zero_clusters]
+  
+  # If no active clusters, create a minimum viable cluster
+  if (length(active_pointsPerCluster) == 0) {
+    active_pointsPerCluster <- c(1)
+  }
+  
+  # Ensure alpha is numeric
+  if (!is.numeric(alpha)) {
+    alpha <- as.numeric(alpha)
+  }
+  
+  dirichlet_draws <- gtools::rdirichlet(1, c(active_pointsPerCluster, alpha))
   numBreaks <- ceiling(alpha + numLabels) * 20 + 5
 
   sticks <- StickBreaking(alpha + numLabels, numBreaks)
-  sticks <- sticks * dirichlet_draws[numLabels + 1]
+  active_numLabels <- length(active_pointsPerCluster)
+  sticks <- sticks * dirichlet_draws[active_numLabels + 1]
 
-  sticks <- c(dirichlet_draws[-(numLabels + 1)], sticks)
+  # Build the full sticks vector including zeros for empty clusters
+  full_sticks <- numeric(numLabels)
+  full_sticks[non_zero_clusters] <- dirichlet_draws[1:active_numLabels]
+  sticks <- c(full_sticks, sticks)
   # postParams <- rbind(clusterParams, PriorDraw(mdobj, numBreaks))
 
   #n_smps <- numBreaks + numLabels
@@ -46,6 +64,8 @@ PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
   PriorDraws <- PriorDraw(mdobj, numBreaks)
   postParams <- list()
 
+  # For now, use original cluster parameters structure
+  # This will work with the existing stick-breaking representation
   for (i in seq_along(clusterParams)) {
     postParams[[i]] <- array(c(clusterParams[[i]], PriorDraws[[i]]),
                              dim = c(dim(PriorDraws[[i]])[1:2],

@@ -17,6 +17,7 @@ test_that("Beta2 Likelihood", {
   testTheta <- list()
   testTheta[[1]] <- array(0.5, dim=c(1,1,1))
   testTheta[[2]] <- array(0.5, dim=c(1,1,1))
+  names(testTheta) <- c("mu", "nu")
 
   oldLik <- Likelihood(betaObj, c(0.1, 0.2), testTheta)
   newLik <- Likelihood(beta2Obj, c(0.1, 0.2), testTheta)
@@ -62,6 +63,10 @@ test_that("Beta2 Parameter Proposal",{
 
   pd <- PriorDraw(beta2Obj, 1)
 
+  # Access function from namespace if not available in global environment
+  if (!exists("MhParameterProposal")) {
+    MhParameterProposal <- get("MhParameterProposal", getNamespace("dirichletprocess"))
+  }
   newParams <- MhParameterProposal(beta2Obj, pd)
 
   expect_is(pd, "list")

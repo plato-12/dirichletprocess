@@ -22,66 +22,96 @@ BetaMixtureCreate <- function(priorParameters = c(2, 8), mhStepSize = c(1, 1), m
 #' @rdname Likelihood
 Likelihood.beta <- function(mdObj, x, theta) {
   maxT <- mdObj$maxT
-  x <- as.vector(x, "numeric")
+  x <- as.numeric(x)
 
-  # Handle both array and vector inputs for theta
-  if (is.list(theta) && length(theta) >= 2) {
-    # Extract mu and tau from arrays
-    if (is.array(theta[[1]])) {
-      mu <- as.numeric(theta[[1]][, , , drop = TRUE])
-    } else {
-      mu <- as.numeric(theta[[1]])
-    }
+  # Validate theta structure
+  if (!is.list(theta)) {
+    stop("theta must be a list with mu and nu components")
+  }
 
-    if (is.array(theta[[2]])) {
-      tau <- as.numeric(theta[[2]][, , , drop = TRUE])
+  if (!all(c("mu", "nu") %in% names(theta))) {
+    stop("theta must contain 'mu' and 'nu' components")
+  }
+
+  # Extract parameters with proper handling for various formats
+  mu <- if (is.array(theta$mu)) {
+    # Handle 3D arrays (dim = c(1,1,n))
+    if (length(dim(theta$mu)) == 3) {
+      as.numeric(theta$mu[,,, drop = TRUE])
     } else {
-      tau <- as.numeric(theta[[2]])
+      as.numeric(theta$mu)
     }
+  } else if (is.list(theta$mu)) {
+    unlist(theta$mu)
   } else {
-    stop("theta must be a list with at least 2 elements")
+    as.numeric(theta$mu)
   }
 
-  # Ensure we have values
-  if (length(mu) == 0 || length(tau) == 0) {
-    return(numeric(length(x)))
+  nu <- if (is.array(theta$nu)) {
+    # Handle 3D arrays (dim = c(1,1,n))
+    if (length(dim(theta$nu)) == 3) {
+      as.numeric(theta$nu[,,, drop = TRUE])
+    } else {
+      as.numeric(theta$nu)
+    }
+  } else if (is.list(theta$nu)) {
+    unlist(theta$nu)
+  } else {
+    as.numeric(theta$nu)
   }
 
-  # Calculate likelihood for each cluster
+  # Ensure we have valid values
+  mu <- mu[!is.na(mu)]
+  nu <- nu[!is.na(nu)]
+
+  if (length(mu) == 0 || length(nu) == 0) {
+    return(rep(1e-300, length(x)))
+  }
+
+  # Ensure mu and nu have the same length
+  n_params <- max(length(mu), length(nu))
+  if (length(mu) == 1 && n_params > 1) {
+    mu <- rep(mu, n_params)
+  }
+  if (length(nu) == 1 && n_params > 1) {
+    nu <- rep(nu, n_params)
+  }
+
+  # Calculate likelihood
   n_clusters <- length(mu)
-  y <- matrix(NA_real_, nrow = length(x), ncol = n_clusters)
+  if (length(x) == 1) {
+    # Single observation
+    lik <- numeric(n_clusters)
+    for (k in 1:n_clusters) {
+      if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
+        a <- (mu[k] * nu[k]) / maxT
+        b <- (1 - mu[k]/maxT) * nu[k]
 
-  for (k in 1:n_clusters) {
-    # Validate parameters
-    if (is.na(mu[k]) || is.na(tau[k]) || mu[k] <= 0 || mu[k] >= maxT || tau[k] <= 0) {
-      y[, k] <- 1e-300
-      next
-    }
-
-    a <- (mu[k] * tau[k]) / maxT
-    b <- (1 - mu[k]/maxT) * tau[k]
-
-    # Ensure valid beta parameters
-    if (a <= 0 || b <= 0 || !is.finite(a) || !is.finite(b)) {
-      y[, k] <- 1e-300
-      next
-    }
-
-    # Calculate likelihood for all data points
-    for (i in seq_along(x)) {
-      if (x[i] >= 0 && x[i] <= maxT) {
-        y[i, k] <- (1/maxT) * dbeta(x[i]/maxT, a, b)
+        if (a > 0 && b > 0 && x >= 0 && x <= maxT) {
+          lik[k] <- (1/maxT) * dbeta(x/maxT, a, b)
+        } else {
+          lik[k] <- 1e-300
+        }
       } else {
-        y[i, k] <- 1e-300
+        lik[k] <- 1e-300
       }
     }
-  }
-
-  # Return as vector if single cluster, matrix otherwise
-  if (n_clusters == 1) {
-    return(as.numeric(y[, 1]))
+    return(if (n_clusters == 1) lik[1] else lik)
   } else {
-    return(y)
+    # Multiple observations - return matrix
+    lik <- matrix(1e-300, nrow = length(x), ncol = n_clusters)
+    for (k in 1:n_clusters) {
+      if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
+        a <- (mu[k] * nu[k]) / maxT
+        b <- (1 - mu[k]/maxT) * nu[k]
+
+        if (a > 0 && b > 0) {
+          valid_idx <- x >= 0 & x <= maxT
+          lik[valid_idx, k] <- (1/maxT) * dbeta(x[valid_idx]/maxT, a, b)
+        }
+      }
+    }
+    return(lik)
   }
 }
 
@@ -91,7 +121,19 @@ PriorDraw.beta <- function(mdObj, n = 1) {
 
   priorParameters <- mdObj$priorParameters
   mu <- runif(n, 0, mdObj$maxT)
-  nu <- 1/rgamma(n, shape = priorParameters[1], rate = priorParameters[2])
+  
+  # Draw gamma values and handle potential NAs
+  gamma_values <- rgamma(n, shape = priorParameters[1], rate = priorParameters[2])
+  
+  # Handle NA values that can occur with extreme parameters
+  if (any(is.na(gamma_values))) {
+    gamma_values[is.na(gamma_values)] <- 1.0  # Default to reasonable value
+  }
+  
+  # Ensure we don't divide by zero
+  gamma_values[gamma_values == 0] <- 1e-04
+  
+  nu <- 1/gamma_values
 
   theta <- list(mu = array(mu, c(1, 1, n)), nu = array(nu, c(1, 1, n)))
   return(theta)
@@ -131,7 +173,7 @@ PriorParametersUpdate.beta <- function(mdObj, clusterParameters, n = 1) {
 
   newGamma <- rgamma(n, posteriorShape, posteriorRate)
 
-  newPriorParameters <- matrix(c(priorParameters[1], newGamma), ncol = 2)
+  newPriorParameters <- matrix(c(priorParameters[1], newGamma), nrow = 1, ncol = 2)
   mdObj$priorParameters <- newPriorParameters
 
   return(mdObj)
@@ -157,6 +199,15 @@ MhParameterProposal.beta <- function(mdObj, old_params) {
 
   # Propose new nu (ensure positive)
   new_nu <- abs(old_nu + mhStepSize[2] * rnorm(1, 0, 2.4))
+  
+  # Handle NA values and ensure minimum values
+  if (is.na(new_nu) || new_nu == 0) {
+    new_nu <- 1e-04
+  }
+  
+  if (is.na(new_mu)) {
+    new_mu <- old_mu
+  }
 
   # Return in proper format
   new_params[[1]] <- array(new_mu, dim = c(1, 1, 1))

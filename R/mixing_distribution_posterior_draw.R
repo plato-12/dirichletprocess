@@ -98,9 +98,10 @@ PosteriorDraw.beta <- function(mdObj, x, n = 1, ...) {
       }
     }
 
+    # Return as arrays with correct dimensions c(1,1,n)
     return(list(
-      mu = mu_values[1:n],
-      nu = nu_values[1:n]
+      mu = array(mu_values[1:n], dim = c(1, 1, n)),
+      nu = array(nu_values[1:n], dim = c(1, 1, n))
     ))
   } else {
     # Fallback to prior draws if MH failed

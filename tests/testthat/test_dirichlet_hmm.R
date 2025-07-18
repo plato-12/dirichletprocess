@@ -48,6 +48,10 @@ test_that("Update States Integration", {
 
   dp <- DirichletHMMCreate(testData, normMD, 2, 3)
 
+  # Access function from namespace if not available in global environment
+  if (!exists("UpdateStates")) {
+    UpdateStates <- get("UpdateStates", getNamespace("dirichletprocess"))
+  }
   dp <- UpdateStates(dp)
 
   expectedValues <- expNames
@@ -59,7 +63,15 @@ test_that("Update States Integration", {
 test_that("Update Parameters Integration", {
 
   dp <- DirichletHMMCreate(testData, normMD, 2, 3)
+  # Access function from namespace if not available in global environment
+  if (!exists("UpdateStates")) {
+    UpdateStates <- get("UpdateStates", getNamespace("dirichletprocess"))
+  }
   dp <- UpdateStates(dp)
+  # Access function from namespace if not available in global environment
+  if (!exists("param_update")) {
+    param_update <- get("param_update", getNamespace("dirichletprocess"))
+  }
   dp <- param_update(dp)
 
   expectedValues <- expNames
@@ -70,6 +82,10 @@ test_that("Update Parameters Integration", {
 test_that("Fit Inner", {
 
   dp <- DirichletHMMCreate(testData, normMD, 2, 3)
+  # Access function from namespace if not available in global environment
+  if (!exists("fit_hmm")) {
+    fit_hmm <- get("fit_hmm", getNamespace("dirichletprocess"))
+  }
   dp <- fit_hmm(dp, 10)
 
   HMM_dp_test(dp)

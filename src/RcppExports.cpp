@@ -134,7 +134,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // nonconjugate_beta_cluster_component_update_cpp
-SEXP nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list);
+Rcpp::List nonconjugate_beta_cluster_component_update_cpp(Rcpp::List dp_list);
 RcppExport SEXP _dirichletprocess_nonconjugate_beta_cluster_component_update_cpp(SEXP dp_listSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -468,25 +468,14 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// conjugate_mvnormal_cluster_component_update_cpp
-Rcpp::List conjugate_mvnormal_cluster_component_update_cpp(Rcpp::List dpObj);
-RcppExport SEXP _dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp(SEXP dpObjSEXP) {
+// conjugate_mvnormal_update_alpha_cpp
+double conjugate_mvnormal_update_alpha_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_mvnormal_update_alpha_cpp(SEXP dpObjSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
-    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_cluster_component_update_cpp(dpObj));
-    return rcpp_result_gen;
-END_RCPP
-}
-// conjugate_mvnormal_cluster_parameter_update_cpp
-Rcpp::List conjugate_mvnormal_cluster_parameter_update_cpp(Rcpp::List dpObj);
-RcppExport SEXP _dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp(SEXP dpObjSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
-    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_cluster_parameter_update_cpp(dpObj));
+    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_update_alpha_cpp(dpObj));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -575,6 +564,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type gammaPrior(gammaPriorSEXP);
     Rcpp::traits::input_parameter< int >::type num_sticks(num_sticksSEXP);
     rcpp_result_gen = Rcpp::wrap(hierarchical_mvnormal2_mixing_create_cpp(n, priorParameters, alphaPrior, gammaPrior, num_sticks));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonconjugate_mvnormal2_update_alpha_cpp
+double nonconjugate_mvnormal2_update_alpha_cpp(Rcpp::List dpObj);
+RcppExport SEXP _dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonconjugate_mvnormal2_update_alpha_cpp(dpObj));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -724,6 +724,285 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type priorParams(priorParamsSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
     rcpp_result_gen = Rcpp::wrap(normal_posterior_parameters_cpp(priorParams, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// create_mcmc_runner_cpp
+SEXP create_mcmc_runner_cpp(arma::mat data, List mixing_params, List mcmc_params);
+RcppExport SEXP _dirichletprocess_create_mcmc_runner_cpp(SEXP dataSEXP, SEXP mixing_paramsSEXP, SEXP mcmc_paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< List >::type mixing_params(mixing_paramsSEXP);
+    Rcpp::traits::input_parameter< List >::type mcmc_params(mcmc_paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(create_mcmc_runner_cpp(data, mixing_params, mcmc_params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// step_assignments_cpp
+void step_assignments_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_step_assignments_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    step_assignments_cpp(runner_ptr);
+    return R_NilValue;
+END_RCPP
+}
+// step_parameters_cpp
+void step_parameters_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_step_parameters_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    step_parameters_cpp(runner_ptr);
+    return R_NilValue;
+END_RCPP
+}
+// step_concentration_cpp
+void step_concentration_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_step_concentration_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    step_concentration_cpp(runner_ptr);
+    return R_NilValue;
+END_RCPP
+}
+// perform_iteration_cpp
+void perform_iteration_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_perform_iteration_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    perform_iteration_cpp(runner_ptr);
+    return R_NilValue;
+END_RCPP
+}
+// get_state_cpp
+List get_state_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_state_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_state_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_results_cpp
+List get_results_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_results_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_results_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// is_complete_cpp
+bool is_complete_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_is_complete_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(is_complete_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// set_labels_cpp
+void set_labels_cpp(SEXP runner_ptr, std::vector<int> labels);
+RcppExport SEXP _dirichletprocess_set_labels_cpp(SEXP runner_ptrSEXP, SEXP labelsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type labels(labelsSEXP);
+    set_labels_cpp(runner_ptr, labels);
+    return R_NilValue;
+END_RCPP
+}
+// set_params_cpp
+void set_params_cpp(SEXP runner_ptr, List params);
+RcppExport SEXP _dirichletprocess_set_params_cpp(SEXP runner_ptrSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< List >::type params(paramsSEXP);
+    set_params_cpp(runner_ptr, params);
+    return R_NilValue;
+END_RCPP
+}
+// set_parameter_bounds_cpp
+void set_parameter_bounds_cpp(SEXP runner_ptr, arma::vec lower, arma::vec upper);
+RcppExport SEXP _dirichletprocess_set_parameter_bounds_cpp(SEXP runner_ptrSEXP, SEXP lowerSEXP, SEXP upperSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type lower(lowerSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type upper(upperSEXP);
+    set_parameter_bounds_cpp(runner_ptr, lower, upper);
+    return R_NilValue;
+END_RCPP
+}
+// get_auxiliary_params_cpp
+List get_auxiliary_params_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_auxiliary_params_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_auxiliary_params_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// set_update_flags_cpp
+void set_update_flags_cpp(SEXP runner_ptr, bool clusters, bool params, bool alpha);
+RcppExport SEXP _dirichletprocess_set_update_flags_cpp(SEXP runner_ptrSEXP, SEXP clustersSEXP, SEXP paramsSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< bool >::type clusters(clustersSEXP);
+    Rcpp::traits::input_parameter< bool >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< bool >::type alpha(alphaSEXP);
+    set_update_flags_cpp(runner_ptr, clusters, params, alpha);
+    return R_NilValue;
+END_RCPP
+}
+// get_cluster_likelihoods_cpp
+arma::vec get_cluster_likelihoods_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_cluster_likelihoods_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_cluster_likelihoods_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_membership_matrix_cpp
+arma::mat get_membership_matrix_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_membership_matrix_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_membership_matrix_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_cluster_statistics_cpp
+List get_cluster_statistics_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_cluster_statistics_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_cluster_statistics_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// merge_clusters_cpp
+void merge_clusters_cpp(SEXP runner_ptr, int cluster1, int cluster2);
+RcppExport SEXP _dirichletprocess_merge_clusters_cpp(SEXP runner_ptrSEXP, SEXP cluster1SEXP, SEXP cluster2SEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< int >::type cluster1(cluster1SEXP);
+    Rcpp::traits::input_parameter< int >::type cluster2(cluster2SEXP);
+    merge_clusters_cpp(runner_ptr, cluster1, cluster2);
+    return R_NilValue;
+END_RCPP
+}
+// split_cluster_cpp
+void split_cluster_cpp(SEXP runner_ptr, int cluster_id, double split_prob);
+RcppExport SEXP _dirichletprocess_split_cluster_cpp(SEXP runner_ptrSEXP, SEXP cluster_idSEXP, SEXP split_probSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< int >::type cluster_id(cluster_idSEXP);
+    Rcpp::traits::input_parameter< double >::type split_prob(split_probSEXP);
+    split_cluster_cpp(runner_ptr, cluster_id, split_prob);
+    return R_NilValue;
+END_RCPP
+}
+// set_temperature_cpp
+void set_temperature_cpp(SEXP runner_ptr, double temp);
+RcppExport SEXP _dirichletprocess_set_temperature_cpp(SEXP runner_ptrSEXP, SEXP tempSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< double >::type temp(tempSEXP);
+    set_temperature_cpp(runner_ptr, temp);
+    return R_NilValue;
+END_RCPP
+}
+// set_auxiliary_count_cpp
+void set_auxiliary_count_cpp(SEXP runner_ptr, int m);
+RcppExport SEXP _dirichletprocess_set_auxiliary_count_cpp(SEXP runner_ptrSEXP, SEXP mSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    set_auxiliary_count_cpp(runner_ptr, m);
+    return R_NilValue;
+END_RCPP
+}
+// sample_predictive_cpp
+List sample_predictive_cpp(SEXP runner_ptr, int n_samples);
+RcppExport SEXP _dirichletprocess_sample_predictive_cpp(SEXP runner_ptrSEXP, SEXP n_samplesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    Rcpp::traits::input_parameter< int >::type n_samples(n_samplesSEXP);
+    rcpp_result_gen = Rcpp::wrap(sample_predictive_cpp(runner_ptr, n_samples));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_log_posterior_cpp
+double get_log_posterior_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_log_posterior_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_log_posterior_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_cluster_entropies_cpp
+arma::vec get_cluster_entropies_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_cluster_entropies_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_cluster_entropies_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_clustering_entropy_cpp
+double get_clustering_entropy_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_clustering_entropy_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_clustering_entropy_cpp(runner_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_convergence_diagnostics_cpp
+List get_convergence_diagnostics_cpp(SEXP runner_ptr);
+RcppExport SEXP _dirichletprocess_get_convergence_diagnostics_cpp(SEXP runner_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type runner_ptr(runner_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_convergence_diagnostics_cpp(runner_ptr));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -917,8 +1196,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_mvnormal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_posterior_parameters_cpp, 2},
     {"_dirichletprocess_mvnormal_predictive_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_predictive_cpp, 2},
     {"_dirichletprocess_mvnormal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_likelihood_cpp, 3},
-    {"_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp, 1},
-    {"_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp, 1},
+    {"_dirichletprocess_conjugate_mvnormal_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_update_alpha_cpp, 1},
     {"_dirichletprocess_mvnormal2_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal2_prior_draw_cpp, 2},
     {"_dirichletprocess_mvnormal2_posterior_draw_cpp", (DL_FUNC) &_dirichletprocess_mvnormal2_posterior_draw_cpp, 3},
     {"_dirichletprocess_mvnormal2_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal2_likelihood_cpp, 2},
@@ -926,6 +1204,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_hierarchical_mvnormal2_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp, 5},
+    {"_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp, 1},
     {"_dirichletprocess_mvnormal_log_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_log_likelihood_cpp, 3},
     {"_dirichletprocess_markov_dp_create_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_create_cpp, 1},
     {"_dirichletprocess_markov_dp_fit_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_fit_cpp, 4},
@@ -939,6 +1218,31 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_conjugate_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_cluster_component_update_cpp, 1},
     {"_dirichletprocess_conjugate_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_normal_posterior_parameters_cpp", (DL_FUNC) &_dirichletprocess_normal_posterior_parameters_cpp, 2},
+    {"_dirichletprocess_create_mcmc_runner_cpp", (DL_FUNC) &_dirichletprocess_create_mcmc_runner_cpp, 3},
+    {"_dirichletprocess_step_assignments_cpp", (DL_FUNC) &_dirichletprocess_step_assignments_cpp, 1},
+    {"_dirichletprocess_step_parameters_cpp", (DL_FUNC) &_dirichletprocess_step_parameters_cpp, 1},
+    {"_dirichletprocess_step_concentration_cpp", (DL_FUNC) &_dirichletprocess_step_concentration_cpp, 1},
+    {"_dirichletprocess_perform_iteration_cpp", (DL_FUNC) &_dirichletprocess_perform_iteration_cpp, 1},
+    {"_dirichletprocess_get_state_cpp", (DL_FUNC) &_dirichletprocess_get_state_cpp, 1},
+    {"_dirichletprocess_get_results_cpp", (DL_FUNC) &_dirichletprocess_get_results_cpp, 1},
+    {"_dirichletprocess_is_complete_cpp", (DL_FUNC) &_dirichletprocess_is_complete_cpp, 1},
+    {"_dirichletprocess_set_labels_cpp", (DL_FUNC) &_dirichletprocess_set_labels_cpp, 2},
+    {"_dirichletprocess_set_params_cpp", (DL_FUNC) &_dirichletprocess_set_params_cpp, 2},
+    {"_dirichletprocess_set_parameter_bounds_cpp", (DL_FUNC) &_dirichletprocess_set_parameter_bounds_cpp, 3},
+    {"_dirichletprocess_get_auxiliary_params_cpp", (DL_FUNC) &_dirichletprocess_get_auxiliary_params_cpp, 1},
+    {"_dirichletprocess_set_update_flags_cpp", (DL_FUNC) &_dirichletprocess_set_update_flags_cpp, 4},
+    {"_dirichletprocess_get_cluster_likelihoods_cpp", (DL_FUNC) &_dirichletprocess_get_cluster_likelihoods_cpp, 1},
+    {"_dirichletprocess_get_membership_matrix_cpp", (DL_FUNC) &_dirichletprocess_get_membership_matrix_cpp, 1},
+    {"_dirichletprocess_get_cluster_statistics_cpp", (DL_FUNC) &_dirichletprocess_get_cluster_statistics_cpp, 1},
+    {"_dirichletprocess_merge_clusters_cpp", (DL_FUNC) &_dirichletprocess_merge_clusters_cpp, 3},
+    {"_dirichletprocess_split_cluster_cpp", (DL_FUNC) &_dirichletprocess_split_cluster_cpp, 3},
+    {"_dirichletprocess_set_temperature_cpp", (DL_FUNC) &_dirichletprocess_set_temperature_cpp, 2},
+    {"_dirichletprocess_set_auxiliary_count_cpp", (DL_FUNC) &_dirichletprocess_set_auxiliary_count_cpp, 2},
+    {"_dirichletprocess_sample_predictive_cpp", (DL_FUNC) &_dirichletprocess_sample_predictive_cpp, 2},
+    {"_dirichletprocess_get_log_posterior_cpp", (DL_FUNC) &_dirichletprocess_get_log_posterior_cpp, 1},
+    {"_dirichletprocess_get_cluster_entropies_cpp", (DL_FUNC) &_dirichletprocess_get_cluster_entropies_cpp, 1},
+    {"_dirichletprocess_get_clustering_entropy_cpp", (DL_FUNC) &_dirichletprocess_get_clustering_entropy_cpp, 1},
+    {"_dirichletprocess_get_convergence_diagnostics_cpp", (DL_FUNC) &_dirichletprocess_get_convergence_diagnostics_cpp, 1},
     {"_dirichletprocess_weibull_prior_draw_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_draw_cpp, 2},
     {"_dirichletprocess_weibull_likelihood_cpp", (DL_FUNC) &_dirichletprocess_weibull_likelihood_cpp, 3},
     {"_dirichletprocess_weibull_prior_density_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_density_cpp, 2},

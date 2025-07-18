@@ -83,6 +83,10 @@ test_that("Beta Posterior Draw with Start Position", {
 test_that("Beta MH Parameter Proposal", {
   test_params_single <- list(mu=array(0.5, dim=c(1,1,1)), nu=array(1, dim=c(1,1,1)))
 
+  # Access function from namespace if not available in global environment
+  if (!exists("MhParameterProposal")) {
+    MhParameterProposal <- get("MhParameterProposal", getNamespace("dirichletprocess"))
+  }
   test_param_prop <- MhParameterProposal(test_mdobj, test_params_single)
 
   expect_equal(length(test_param_prop), 2)

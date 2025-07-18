@@ -11,6 +11,10 @@
 #' @export
 DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
                                  mhStepSize = c(0.1, 0.1), verbose = TRUE) {
+  # Handle case where alphaPriors is a single value
+  if (length(alphaPriors) == 1) {
+    alphaPriors <- c(alphaPriors, 0.5)
+  }
   mdObj <- BetaMixtureCreate(priorParameters = c(2, 8),
                              mhStepSize = mhStepSize,
                              maxT = 1)
@@ -26,47 +30,35 @@ DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
 }
 
 #' @export
-Initialise.beta <- function(dpObj, posterior = TRUE, verbose = TRUE, ...) {
+#' @rdname Initialise
+Initialise.beta <- function(dpObj, m = 3, verbose = TRUE, ...) {
 
-  # Ensure all points start in cluster 1
-  dpObj$clusterLabels <- rep(1, dpObj$n)
+  dpObj$m <- m
   dpObj$numberClusters <- 1
-  dpObj$pointsPerCluster <- numeric(dpObj$n)
-  dpObj$pointsPerCluster[1] <- dpObj$n
+  dpObj$clusterLabels <- rep(1, dpObj$n)
+  dpObj$pointsPerCluster <- c(dpObj$n)
 
-  # Initialize parameters with proper array structure
-  if (posterior) {
-    cluster_data <- matrix(dpObj$data, ncol = 1)
-    post_draws <- PosteriorDraw(dpObj$mixingDistribution, cluster_data, n = 1)
+  # Ensure parameters are properly structured as 3D arrays
+  priorDraws <- PriorDraw(dpObj$mixingDistribution, 1)
+  dpObj$clusterParameters <- list(
+    mu = array(priorDraws$mu, dim = c(1, 1, 1)),
+    nu = array(priorDraws$nu, dim = c(1, 1, 1))
+  )
 
-    # Ensure proper array structure
-    dpObj$clusterParameters <- list(
-      mu = array(as.numeric(post_draws$mu), dim = c(1, 1, 1)),
-      nu = array(as.numeric(post_draws$nu), dim = c(1, 1, 1))
-    )
-  } else {
-    prior_draws <- PriorDraw(dpObj$mixingDistribution, 1)
+  dpObj$alpha <- dpObj$alphaPriorParameters[1] / dpObj$alphaPriorParameters[2]
 
-    # Ensure proper array structure
-    dpObj$clusterParameters <- list(
-      mu = array(as.numeric(prior_draws$mu), dim = c(1, 1, 1)),
-      nu = array(as.numeric(prior_draws$nu), dim = c(1, 1, 1))
-    )
-  }
-
-  # Initialize auxiliary parameters for non-conjugate
-  dpObj$m <- 3
-  dpObj$aux <- vector("list", dpObj$m)
-  for (j in seq_len(dpObj$m)) {
-    aux_params <- PriorDraw(dpObj$mixingDistribution, 1)
-    dpObj$aux[[j]] <- list(
-      mu = array(as.numeric(aux_params$mu), dim = c(1, 1, 1)),
-      nu = array(as.numeric(aux_params$nu), dim = c(1, 1, 1))
+  # Generate auxiliary parameters with proper structure
+  dpObj$aux <- vector("list", m)
+  for(i in seq_len(m)) {
+    aux_draw <- PriorDraw(dpObj$mixingDistribution, 1)
+    dpObj$aux[[i]] <- list(
+      mu = array(aux_draw$mu, dim = c(1, 1, 1)),
+      nu = array(aux_draw$nu, dim = c(1, 1, 1))
     )
   }
 
   if (verbose) {
-    cat("Initialised Dirichlet process with 1 cluster\n")
+    cat("Dirichlet process initialised.\n")
   }
 
   return(dpObj)

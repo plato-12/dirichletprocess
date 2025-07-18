@@ -49,7 +49,12 @@ get_cpp_status <- function() {
 #' @param dp_obj Dirichlet process object
 #' @return Logical indicating whether C++ implementation is available
 #' @keywords internal
-can_use_cpp <- function(dp_obj) {
+can_use_cpp <- function(dp_obj = NULL) {
+  if (is.null(dp_obj)) {
+    # If no dp_obj provided, just check if C++ is available
+    return(exists("_dirichletprocess_run_mcmc_cpp"))
+  }
+
   if (!exists("_dirichletprocess_run_mcmc_cpp")) {
     return(FALSE)
   }
@@ -62,7 +67,7 @@ can_use_cpp <- function(dp_obj) {
 
   # Supported types for unified MCMCRunner
   supported_types <- c("normal_inverse_gamma", "normal", "beta",
-                       "weibull", "exponential")
+                       "weibull", "exponential", "mvnormal", "mvnormal2")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
 

@@ -1,5 +1,10 @@
 context("Weibull Uniform Gamma Tests")
 
+# Access function from namespace if not available in global environment
+if (!exists("MhParameterProposal")) {
+  MhParameterProposal <- get("MhParameterProposal", getNamespace("dirichletprocess"))
+}
+
 test_mdobj <- WeibullMixtureCreate(c(1,1,1), c(1,1))
 
 test_that("Weibull Creation", {

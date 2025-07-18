@@ -3,6 +3,7 @@ plot_dirichletprocess <- function(x, ...) {
   UseMethod("plot_dirichletprocess", mdobj)
 }
 
+#' @export
 plot_dirichletprocess.default <- function(x, ...){
 
   if (ncol(x$data) == 1){
@@ -13,18 +14,22 @@ plot_dirichletprocess.default <- function(x, ...){
 
 }
 
+#' @export
 plot_dirichletprocess.gaussian <- function(x, ...){
   plot_dirichletprocess_univariate(x, ...)
 }
 
+#' @export
 plot_dirichletprocess.beta <- function(x, ...) {
   plot_dirichletprocess_univariate(x, ...)
 }
 
+#' @export
 plot_dirichletprocess.weibull <- function(x, ...) {
   plot_dirichletprocess_univariate(x, ...)
 }
 
+#' @export
 plot_dirichletprocess.mvnormal <- function(x, ...) {
   plot_dirichletprocess_multivariate(x)
 }

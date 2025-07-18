@@ -1,0 +1,24 @@
+## MVNormal Distribution Benchmark: Executive Summary
+
+**Bottom Line:** C++ implementation is 46-711x faster than R
+
+### Performance at Scale (N=500):
+- **R:** 848.0 seconds (14.1 minutes)
+- **C++:** 1.19 seconds
+- **Speedup:** 711x
+
+### Why MVNormal is Special:
+1. **Most computationally intensive** distribution in the package
+2. **Matrix operations** dominate computation time
+3. **Memory requirements** scale with dimensions
+4. **C++ uses optimized linear algebra** (Armadillo/LAPACK)
+
+### Practical Impact:
+- Enables clustering of high-dimensional data
+- Makes multivariate mixture models feasible
+- Critical for production deployments
+
+**Recommendation:** Always use C++ implementation for MVNormal distributions.
+
+Full report: mvnormal_benchmark_report.md
+

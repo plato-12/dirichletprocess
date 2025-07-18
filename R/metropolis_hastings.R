@@ -2,6 +2,7 @@ MetropolisHastings <- function(mixingDistribution, x, start_pos, no_draws=100){
   UseMethod("MetropolisHastings", mixingDistribution)
 }
 
+#' @export
 MetropolisHastings.default <- function(mixingDistribution, x, start_pos, no_draws = 100) {
   parameter_samples <- vector("list", length(start_pos))
   for (i in seq_along(start_pos)) {
@@ -48,6 +49,7 @@ MetropolisHastings.default <- function(mixingDistribution, x, start_pos, no_draw
   return(list(parameter_samples = parameter_samples, accept_ratio = accept_ratio))
 }
 
+#' @export
 MetropolisHastings.weibull <- function(mixingDistribution, x, start_pos, no_draws=100){
 
   lamSamp <- 1/rgamma(1, length(x)+mixingDistribution$priorParameters[2],

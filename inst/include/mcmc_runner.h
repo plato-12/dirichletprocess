@@ -6,41 +6,44 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include "mixing_distribution_base.h"
 
 namespace dirichletprocess {
 
 // Forward declarations
-class MixingDistribution;
 class DPState;
 
 // Main MCMC runner class
 class MCMCRunner {
-private:
-  // Data
-  arma::mat data;
+  protected:  // CHANGED FROM private TO protected
+    // Data
+    arma::mat data;
 
-  // Model components
-  std::unique_ptr<MixingDistribution> mixing_dist;
+    // Model components
+    std::unique_ptr<MixingDistribution> mixing_dist;
 
-  // MCMC state
-  std::unique_ptr<DPState> state;
+    // MCMC state
+    std::unique_ptr<DPState> state;
 
-  // Parameters
-  int n_iter;
-  int n_burn;
-  int thin;
-  bool update_concentration_flag;
-  int m_auxiliary; // Number of auxiliary parameters for Algorithm 8
+    // Parameters
+    int n_iter;
+    int n_burn;
+    int thin;
+    bool update_concentration_flag;
+    int m_auxiliary; // Number of auxiliary parameters for Algorithm 8
 
-  // Alpha prior parameters
-  double alpha_prior_shape;
-  double alpha_prior_rate;
+    // Alpha prior parameters
+    double alpha_prior_shape;
+    double alpha_prior_rate;
 
-  // Storage for results
-  std::vector<arma::vec> alpha_samples;
-  std::vector<std::vector<int>> cluster_samples;
-  std::vector<std::vector<arma::vec>> theta_samples;
-  std::vector<double> likelihood_samples;  // For tracking likelihood
+    // Storage for results
+    std::vector<arma::vec> alpha_samples;
+    std::vector<std::vector<int>> cluster_samples;
+    std::vector<std::vector<arma::vec>> theta_samples;
+    std::vector<double> likelihood_samples;  // For tracking likelihood
+
+    // ADDED: Storage for n_clusters chain (needed by MCMCRunnerManual)
+    std::vector<int> n_clusters_chain;
 
 public:
   MCMCRunner(const arma::mat& data,
@@ -50,16 +53,16 @@ public:
   // Main MCMC loop
   Rcpp::List run();
 
-private:
-  // MCMC steps
-  void update_cluster_assignments_algorithm8(); // Algorithm 8 implementation
-  void update_cluster_parameters();
-  void update_concentration();
-  void store_iteration(int iter);
-  void cleanup_empty_clusters();
+  protected:  // CHANGED FROM private TO protected
+    // MCMC steps
+    void update_cluster_assignments_algorithm8(); // Algorithm 8 implementation
+    void update_cluster_parameters();
+    void update_concentration();
+    void store_iteration(int iter);
+    void cleanup_empty_clusters();
 
-  // Helper function for categorical sampling
-  int sample_categorical(const std::vector<double>& probs);
+    // Helper function for categorical sampling
+    int sample_categorical(const std::vector<double>& probs);
 };
 
 // State container for DP

@@ -5,10 +5,20 @@
 
 namespace dp {
 
+// Helper function to parse covariance model from string
+CovarianceModel parseCovarianceModel(const std::string& model) {
+  if (model == "E") return CovarianceModel::E;
+  else if (model == "V") return CovarianceModel::V;
+  else if (model == "EII") return CovarianceModel::EII;
+  else if (model == "VII") return CovarianceModel::VII;
+  else if (model == "EEI") return CovarianceModel::EEI;
+  else if (model == "VEI") return CovarianceModel::VEI;
+  else if (model == "EVI") return CovarianceModel::EVI;
+  else if (model == "VVI") return CovarianceModel::VVI;
+  else return CovarianceModel::FULL;
+}
+
 // MVNormalMixingDistribution implementation
-// Note: Throughout this implementation, 'sig' refers to precision matrices
-// (inverse covariance matrices) following the conjugate Wishart prior convention.
-// When calculating likelihoods, we convert to covariance matrices as needed.
 MVNormalMixingDistribution::MVNormalMixingDistribution(const Rcpp::List& priorParams) {
   distribution = "mvnormal";
   conjugate = true;
@@ -31,13 +41,167 @@ MVNormalMixingDistribution::MVNormalMixingDistribution(const Rcpp::List& priorPa
   if (priorParams.containsElementNamed("nu")) {
     nu = Rcpp::as<double>(priorParams["nu"]);
   }
+
+  // Extract covariance model
+  if (priorParams.containsElementNamed("covModel")) {
+    std::string modelStr = Rcpp::as<std::string>(priorParams["covModel"]);
+    covModel = parseCovarianceModel(modelStr);
+  } else {
+    covModel = CovarianceModel::FULL;
+  }
 }
 
 MVNormalMixingDistribution::~MVNormalMixingDistribution() {
   // Destructor
 }
 
-// DO NOT define ensureSymmetric here - it's already defined as inline in the header
+// Get number of covariance parameters for the model
+int MVNormalMixingDistribution::getNumCovParams(int d) const {
+  switch (covModel) {
+  case CovarianceModel::E:
+    return 1;  // One variance parameter
+  case CovarianceModel::V:
+    return 1;  // One variance parameter per observation
+  case CovarianceModel::EII:
+    return 1;  // One volume parameter
+  case CovarianceModel::VII:
+    return 1;  // One volume parameter per cluster
+  case CovarianceModel::EEI:
+    return d;  // Diagonal elements (same across clusters)
+  case CovarianceModel::VEI:
+    return d + 1;  // Volume + diagonal shape
+  case CovarianceModel::EVI:
+    return d;  // Diagonal elements (varying across clusters)
+  case CovarianceModel::VVI:
+    return d;  // Full diagonal per cluster
+  case CovarianceModel::FULL:
+  default:
+    return d * (d + 1) / 2;  // Full covariance matrix
+  }
+}
+
+// Construct covariance matrix from parameters based on model
+arma::mat MVNormalMixingDistribution::constructCovarianceMatrix(
+    const arma::vec& params, int d) const {
+
+  arma::mat sigma(d, d, arma::fill::zeros);
+
+  switch (covModel) {
+  case CovarianceModel::E:
+  case CovarianceModel::V:
+    // For univariate case, return scalar as 1x1 matrix
+    sigma(0, 0) = params(0);
+    break;
+
+  case CovarianceModel::EII:
+  case CovarianceModel::VII:
+    // Spherical: sigma = lambda * I
+    sigma = params(0) * arma::eye(d, d);
+    break;
+
+  case CovarianceModel::EEI:
+    // Diagonal, equal volume and shape
+    for (int i = 0; i < d; i++) {
+      sigma(i, i) = params(i);
+    }
+    break;
+
+  case CovarianceModel::VEI:
+    // Diagonal, varying volume, equal shape
+    // params[0] = volume, params[1:d] = shape
+  {
+    double volume = params(0);
+    arma::vec shape = params.subvec(1, d);
+    shape = shape / arma::prod(shape);  // Normalize shape
+    for (int i = 0; i < d; i++) {
+      sigma(i, i) = volume * shape(i);
+    }
+  }
+    break;
+
+  case CovarianceModel::EVI:
+  case CovarianceModel::VVI:
+    // Diagonal matrices
+    for (int i = 0; i < d; i++) {
+      sigma(i, i) = params(i);
+    }
+    break;
+
+  case CovarianceModel::FULL:
+  default:
+    // Full covariance matrix (lower triangular parameterization)
+  {
+    int idx = 0;
+    for (int i = 0; i < d; i++) {
+      for (int j = 0; j <= i; j++) {
+        sigma(i, j) = params(idx);
+        if (i != j) sigma(j, i) = params(idx);
+        idx++;
+      }
+    }
+  }
+    break;
+  }
+
+  return sigma;
+}
+
+// Extract covariance parameters from matrix based on model
+arma::vec MVNormalMixingDistribution::extractCovarianceParams(
+    const arma::mat& sigma) const {
+
+  int d = sigma.n_rows;
+  int nParams = getNumCovParams(d);
+  arma::vec params(nParams);
+
+  switch (covModel) {
+  case CovarianceModel::E:
+  case CovarianceModel::V:
+    params(0) = sigma(0, 0);
+    break;
+
+  case CovarianceModel::EII:
+  case CovarianceModel::VII:
+    // Extract volume (average of diagonal elements)
+    params(0) = arma::trace(sigma) / d;
+    break;
+
+  case CovarianceModel::EEI:
+  case CovarianceModel::EVI:
+  case CovarianceModel::VVI:
+    // Extract diagonal elements
+    for (int i = 0; i < d; i++) {
+      params(i) = sigma(i, i);
+    }
+    break;
+
+  case CovarianceModel::VEI:
+    // Extract volume and shape
+  {
+    arma::vec diag = sigma.diag();
+    params(0) = arma::prod(diag);  // Volume
+    arma::vec shape = diag / std::pow(params(0), 1.0/d);
+    params.subvec(1, d) = shape;
+  }
+    break;
+
+  case CovarianceModel::FULL:
+  default:
+    // Extract lower triangular elements
+  {
+    int idx = 0;
+    for (int i = 0; i < d; i++) {
+      for (int j = 0; j <= i; j++) {
+        params(idx) = sigma(i, j);
+        idx++;
+      }
+    }
+  }
+    break;
+  }
+
+  return params;
+}
 
 arma::vec MVNormalMixingDistribution::mvnLikelihood(const arma::mat& x,
                                                     const arma::vec& mu,
@@ -108,12 +272,25 @@ Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x,
       mu_k(j) = mu_array[j + k * d];
     }
 
-    // Extract sigma for cluster k (this is actually precision matrix)
+    // Extract sigma for cluster k based on covariance model
     arma::mat sig_k(d, d);
-    for (int i = 0; i < d; i++) {
-      for (int j = 0; j < d; j++) {
-        sig_k(i, j) = sig_array[i + j * d + k * d * d];
+
+    if (covModel == CovarianceModel::FULL) {
+      // Full precision matrix
+      for (int i = 0; i < d; i++) {
+        for (int j = 0; j < d; j++) {
+          sig_k(i, j) = sig_array[i + j * d + k * d * d];
+        }
       }
+    } else {
+      // Reconstruct from parameters
+      int nParams = getNumCovParams(d);
+      arma::vec params(nParams);
+      for (int i = 0; i < nParams; i++) {
+        params(i) = sig_array[i + k * nParams];
+      }
+      arma::mat cov = constructCovarianceMatrix(params, d);
+      sig_k = arma::inv_sympd(cov); // Convert to precision
     }
 
     arma::vec lik = mvnLikelihood(x_mat, mu_k, sig_k);
@@ -123,36 +300,153 @@ Rcpp::NumericVector MVNormalMixingDistribution::likelihood(const arma::vec& x,
   return result;
 }
 
+Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) const {
+  int n = x.n_rows;
+  int d = x.n_cols;
+
+  // Special case: no data
+  if (n == 0) {
+    Rcpp::NumericVector mu0_vec = Rcpp::wrap(mu0);
+    mu0_vec.attr("dim") = R_NilValue;
+
+    return Rcpp::List::create(
+      Rcpp::Named("mu_n") = mu0_vec,
+      Rcpp::Named("t_n") = ensureSymmetric(Lambda),
+      Rcpp::Named("Lambda_n") = ensureSymmetric(Lambda),
+      Rcpp::Named("kappa_n") = kappa0,
+      Rcpp::Named("nu_n") = nu
+    );
+  }
+
+  // Compute sample statistics
+  arma::vec x_bar = arma::mean(x, 0).t();
+
+  // Posterior parameters for mean (same for all models)
+  double kappa_n = kappa0 + n;
+  arma::vec mu_n_arma = (kappa0 * mu0 + n * x_bar) / kappa_n;
+  double nu_n = nu + n;
+
+  // Compute scatter matrix based on covariance model
+  arma::mat S(d, d, arma::fill::zeros);
+
+  switch (covModel) {
+  case CovarianceModel::E:
+  case CovarianceModel::V:
+    // Univariate case
+    if (n > 1) {
+      double var = arma::as_scalar(arma::var(x));
+      S(0, 0) = (n - 1) * var;
+    }
+    break;
+
+  case CovarianceModel::EII:
+  case CovarianceModel::VII:
+    // Spherical covariance
+    if (n > 1) {
+      arma::mat centered = x.each_row() - x_bar.t();
+      double trace_S = arma::accu(centered % centered) / (n - 1);
+      S = (trace_S / d) * arma::eye(d, d);
+    }
+    break;
+
+  case CovarianceModel::EEI:
+  case CovarianceModel::VEI:
+  case CovarianceModel::EVI:
+  case CovarianceModel::VVI:
+    // Diagonal covariance
+    if (n > 1) {
+      arma::vec diag_var = arma::var(x, 0, 0).t();
+      S = arma::diagmat(diag_var) * (n - 1);
+    }
+    break;
+
+  case CovarianceModel::FULL:
+  default:
+    // Full covariance
+    if (n > 1) {
+      S = (n - 1) * arma::cov(x);
+      S = ensureSymmetric(S);
+    }
+    break;
+  }
+
+  // Update Lambda (called t_n in R code)
+  arma::vec diff = x_bar - mu0;
+  arma::mat t_n = Lambda + S + (kappa0 * n / kappa_n) * (diff * diff.t());
+  t_n = ensureSymmetric(t_n);
+
+  // Convert arma::vec to plain Rcpp::NumericVector
+  Rcpp::NumericVector mu_n_vec = Rcpp::wrap(mu_n_arma);
+  mu_n_vec.attr("dim") = R_NilValue;
+
+  return Rcpp::List::create(
+    Rcpp::Named("mu_n") = mu_n_vec,
+    Rcpp::Named("t_n") = t_n,
+    Rcpp::Named("Lambda_n") = t_n,
+    Rcpp::Named("kappa_n") = kappa_n,
+    Rcpp::Named("nu_n") = nu_n
+  );
+}
+
 Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
   int d = mu0.n_elem;
 
+  // Validate input parameters
+  if (n <= 0) {
+    Rcpp::stop("Number of draws must be positive");
+  }
+  if (d <= 0) {
+    Rcpp::stop("Dimension must be positive");
+  }
+
   // Arrays to store results
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
-  Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
+  Rcpp::NumericVector sig_arr;
+
+  // Determine storage size for covariance parameters
+  if (covModel == CovarianceModel::FULL) {
+    sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
+  } else {
+    int nCovParams = getNumCovParams(d);
+    if (nCovParams <= 0) {
+      Rcpp::stop("Invalid number of covariance parameters");
+    }
+    sig_arr = Rcpp::NumericVector(Rcpp::Dimension(nCovParams, n));
+  }
 
   // Ensure Lambda is symmetric
   arma::mat Lambda_sym = ensureSymmetric(Lambda);
 
   for (int i = 0; i < n; i++) {
-    // Draw precision matrix from Wishart distribution
+    // Draw precision from Wishart
     arma::mat prec_draw = arma::wishrnd(Lambda_sym, nu);
 
-    // Ensure the drawn matrix is symmetric (numerical safety)
+    // Ensure the drawn precision matrix is symmetric
     prec_draw = ensureSymmetric(prec_draw);
 
-    // Draw mu from Multivariate Normal given precision matrix
-    arma::mat cov_mu = arma::inv_sympd(ensureSymmetric(prec_draw / kappa0));
+    // Draw mu from Multivariate Normal given precision
+    arma::mat cov_mu = arma::inv_sympd(prec_draw / kappa0);
     arma::vec mu_draw = arma::mvnrnd(mu0, cov_mu);
 
-    // Store in arrays
+    // Store mu (array has dimensions 1 x d x n)
     for (int j = 0; j < d; j++) {
-      mu_arr[j + i * d] = mu_draw(j);
+      mu_arr[0 + j * 1 + i * 1 * d] = mu_draw(j);
     }
 
-    // Store the precision matrix (to match R implementation)
-    for (int j = 0; j < d; j++) {
-      for (int k = 0; k < d; k++) {
-        sig_arr[j + k * d + i * d * d] = prec_draw(j, k);
+    // Store covariance parameters based on model
+    if (covModel == CovarianceModel::FULL) {
+      // Store full precision matrix
+      for (int j = 0; j < d; j++) {
+        for (int k = 0; k < d; k++) {
+          sig_arr[j + k * d + i * d * d] = prec_draw(j, k);
+        }
+      }
+    } else {
+      // Convert to covariance and extract model-specific parameters
+      arma::mat cov_draw = arma::inv_sympd(prec_draw);
+      arma::vec params = extractCovarianceParams(cov_draw);
+      for (int j = 0; j < params.n_elem; j++) {
+        sig_arr[j + i * params.n_elem] = params(j);
       }
     }
   }
@@ -163,58 +457,15 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
   );
 }
 
-Rcpp::List MVNormalMixingDistribution::posteriorParameters(const arma::mat& x) const {
-  int n = x.n_rows;
-  int d = x.n_cols;
-
-  // Handle empty data case
-  if (n == 0) {
-    // Convert arma::vec to plain Rcpp::NumericVector
-    Rcpp::NumericVector mu0_vec = Rcpp::wrap(mu0);
-    mu0_vec.attr("dim") = R_NilValue; // Remove any dimension attributes
-    return Rcpp::List::create(
-      Rcpp::Named("mu_n") = mu0_vec,
-      Rcpp::Named("t_n") = ensureSymmetric(Lambda),
-      Rcpp::Named("Lambda_n") = ensureSymmetric(Lambda),  // Add for backward compatibility
-      Rcpp::Named("kappa_n") = kappa0,
-      Rcpp::Named("nu_n") = nu
-    );
-  }
-
-  // Compute sample statistics
-  arma::vec x_bar = arma::mean(x, 0).t();
-
-  // Posterior parameters
-  double kappa_n = kappa0 + n;
-  arma::vec mu_n_arma = (kappa0 * mu0 + n * x_bar) / kappa_n;
-  double nu_n = nu + n;
-
-  // Compute scatter matrix
-  arma::mat S = arma::zeros(d, d);
-  if (n > 1) {
-    S = (n - 1) * arma::cov(x);
-    S = ensureSymmetric(S);  // Ensure numerical symmetry
-  }
-
-  // Update Lambda (called t_n in R code)
-  arma::vec diff = x_bar - mu0;
-  arma::mat t_n = Lambda + S + (kappa0 * n / kappa_n) * (diff * diff.t());
-  t_n = ensureSymmetric(t_n);  // Ensure result is symmetric
-
-  // Convert arma::vec to plain Rcpp::NumericVector
-  Rcpp::NumericVector mu_n_vec = Rcpp::wrap(mu_n_arma);
-  mu_n_vec.attr("dim") = R_NilValue; // Remove any dimension attributes
-
-  return Rcpp::List::create(
-    Rcpp::Named("mu_n") = mu_n_vec,
-    Rcpp::Named("t_n") = t_n,
-    Rcpp::Named("Lambda_n") = t_n,  // Add for backward compatibility
-    Rcpp::Named("kappa_n") = kappa_n,
-    Rcpp::Named("nu_n") = nu_n
-  );
-}
-
 Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) const {
+  // Validate input parameters
+  if (n <= 0) {
+    Rcpp::stop("Number of draws must be positive");
+  }
+  if (x.n_rows == 0 || x.n_cols == 0) {
+    Rcpp::stop("Data matrix cannot be empty");
+  }
+
   // Get posterior parameters
   Rcpp::List post_params = posteriorParameters(x);
 
@@ -224,10 +475,25 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   double nu_n = Rcpp::as<double>(post_params["nu_n"]);
 
   int d = mu_n.n_elem;
+  
+  if (d <= 0) {
+    Rcpp::stop("Dimension must be positive");
+  }
 
   // Arrays to store results
   Rcpp::NumericVector mu_arr = Rcpp::NumericVector(Rcpp::Dimension(1, d, n));
-  Rcpp::NumericVector sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
+  Rcpp::NumericVector sig_arr;
+
+  // Determine storage size for covariance parameters
+  if (covModel == CovarianceModel::FULL) {
+    sig_arr = Rcpp::NumericVector(Rcpp::Dimension(d, d, n));
+  } else {
+    int nCovParams = getNumCovParams(d);
+    if (nCovParams <= 0) {
+      Rcpp::stop("Invalid number of covariance parameters");
+    }
+    sig_arr = Rcpp::NumericVector(Rcpp::Dimension(nCovParams, n));
+  }
 
   // Ensure t_n is symmetric
   arma::mat t_n_sym = ensureSymmetric(t_n);
@@ -243,15 +509,25 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
     arma::mat cov_mu = arma::inv_sympd(ensureSymmetric(prec_draw / kappa_n));
     arma::vec mu_draw = arma::mvnrnd(mu_n, cov_mu);
 
-    // Store in arrays
+    // Store mu (array has dimensions 1 x d x n)
     for (int j = 0; j < d; j++) {
-      mu_arr[j + i * d] = mu_draw(j);
+      mu_arr[0 + j * 1 + i * 1 * d] = mu_draw(j);
     }
 
-    // Store precision matrix to match R
-    for (int j = 0; j < d; j++) {
-      for (int k = 0; k < d; k++) {
-        sig_arr[j + k * d + i * d * d] = prec_draw(j, k);
+    // Store covariance parameters based on model
+    if (covModel == CovarianceModel::FULL) {
+      // Store full precision matrix
+      for (int j = 0; j < d; j++) {
+        for (int k = 0; k < d; k++) {
+          sig_arr[j + k * d + i * d * d] = prec_draw(j, k);
+        }
+      }
+    } else {
+      // Convert to covariance and extract model-specific parameters
+      arma::mat cov_draw = arma::inv_sympd(prec_draw);
+      arma::vec params = extractCovarianceParams(cov_draw);
+      for (int j = 0; j < params.n_elem; j++) {
+        sig_arr[j + i * params.n_elem] = params(j);
       }
     }
   }
@@ -324,9 +600,60 @@ ConjugateMVNormalDP::ConjugateMVNormalDP() : mixingDistribution(nullptr), number
 }
 
 ConjugateMVNormalDP::~ConjugateMVNormalDP() {
-  if (mixingDistribution) {
-    delete mixingDistribution;
+  // No manual delete needed - using smart pointer
+}
+
+void ConjugateMVNormalDP::initialize(const Rcpp::List& dpObj) {
+  // Extract data
+  data = Rcpp::as<arma::mat>(dpObj["data"]);
+
+  // Extract cluster labels (already 0-indexed from R wrapper)
+  Rcpp::IntegerVector labels = dpObj["clusterLabels"];
+  clusterLabels = Rcpp::as<arma::uvec>(labels);
+
+  // Initialize mixing distribution
+  Rcpp::List mdObj = dpObj["mixingDistribution"];
+  Rcpp::List priorParams = mdObj["priorParameters"];
+  try {
+    mixingDistribution = std::unique_ptr<MVNormalMixingDistribution>(new MVNormalMixingDistribution(priorParams));
+  } catch (const std::exception& e) {
+    Rcpp::stop("Failed to initialize mixing distribution: %s", e.what());
   }
+
+  // Extract cluster parameters if they exist
+  if (dpObj.containsElementNamed("clusterParameters")) {
+    clusterParameters = dpObj["clusterParameters"];
+  }
+
+  // Extract other parameters
+  if (dpObj.containsElementNamed("alpha")) {
+    alpha = Rcpp::as<double>(dpObj["alpha"]);
+  } else {
+    alpha = 1.0; // Default
+  }
+
+  if (dpObj.containsElementNamed("alphaPriorParameters")) {
+    alphaPriorParameters = dpObj["alphaPriorParameters"];
+  }
+
+  // Get dimensions
+  n = data.n_rows;
+
+  // Extract predictive array if it exists
+  if (dpObj.containsElementNamed("predictiveArray")) {
+    predictiveArray = Rcpp::as<Rcpp::NumericVector>(dpObj["predictiveArray"]);
+  } else {
+    predictiveArray = Rcpp::NumericVector(n);
+  }
+
+  // Extract points per cluster
+  if (dpObj.containsElementNamed("pointsPerCluster")) {
+    Rcpp::IntegerVector ppc = dpObj["pointsPerCluster"];
+    pointsPerCluster = Rcpp::as<arma::uvec>(ppc);
+  }
+
+  // Count clusters
+  numberClusters = arma::max(clusterLabels) + 1;
 }
 
 void ConjugateMVNormalDP::initialisePredictive() {
@@ -334,185 +661,8 @@ void ConjugateMVNormalDP::initialisePredictive() {
   predictiveArray = mixingDistribution->predictive(data);
 }
 
-void ConjugateMVNormalDP::clusterComponentUpdate() {
-  int n = data.n_rows;
-
-  for (int i = 0; i < n; i++) {
-    int currentLabel = clusterLabels[i];
-
-    // Remove point from current cluster
-    pointsPerCluster[currentLabel]--;
-
-    // Calculate probabilities for existing clusters
-    Rcpp::NumericVector probs(numberClusters + 1);
-
-    // Get parameters from clusterParameters list
-    Rcpp::NumericVector mu_array = clusterParameters["mu"];
-    Rcpp::NumericVector sig_array = clusterParameters["sig"];
-
-    // Get dimensions
-    Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
-    int d = mu_dim[1];
-    int max_clusters = mu_dim[2];  // Maximum number of clusters in the arrays
-
-    // Probability for existing clusters
-    for (int j = 0; j < numberClusters; j++) {
-      // BOUNDS CHECK: Ensure j is within the parameter arrays
-      if (j >= max_clusters) {
-        Rcpp::stop("Cluster index %d exceeds parameter array size %d", j, max_clusters);
-      }
-
-      if (pointsPerCluster[j] > 0) {
-        // Extract parameters for cluster j only
-        Rcpp::NumericVector mu_j = Rcpp::NumericVector(Rcpp::Dimension(1, d, 1));
-        Rcpp::NumericVector sig_j = Rcpp::NumericVector(Rcpp::Dimension(d, d, 1));
-
-        // Copy parameters for cluster j with bounds checking
-        for (int k = 0; k < d; k++) {
-          int idx = k + j * d;
-          if (idx >= mu_array.size()) {
-            Rcpp::stop("Mu index out of bounds: %d >= %d", idx, mu_array.size());
-          }
-          mu_j[k] = mu_array[idx];
-        }
-
-        for (int k1 = 0; k1 < d; k1++) {
-          for (int k2 = 0; k2 < d; k2++) {
-            int idx = k1 + k2 * d + j * d * d;
-            if (idx >= sig_array.size()) {
-              Rcpp::stop("Sigma index out of bounds: %d >= %d", idx, sig_array.size());
-            }
-            sig_j[k1 + k2 * d] = sig_array[idx];
-          }
-        }
-
-        // Create parameter list for cluster j only
-        Rcpp::List clusterParam = Rcpp::List::create(
-          Rcpp::Named("mu") = mu_j,
-          Rcpp::Named("sig") = sig_j
-        );
-
-        Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
-        probs[j] = pointsPerCluster[j] * lik[0];
-      } else {
-        probs[j] = 0.0;
-      }
-    }
-
-    // Probability for new cluster
-    probs[numberClusters] = alpha * predictiveArray[i];
-
-    // Handle edge cases
-    for (int j = 0; j < probs.size(); j++) {
-      if (!std::isfinite(probs[j])) probs[j] = 0.0;
-    }
-
-    if (Rcpp::is_true(Rcpp::all(probs == 0))) {
-      probs.fill(1.0 / probs.size());
-    }
-
-    // Normalize
-    double probSum = Rcpp::sum(probs);
-    if (probSum <= 0) probSum = 1.0;  // Safety check
-    probs = probs / probSum;
-
-    // Sample new label
-    int newLabel = 0;
-    double u = R::runif(0, 1);
-    double cumProb = 0.0;
-    for (int j = 0; j < probs.size(); j++) {
-      cumProb += probs[j];
-      if (u <= cumProb) {
-        newLabel = j;
-        break;
-      }
-    }
-
-    // Restore point count before calling clusterLabelChange
-    pointsPerCluster[currentLabel]++;
-
-    // Update cluster assignment
-    Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel);
-
-    // Update state from result
-    clusterLabels = Rcpp::as<arma::uvec>(updateResult["clusterLabels"]);
-    pointsPerCluster = Rcpp::as<arma::uvec>(updateResult["pointsPerCluster"]);
-    clusterParameters = updateResult["clusterParameters"];
-    numberClusters = updateResult["numberClusters"];
-
-    // Validate state after update
-    if (numberClusters > max_clusters) {
-      // Need to expand parameter arrays - this should be handled in clusterLabelChange
-      // but let's add a check here
-      Rcpp::NumericVector new_mu_array = clusterParameters["mu"];
-      Rcpp::IntegerVector new_mu_dim = new_mu_array.attr("dim");
-      if (new_mu_dim[2] < numberClusters) {
-        Rcpp::stop("Parameter arrays not properly expanded: %d clusters but only %d slots",
-                   numberClusters, new_mu_dim[2]);
-      }
-    }
-  }
-}
-
-void ConjugateMVNormalDP::clusterParameterUpdate() {
-  // Update parameters for each cluster
-  for (int k = 0; k < numberClusters; k++) {
-    // Get data points assigned to this cluster
-    arma::uvec clusterIndices = arma::find(clusterLabels == k);
-
-    if (clusterIndices.n_elem > 0) {
-      arma::mat clusterData = data.rows(clusterIndices);
-
-      // Draw from posterior
-      Rcpp::List postDraw = mixingDistribution->posteriorDraw(clusterData, 1);
-
-      // Update cluster parameters - this is more complex for multivariate case
-      // Need to handle the array structure properly
-      Rcpp::NumericVector mu_array = clusterParameters["mu"];
-      Rcpp::NumericVector sig_array = clusterParameters["sig"];
-
-      Rcpp::NumericVector new_mu = postDraw["mu"];
-      Rcpp::NumericVector new_sig = postDraw["sig"];
-
-      // Get dimensions
-      Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
-      int d = mu_dim[1];
-      int max_clusters = mu_dim[2];
-
-      // Bounds check
-      if (k >= max_clusters) {
-        Rcpp::stop("Cluster index %d exceeds parameter array size %d in clusterParameterUpdate",
-                   k, max_clusters);
-      }
-
-      // Update the k-th cluster parameters
-      for (int j = 0; j < d; j++) {
-        mu_array[j + k * d] = new_mu[j];
-      }
-
-      // Ensure symmetry when storing precision matrix
-      arma::mat sig_k(d, d);
-      for (int i = 0; i < d; i++) {
-        for (int j = 0; j < d; j++) {
-          sig_k(i, j) = new_sig[i + j * d];
-        }
-      }
-      sig_k = ensureSymmetric(sig_k);
-
-      for (int i = 0; i < d; i++) {
-        for (int j = 0; j < d; j++) {
-          sig_array[i + j * d + k * d * d] = sig_k(i, j);
-        }
-      }
-
-      clusterParameters["mu"] = mu_array;
-      clusterParameters["sig"] = sig_array;
-    }
-  }
-}
-
 void ConjugateMVNormalDP::updateAlpha() {
-  // Same implementation as Normal case
+  // Same implementation as Normal case - follows Escobar & West (1995)
   double x = R::rbeta(alpha + 1.0, n);
 
   Rcpp::NumericVector alphaPriors = Rcpp::as<Rcpp::NumericVector>(alphaPriorParameters);
@@ -570,9 +720,16 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
       // Need to expand arrays - double the size or add at least 10 more slots
       int new_max_clusters = std::max(current_max_clusters * 2, numberClusters + 10);
 
-      // Create new arrays with expanded size
+      // Create new arrays with expanded size based on covariance model
       Rcpp::NumericVector new_mu_array = Rcpp::NumericVector(Rcpp::Dimension(1, d, new_max_clusters));
-      Rcpp::NumericVector new_sig_array = Rcpp::NumericVector(Rcpp::Dimension(d, d, new_max_clusters));
+      Rcpp::NumericVector new_sig_array;
+
+      if (mixingDistribution->getCovarianceModel() == CovarianceModel::FULL) {
+        new_sig_array = Rcpp::NumericVector(Rcpp::Dimension(d, d, new_max_clusters));
+      } else {
+        int nCovParams = mixingDistribution->getNumCovParams(d);
+        new_sig_array = Rcpp::NumericVector(Rcpp::Dimension(nCovParams, new_max_clusters));
+      }
 
       // Initialize new arrays with NA
       new_mu_array.fill(NA_REAL);
@@ -583,10 +740,18 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
         for (int j = 0; j < d; j++) {
           new_mu_array[j + k * d] = mu_array[j + k * d];
         }
-        for (int r_idx = 0; r_idx < d; r_idx++) {
-          for (int c_idx = 0; c_idx < d; c_idx++) {
-            new_sig_array[r_idx + c_idx * d + k * d * d] =
-              sig_array[r_idx + c_idx * d + k * d * d];
+
+        if (mixingDistribution->getCovarianceModel() == CovarianceModel::FULL) {
+          for (int r_idx = 0; r_idx < d; r_idx++) {
+            for (int c_idx = 0; c_idx < d; c_idx++) {
+              new_sig_array[r_idx + c_idx * d + k * d * d] =
+                sig_array[r_idx + c_idx * d + k * d * d];
+            }
+          }
+        } else {
+          int nCovParams = mixingDistribution->getNumCovParams(d);
+          for (int j = 0; j < nCovParams; j++) {
+            new_sig_array[j + k * nCovParams] = sig_array[j + k * nCovParams];
           }
         }
       }
@@ -605,9 +770,17 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
     for (int j = 0; j < d; j++) {
       mu_array[j + newLabel * d] = new_mu[j];
     }
-    for (int r_idx = 0; r_idx < d; r_idx++) {
-      for (int c_idx = 0; c_idx < d; c_idx++) {
-        sig_array[r_idx + c_idx * d + newLabel * d * d] = new_sig[r_idx + c_idx * d];
+
+    if (mixingDistribution->getCovarianceModel() == CovarianceModel::FULL) {
+      for (int r_idx = 0; r_idx < d; r_idx++) {
+        for (int c_idx = 0; c_idx < d; c_idx++) {
+          sig_array[r_idx + c_idx * d + newLabel * d * d] = new_sig[r_idx + c_idx * d];
+        }
+      }
+    } else {
+      int nCovParams = mixingDistribution->getNumCovParams(d);
+      for (int j = 0; j < nCovParams; j++) {
+        sig_array[j + newLabel * nCovParams] = new_sig[j];
       }
     }
 
@@ -624,10 +797,6 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
     pointsPerCluster.shed_row(currentLabel);
     numberClusters--;
 
-    // Shift parameters and labels
-    // Instead of creating new arrays, we'll just mark the empty slot
-    // and handle it during compaction later
-
     // Shift labels
     for (arma::uword j = 0; j < clusterLabels.n_elem; j++) {
       if (clusterLabels[j] > (unsigned int)currentLabel) {
@@ -641,10 +810,18 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
       for (int j = 0; j < d; j++) {
         mu_array[j + k * d] = mu_array[j + (k+1) * d];
       }
-      for (int r_idx = 0; r_idx < d; r_idx++) {
-        for (int c_idx = 0; c_idx < d; c_idx++) {
-          sig_array[r_idx + c_idx * d + k * d * d] =
-            sig_array[r_idx + c_idx * d + (k+1) * d * d];
+
+      if (mixingDistribution->getCovarianceModel() == CovarianceModel::FULL) {
+        for (int r_idx = 0; r_idx < d; r_idx++) {
+          for (int c_idx = 0; c_idx < d; c_idx++) {
+            sig_array[r_idx + c_idx * d + k * d * d] =
+              sig_array[r_idx + c_idx * d + (k+1) * d * d];
+          }
+        }
+      } else {
+        int nCovParams = mixingDistribution->getNumCovParams(d);
+        for (int j = 0; j < nCovParams; j++) {
+          sig_array[j + k * nCovParams] = sig_array[j + (k+1) * nCovParams];
         }
       }
     }
@@ -653,9 +830,17 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
     for (int j = 0; j < d; j++) {
       mu_array[j + numberClusters * d] = NA_REAL;
     }
-    for (int r_idx = 0; r_idx < d; r_idx++) {
-      for (int c_idx = 0; c_idx < d; c_idx++) {
-        sig_array[r_idx + c_idx * d + numberClusters * d * d] = NA_REAL;
+
+    if (mixingDistribution->getCovarianceModel() == CovarianceModel::FULL) {
+      for (int r_idx = 0; r_idx < d; r_idx++) {
+        for (int c_idx = 0; c_idx < d; c_idx++) {
+          sig_array[r_idx + c_idx * d + numberClusters * d * d] = NA_REAL;
+        }
+      }
+    } else {
+      int nCovParams = mixingDistribution->getNumCovParams(d);
+      for (int j = 0; j < nCovParams; j++) {
+        sig_array[j + numberClusters * nCovParams] = NA_REAL;
       }
     }
 
@@ -670,5 +855,222 @@ Rcpp::List ConjugateMVNormalDP::clusterLabelChange(int i, int newLabel, int curr
     Rcpp::Named("numberClusters") = numberClusters
   );
 }
+
+void ConjugateMVNormalDP::clusterComponentUpdate() {
+  // This method is kept from the original but updated to handle different covariance models
+  for (int i = 0; i < n; i++) {
+    int currentLabel = clusterLabels[i];
+
+    // Remove point from current cluster
+    pointsPerCluster[currentLabel]--;
+
+    // Calculate probabilities for existing clusters
+    Rcpp::NumericVector probs(numberClusters + 1);
+
+    // Get parameters from clusterParameters list
+    Rcpp::NumericVector mu_array = clusterParameters["mu"];
+    Rcpp::NumericVector sig_array = clusterParameters["sig"];
+
+    // Get dimensions
+    Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
+    int d = mu_dim[1];
+    int max_clusters = mu_dim[2];
+
+    // Probability for existing clusters with bounds checking
+    for (int j = 0; j < numberClusters; j++) {
+      if (j < 0 || j >= max_clusters) {
+        Rcpp::stop("Cluster index %d exceeds parameter array size %d", j, max_clusters);
+      }
+
+      if (pointsPerCluster[j] > 0) {
+        // Extract parameters for cluster j based on covariance model
+        Rcpp::NumericVector mu_j = Rcpp::NumericVector(Rcpp::Dimension(1, d, 1));
+        Rcpp::NumericVector sig_j;
+
+        if (mixingDistribution->getCovarianceModel() == CovarianceModel::FULL) {
+          sig_j = Rcpp::NumericVector(Rcpp::Dimension(d, d, 1));
+
+          // Copy parameters for cluster j
+          for (int k = 0; k < d; k++) {
+            mu_j[k] = mu_array[k + j * d];
+          }
+
+          for (int k1 = 0; k1 < d; k1++) {
+            for (int k2 = 0; k2 < d; k2++) {
+              sig_j[k1 + k2 * d] = sig_array[k1 + k2 * d + j * d * d];
+            }
+          }
+        } else {
+          int nCovParams = mixingDistribution->getNumCovParams(d);
+          sig_j = Rcpp::NumericVector(Rcpp::Dimension(nCovParams, 1));
+
+          for (int k = 0; k < d; k++) {
+            mu_j[k] = mu_array[k + j * d];
+          }
+
+          for (int k = 0; k < nCovParams; k++) {
+            sig_j[k] = sig_array[k + j * nCovParams];
+          }
+        }
+
+        // Create parameter list for cluster j
+        Rcpp::List clusterParam = Rcpp::List::create(
+          Rcpp::Named("mu") = mu_j,
+          Rcpp::Named("sig") = sig_j
+        );
+
+        Rcpp::NumericVector lik = mixingDistribution->likelihood(data.row(i).t(), clusterParam);
+        probs[j] = pointsPerCluster[j] * lik[0];
+      } else {
+        probs[j] = 0.0;
+      }
+    }
+
+    // Probability for new cluster
+    probs[numberClusters] = alpha * predictiveArray[i];
+
+    // Handle edge cases
+    for (int j = 0; j < probs.size(); j++) {
+      if (!std::isfinite(probs[j])) probs[j] = 0.0;
+    }
+
+    if (Rcpp::is_true(Rcpp::all(probs == 0))) {
+      probs.fill(1.0 / probs.size());
+    }
+
+    // Normalize
+    double probSum = Rcpp::sum(probs);
+    if (probSum <= 0) probSum = 1.0;
+    probs = probs / probSum;
+
+    // Sample new label
+    int newLabel = 0;
+    double u = R::runif(0, 1);
+    double cumProb = 0.0;
+    for (int j = 0; j < probs.size(); j++) {
+      cumProb += probs[j];
+      if (u <= cumProb) {
+        newLabel = j;
+        break;
+      }
+    }
+
+    // Restore point count before calling clusterLabelChange
+    pointsPerCluster[currentLabel]++;
+
+    // Update cluster assignment
+    Rcpp::List updateResult = clusterLabelChange(i, newLabel, currentLabel);
+
+    // Update state from result
+    clusterLabels = Rcpp::as<arma::uvec>(updateResult["clusterLabels"]);
+    pointsPerCluster = Rcpp::as<arma::uvec>(updateResult["pointsPerCluster"]);
+    clusterParameters = updateResult["clusterParameters"];
+    numberClusters = updateResult["numberClusters"];
+  }
+}
+
+void ConjugateMVNormalDP::clusterParameterUpdate() {
+  // Update parameters for each cluster
+  for (int k = 0; k < numberClusters; k++) {
+    // Get data points assigned to this cluster
+    arma::uvec clusterIndices = arma::find(clusterLabels == k);
+
+    if (clusterIndices.n_elem > 0) {
+      arma::mat clusterData = data.rows(clusterIndices);
+
+      // Draw from posterior
+      Rcpp::List postDraw = mixingDistribution->posteriorDraw(clusterData, 1);
+
+      // Update cluster parameters
+      Rcpp::NumericVector mu_array = clusterParameters["mu"];
+      Rcpp::NumericVector sig_array = clusterParameters["sig"];
+
+      Rcpp::NumericVector new_mu = postDraw["mu"];
+      Rcpp::NumericVector new_sig = postDraw["sig"];
+
+      // Get dimensions
+      Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
+      int d = mu_dim[1];
+      int max_clusters = mu_dim[2];
+
+      // Bounds check
+      if (k >= max_clusters) {
+        Rcpp::stop("Cluster index %d exceeds parameter array size %d in clusterParameterUpdate",
+                   k, max_clusters);
+      }
+
+      // Update the k-th cluster parameters
+      for (int j = 0; j < d; j++) {
+        mu_array[j + k * d] = new_mu[j];
+      }
+
+      if (mixingDistribution->getCovarianceModel() == CovarianceModel::FULL) {
+        // Ensure symmetry when storing precision matrix
+        arma::mat sig_k(d, d);
+        for (int i = 0; i < d; i++) {
+          for (int j = 0; j < d; j++) {
+            sig_k(i, j) = new_sig[i + j * d];
+          }
+        }
+        sig_k = ensureSymmetric(sig_k);
+
+        for (int i = 0; i < d; i++) {
+          for (int j = 0; j < d; j++) {
+            sig_array[i + j * d + k * d * d] = sig_k(i, j);
+          }
+        }
+      } else {
+        // Store model-specific parameters
+        int nCovParams = mixingDistribution->getNumCovParams(d);
+        for (int j = 0; j < nCovParams; j++) {
+          sig_array[j + k * nCovParams] = new_sig[j];
+        }
+      }
+
+      clusterParameters["mu"] = mu_array;
+      clusterParameters["sig"] = sig_array;
+    }
+  }
+}
+
+Rcpp::List ConjugateMVNormalDP::updateClusterComponents() {
+  // Initialize predictive array if needed
+  initialisePredictive();
+
+  // Update cluster assignments
+  clusterComponentUpdate();
+
+  return Rcpp::List::create(
+    Rcpp::Named("clusterLabels") = Rcpp::IntegerVector(clusterLabels.begin(), clusterLabels.end()),
+    Rcpp::Named("pointsPerCluster") = Rcpp::IntegerVector(pointsPerCluster.begin(), pointsPerCluster.end()),
+    Rcpp::Named("numberClusters") = numberClusters,
+    Rcpp::Named("clusterParameters") = clusterParameters
+  );
+}
+
+Rcpp::List ConjugateMVNormalDP::updateClusterParameters() {
+  clusterParameterUpdate();
+
+  // Update alpha if needed
+  if (!alphaPriorParameters.isNULL()) {
+    updateAlpha();
+  }
+
+  return clusterParameters;
+}
+
+// Export functions
+Rcpp::List conjugate_mvnormal_cluster_component_update_cpp(const Rcpp::List& dpObj) {
+  ConjugateMVNormalDP dp;
+  dp.initialize(dpObj);
+  return dp.updateClusterComponents();
+}
+
+Rcpp::List conjugate_mvnormal_cluster_parameter_update_cpp(const Rcpp::List& dpObj) {
+  ConjugateMVNormalDP dp;
+  dp.initialize(dpObj);
+  return dp.updateClusterParameters();
+}
+
 
 } // namespace dp

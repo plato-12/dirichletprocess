@@ -3,6 +3,7 @@
 #define BETA_DISTRIBUTION_H
 
 #include "DirichletProcessBase.h"
+#include <memory>
 
 namespace dp {
 
@@ -42,7 +43,7 @@ public:
   NonConjugateBetaDP();
   virtual ~NonConjugateBetaDP();
 
-  BetaMixingDistribution* mixingDistribution;
+  std::unique_ptr<BetaMixingDistribution> mixingDistribution;
 
   // Cluster information
   arma::uvec clusterLabels;
@@ -61,7 +62,7 @@ public:
   Rcpp::List toR() const override;
 
   // Override getMixingDistribution
-  MixingDistribution* getMixingDistribution() override { return mixingDistribution; }
+  MixingDistribution* getMixingDistribution() override { return mixingDistribution.get(); }
 };
 
 } // namespace dp

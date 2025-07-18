@@ -108,6 +108,53 @@ Likelihood <- function(mdObj, x, theta) {
           }
           return(result)
         }
+      } else if (dist_type == "mvnormal" || any(grepl("mvnormal", class(mdObj)))) {
+        # Handle mvnormal distribution
+        mu_array <- theta$mu
+        sig_array <- theta$sig
+        
+        # Get dimensions
+        mu_dim <- dim(mu_array)
+        
+        # Extract number of clusters
+        if (is.null(mu_dim) || length(mu_dim) < 3) {
+          num_clusters <- 1
+        } else {
+          num_clusters <- mu_dim[3]
+        }
+        
+        if (num_clusters == 1) {
+          # Single cluster case
+          cluster_theta <- list(mu = as.vector(mu_array), sig = sig_array)
+          return(mvnormal_likelihood_wrapper_cpp(x, cluster_theta, mdObj$priorParameters))
+        } else {
+          # Multi-cluster case
+          result <- numeric(num_clusters)
+          d <- length(x)
+          
+          for (k in 1:num_clusters) {
+            # Extract parameters for cluster k
+            if (length(mu_dim) == 2) {
+              cluster_mu <- mu_array[, k]
+              if (mdObj$priorParameters$covModel == "FULL") {
+                cluster_sig <- sig_array[, , k]
+              } else {
+                cluster_sig <- sig_array[, k]
+              }
+            } else {
+              cluster_mu <- mu_array[, , k]
+              if (mdObj$priorParameters$covModel == "FULL") {
+                cluster_sig <- sig_array[, , k]
+              } else {
+                cluster_sig <- sig_array[, k]
+              }
+            }
+            
+            cluster_theta <- list(mu = cluster_mu, sig = cluster_sig)
+            result[k] <- mvnormal_likelihood_wrapper_cpp(x, cluster_theta, mdObj$priorParameters)
+          }
+          return(result)
+        }
       } else {
         # For other distributions, fall back to R
         stop("C++ implementation not available for distribution: ", dist_type)

@@ -23,8 +23,6 @@ PriorParametersUpdate(mdObj, clusterParameters, n = 1)
 
 \method{PriorParametersUpdate}{weibull}(mdObj, clusterParameters, n = 1)
 
-\method{PriorParametersUpdate}{beta}(mdObj, clusterParameters, n = 1)
-
 \method{PriorParametersUpdate}{default}(mdObj, clusterParameters, n = 1)
 
 \method{PriorParametersUpdate}{weibull}(mdObj, clusterParameters, n = 1)

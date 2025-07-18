@@ -44,12 +44,22 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
         for (j in seq_along(clusterParams)) {
           param_dims <- dim(clusterParams[[j]])
           if (length(param_dims) == 3) {
-            # Shift parameters down to fill the gap
+            # FULL covariance model - 3D array
             if (currentLabel < param_dims[3]) {
               for (k in currentLabel:(param_dims[3]-1)) {
                 if (k < numLabels) {
                   # Copy from k+1 to k
                   clusterParams[[j]][, , k] <- clusterParams[[j]][, , k+1]
+                }
+              }
+            }
+          } else if (length(param_dims) == 2) {
+            # Constrained covariance models - 2D array
+            if (currentLabel < param_dims[2]) {
+              for (k in currentLabel:(param_dims[2]-1)) {
+                if (k < numLabels) {
+                  # Copy from k+1 to k
+                  clusterParams[[j]][, k] <- clusterParams[[j]][, k+1]
                 }
               }
             }
@@ -80,7 +90,18 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
       # Re-purpose the slot of the now-empty currentLabel for the new cluster parameters
       post_draw <- PosteriorDraw(mdObj, x) # Parameters for the new cluster based on point x
       for (k in seq_along(clusterParams)) {
-        clusterParams[[k]][, , currentLabel] <- post_draw[[k]]
+        # Handle dimension-aware parameter access for constrained models
+        param_dims <- dim(clusterParams[[k]])
+        if (length(param_dims) == 3) {
+          # FULL covariance model - 3D array
+          clusterParams[[k]][, , currentLabel] <- post_draw[[k]]
+        } else if (length(param_dims) == 2) {
+          # Constrained covariance models - 2D array
+          clusterParams[[k]][, currentLabel] <- post_draw[[k]]
+        } else {
+          # Scalar case
+          clusterParams[[k]][currentLabel] <- post_draw[[k]]
+        }
       }
       pointsPerCluster[currentLabel] <- 1 # This slot now has point i
       clusterLabels[i] <- currentLabel   # Point i is assigned to this re-purposed cluster index
@@ -98,8 +119,11 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
         for (j in seq_along(clusterParams)) {
           param_dims <- dim(clusterParams[[j]])
           if (length(param_dims) == 3 && (numLabels + 1) <= param_dims[3]) {
-            # We have a pre-allocated slot available
+            # FULL covariance model - 3D array
             clusterParams[[j]][, , numLabels + 1] <- post_draw[[j]]
+          } else if (length(param_dims) == 2 && (numLabels + 1) <= param_dims[2]) {
+            # Constrained covariance models - 2D array
+            clusterParams[[j]][, numLabels + 1] <- post_draw[[j]]
           } else {
             # Need to expand - this should be rare with proper pre-allocation
             stop("Insufficient pre-allocated slots for new cluster")

@@ -3,12 +3,15 @@
 \name{ClusterComponentUpdate}
 \alias{ClusterComponentUpdate}
 \alias{ClusterComponentUpdate.conjugate}
+\alias{ClusterComponentUpdate.nonconjugate}
 \alias{ClusterComponentUpdate.hierarchical}
 \title{Update the component of the Dirichlet process}
 \usage{
 ClusterComponentUpdate(dpObj)
 
 \method{ClusterComponentUpdate}{conjugate}(dpObj)
+
+\method{ClusterComponentUpdate}{nonconjugate}(dpObj)
 
 \method{ClusterComponentUpdate}{hierarchical}(dpObj)
 }
