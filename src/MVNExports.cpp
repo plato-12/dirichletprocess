@@ -5,25 +5,25 @@
 // The ensureSymmetric function is already defined as inline in the header, so we don't need to define it here
 
 //' @title Draw from a Multivariate Normal-Wishart prior (C++)
- //' @description C++ implementation for drawing from the prior distribution of a
- //'   Multivariate Normal-Wishart model.
- //' @param priorParams A list containing prior parameters (mu0, kappa0, Lambda, nu).
- //' @param n The number of samples to draw.
- //' @return A list containing the sampled parameters (mu and sig).
- //' @export
+//' @description C++ implementation for drawing from the prior distribution of a
+//'   Multivariate Normal-Wishart model.
+//' @param priorParams A list containing prior parameters (mu0, kappa0, Lambda, nu).
+//' @param n The number of samples to draw.
+//' @return A list containing the sampled parameters (mu and sig).
+//' @export
  // [[Rcpp::export]]
  Rcpp::List mvnormal_prior_draw_cpp(Rcpp::List priorParams, int n = 1) {
    return dp::MVNormalMixingDistribution::priorDrawStatic(priorParams, n);
  }
 
 //' @title Draw from a Multivariate Normal-Wishart posterior (C++)
- //' @description C++ implementation for drawing from the posterior distribution of a
- //'   Multivariate Normal-Wishart model.
- //' @param priorParams A list containing prior parameters.
- //' @param x A numeric matrix of data points.
- //' @param n The number of samples to draw.
- //' @return A list containing the sampled parameters (mu and sig).
- //' @export
+//' @description C++ implementation for drawing from the posterior distribution of a
+//'   Multivariate Normal-Wishart model.
+//' @param priorParams A list containing prior parameters.
+//' @param x A numeric matrix of data points.
+//' @param n The number of samples to draw.
+//' @return A list containing the sampled parameters (mu and sig).
+//' @export
  // [[Rcpp::export]]
  Rcpp::List mvnormal_posterior_draw_cpp(Rcpp::List priorParams,
                                         Rcpp::NumericMatrix x,
@@ -33,12 +33,12 @@
  }
 
 //' @title Calculate MVNormal posterior parameters (C++)
- //' @description C++ implementation for calculating posterior parameters for a
- //'   Multivariate Normal-Wishart model.
- //' @param priorParams A list containing prior parameters.
- //' @param x A numeric matrix of data.
- //' @return A list of posterior parameters.
- //' @export
+//' @description C++ implementation for calculating posterior parameters for a
+//'   Multivariate Normal-Wishart model.
+//' @param priorParams A list containing prior parameters.
+//' @param x A numeric matrix of data.
+//' @return A list of posterior parameters.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List mvnormal_posterior_parameters_cpp(Rcpp::List priorParams,
                                               Rcpp::NumericMatrix x) {
@@ -48,11 +48,11 @@
  }
 
 //' @title Calculate MVNormal predictive distribution (C++)
- //' @description C++ implementation for calculating the predictive distribution.
- //' @param priorParams A list containing prior parameters.
- //' @param x A numeric matrix of data.
- //' @return A numeric vector of predictive probabilities.
- //' @export
+//' @description C++ implementation for calculating the predictive distribution.
+//' @param priorParams A list containing prior parameters.
+//' @param x A numeric matrix of data.
+//' @return A numeric vector of predictive probabilities.
+//' @export
  // [[Rcpp::export]]
  Rcpp::NumericVector mvnormal_predictive_cpp(Rcpp::List priorParams,
                                              Rcpp::NumericMatrix x) {
@@ -62,12 +62,12 @@
  }
 
 //' @title Calculate MVNormal likelihood (C++)
- //' @description C++ implementation for calculating multivariate normal likelihood.
- //' @param x A numeric matrix of data points.
- //' @param mu Mean vector.
- //' @param sigma Covariance matrix.
- //' @return A numeric vector of likelihood values.
- //' @export
+//' @description C++ implementation for calculating multivariate normal likelihood.
+//' @param x A numeric matrix of data points.
+//' @param mu Mean vector.
+//' @param sigma Covariance matrix.
+//' @return A numeric vector of likelihood values.
+//' @export
  // [[Rcpp::export]]
  Rcpp::NumericVector mvnormal_likelihood_cpp(Rcpp::NumericMatrix x,
                                              Rcpp::NumericVector mu,

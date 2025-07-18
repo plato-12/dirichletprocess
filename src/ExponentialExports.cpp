@@ -3,12 +3,12 @@
 #include "../inst/include/RcppConversions.h"
 
 //' @title Draw from an Exponential distribution prior (C++)
- //' @description C++ implementation for drawing from the prior distribution of an
- //'   Exponential/Gamma model.
- //' @param priorParams A numeric vector of prior parameters (alpha0, beta0).
- //' @param n The number of samples to draw.
- //' @return A list containing the sampled rate parameters (lambda).
- //' @export
+//' @description C++ implementation for drawing from the prior distribution of an
+//'   Exponential/Gamma model.
+//' @param priorParams A numeric vector of prior parameters (alpha0, beta0).
+//' @param n The number of samples to draw.
+//' @return A list containing the sampled rate parameters (lambda).
+//' @export
  // [[Rcpp::export]]
  Rcpp::List exponential_prior_draw_cpp(Rcpp::NumericVector priorParams, int n = 1) {
    dp::ExponentialMixingDistribution md(priorParams);
@@ -16,11 +16,11 @@
  }
 
 //' @title Calculate Exponential log-likelihood (C++)
- //' @description C++ implementation for calculating exponential log-likelihood.
- //' @param x A numeric vector of data points.
- //' @param lambda The rate parameter.
- //' @return A numeric vector of log-likelihood values.
- //' @export
+//' @description C++ implementation for calculating exponential log-likelihood.
+//' @param x A numeric vector of data points.
+//' @param lambda The rate parameter.
+//' @return A numeric vector of log-likelihood values.
+//' @export
  // [[Rcpp::export]]
  Rcpp::NumericVector exponential_log_likelihood_cpp(Rcpp::NumericVector x, double lambda) {
    if (lambda <= 0) {
@@ -42,13 +42,13 @@
  }
 
 //' @title Draw from an Exponential distribution posterior (C++)
- //' @description C++ implementation for drawing from the posterior distribution of an
- //'   Exponential/Gamma model.
- //' @param priorParams A numeric vector of prior parameters.
- //' @param x A numeric matrix of data points.
- //' @param n The number of samples to draw.
- //' @return A list containing the sampled rate parameters (lambda).
- //' @export
+//' @description C++ implementation for drawing from the posterior distribution of an
+//'   Exponential/Gamma model.
+//' @param priorParams A numeric vector of prior parameters.
+//' @param x A numeric matrix of data points.
+//' @param n The number of samples to draw.
+//' @return A list containing the sampled rate parameters (lambda).
+//' @export
  // [[Rcpp::export]]
  Rcpp::List exponential_posterior_draw_cpp(Rcpp::NumericVector priorParams,
                                            Rcpp::NumericMatrix x,
@@ -59,12 +59,12 @@
  }
 
 //' @title Calculate Exponential posterior parameters (C++)
- //' @description C++ implementation for calculating posterior parameters for an
- //'   Exponential/Gamma model.
- //' @param priorParams A numeric vector of prior parameters.
- //' @param x A numeric matrix of data.
- //' @return A list with alpha and beta posterior parameters.
- //' @export
+//' @description C++ implementation for calculating posterior parameters for an
+//'   Exponential/Gamma model.
+//' @param priorParams A numeric vector of prior parameters.
+//' @param x A numeric matrix of data.
+//' @return A list with alpha and beta posterior parameters.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List exponential_posterior_parameters_cpp(Rcpp::NumericVector priorParams,
                                                  Rcpp::NumericMatrix x) {
@@ -80,11 +80,11 @@
  }
 
 //' @title Calculate Exponential likelihood (C++)
- //' @description C++ implementation for calculating exponential likelihood.
- //' @param x A numeric vector of data points.
- //' @param lambda The rate parameter.
- //' @return A numeric vector of likelihood values.
- //' @export
+//' @description C++ implementation for calculating exponential likelihood.
+//' @param x A numeric vector of data points.
+//' @param lambda The rate parameter.
+//' @return A numeric vector of likelihood values.
+//' @export
  // [[Rcpp::export]]
  Rcpp::NumericVector exponential_likelihood_cpp(Rcpp::NumericVector x, double lambda) {
    if (lambda <= 0) {
@@ -109,11 +109,11 @@
  }
 
 //' @title Calculate Exponential predictive distribution (C++)
- //' @description C++ implementation for calculating the predictive distribution.
- //' @param priorParams A numeric vector of prior parameters.
- //' @param x A numeric vector of data.
- //' @return A numeric vector of predictive probabilities.
- //' @export
+//' @description C++ implementation for calculating the predictive distribution.
+//' @param priorParams A numeric vector of prior parameters.
+//' @param x A numeric vector of data.
+//' @return A numeric vector of predictive probabilities.
+//' @export
  // [[Rcpp::export]]
  Rcpp::NumericVector exponential_predictive_cpp(Rcpp::NumericVector priorParams,
                                                 Rcpp::NumericVector x) {
@@ -123,10 +123,10 @@
  }
 
 //' @title Update cluster components (C++ conjugate exponential)
- //' @description C++ implementation of the cluster component update for conjugate models.
- //' @param dpObj A list representing the Dirichlet Process object.
- //' @return A list with updated cluster assignments and parameters.
- //' @export
+//' @description C++ implementation of the cluster component update for conjugate models.
+//' @param dpObj A list representing the Dirichlet Process object.
+//' @return A list with updated cluster assignments and parameters.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List conjugate_exponential_cluster_component_update_cpp(Rcpp::List dpObj) {
    // Create C++ DP object using the new constructor
@@ -150,10 +150,10 @@
  }
 
 //' @title Update alpha for conjugate exponential DP (C++)
- //' @description C++ implementation of the concentration parameter update.
- //' @param dpObj A list representing the Dirichlet Process object.
- //' @return Updated alpha value.
- //' @export
+//' @description C++ implementation of the concentration parameter update.
+//' @param dpObj A list representing the Dirichlet Process object.
+//' @return Updated alpha value.
+//' @export
  // [[Rcpp::export]]
  double conjugate_exponential_update_alpha_cpp(Rcpp::List dpObj) {
    // Extract necessary components
@@ -183,10 +183,10 @@
  }
 
 //' @title Update cluster parameters (C++ conjugate exponential)
- //' @description C++ implementation of the cluster parameter update for conjugate models.
- //' @param dpObj A list representing the Dirichlet Process object.
- //' @return A list containing the updated cluster parameters.
- //' @export
+//' @description C++ implementation of the cluster parameter update for conjugate models.
+//' @param dpObj A list representing the Dirichlet Process object.
+//' @return A list containing the updated cluster parameters.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List conjugate_exponential_cluster_parameter_update_cpp(Rcpp::List dpObj) {
    // Create C++ DP object using the new constructor

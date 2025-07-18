@@ -4,13 +4,13 @@
 #include "../inst/include/RcppConversions.h"
 
 //' @title Fit Hierarchical Beta DP (C++)
- //' @description C++ implementation for fitting a Hierarchical Beta DP.
- //' @param dpList An R list representing the hierarchical DP object.
- //' @param iterations Number of iterations.
- //' @param updatePrior Whether to update prior parameters.
- //' @param progressBar Whether to show progress bar.
- //' @return Updated hierarchical DP object.
- //' @export
+//' @description C++ implementation for fitting a Hierarchical Beta DP.
+//' @param dpList An R list representing the hierarchical DP object.
+//' @param iterations Number of iterations.
+//' @param updatePrior Whether to update prior parameters.
+//' @param progressBar Whether to show progress bar.
+//' @return Updated hierarchical DP object.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_beta_fit_cpp(Rcpp::List dpList, int iterations,
                                       bool updatePrior = false,
@@ -42,10 +42,10 @@
  }
 
 //' @title Update cluster components for Hierarchical Beta DP (C++)
- //' @description C++ implementation of cluster component update for hierarchical Beta DP.
- //' @param dpList An R list representing the hierarchical DP object.
- //' @return Updated hierarchical DP object.
- //' @export
+//' @description C++ implementation of cluster component update for hierarchical Beta DP.
+//' @param dpList An R list representing the hierarchical DP object.
+//' @return Updated hierarchical DP object.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_beta_cluster_component_update_cpp(Rcpp::List dpList) {
    try {
@@ -71,10 +71,10 @@
  }
 
 //' @title Update global parameters for Hierarchical Beta DP (C++)
- //' @description C++ implementation of global parameter update for hierarchical Beta DP.
- //' @param dpList An R list representing the hierarchical DP object.
- //' @return Updated hierarchical DP object.
- //' @export
+//' @description C++ implementation of global parameter update for hierarchical Beta DP.
+//' @param dpList An R list representing the hierarchical DP object.
+//' @return Updated hierarchical DP object.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_beta_global_parameter_update_cpp(Rcpp::List dpList) {
    try {
@@ -100,10 +100,10 @@
  }
 
 //' @title Update G0 for Hierarchical Beta DP (C++)
- //' @description C++ implementation of G0 update for hierarchical Beta DP.
- //' @param dpList An R list representing the hierarchical DP object.
- //' @return Updated hierarchical DP object.
- //' @export
+//' @description C++ implementation of G0 update for hierarchical Beta DP.
+//' @param dpList An R list representing the hierarchical DP object.
+//' @return Updated hierarchical DP object.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_beta_update_g0_cpp(Rcpp::List dpList) {
    try {
@@ -129,10 +129,10 @@
  }
 
 //' @title Update gamma for Hierarchical Beta DP (C++)
- //' @description C++ implementation of gamma update for hierarchical Beta DP.
- //' @param dpList An R list representing the hierarchical DP object.
- //' @return Updated hierarchical DP object.
- //' @export
+//' @description C++ implementation of gamma update for hierarchical Beta DP.
+//' @param dpList An R list representing the hierarchical DP object.
+//' @return Updated hierarchical DP object.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_beta_update_gamma_cpp(Rcpp::List dpList) {
    try {
@@ -158,17 +158,17 @@
  }
 
 //' @title Create Hierarchical Beta mixing distributions (C++)
- //' @description C++ implementation for creating hierarchical Beta mixing distributions.
- //' @param n Number of datasets.
- //' @param priorParameters Prior parameters for the Beta distribution.
- //' @param hyperPriorParameters Hyper prior parameters.
- //' @param alphaPrior Alpha prior parameters.
- //' @param maxT Maximum value for Beta distribution.
- //' @param gammaPrior Gamma prior parameters.
- //' @param mhStepSize Metropolis-Hastings step size.
- //' @param num_sticks Number of stick breaking values.
- //' @return List of mixing distributions.
- //' @export
+//' @description C++ implementation for creating hierarchical Beta mixing distributions.
+//' @param n Number of datasets.
+//' @param priorParameters Prior parameters for the Beta distribution.
+//' @param hyperPriorParameters Hyper prior parameters.
+//' @param alphaPrior Alpha prior parameters.
+//' @param maxT Maximum value for Beta distribution.
+//' @param gammaPrior Gamma prior parameters.
+//' @param mhStepSize Metropolis-Hastings step size.
+//' @param num_sticks Number of stick breaking values.
+//' @return List of mixing distributions.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_beta_mixing_create_cpp(
      int n,

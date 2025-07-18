@@ -4,12 +4,12 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 //' @title Run Hierarchical MVNormal MCMC (C++)
- //' @description Main MCMC runner for hierarchical MVNormal DP models
- //' @param data_list List of data matrices (one per group)
- //' @param hdp_params Parameters for the hierarchical DP
- //' @param mcmc_params MCMC parameters (iterations, burn-in, etc.)
- //' @return List containing MCMC samples and diagnostics
- //' @export
+//' @description Main MCMC runner for hierarchical MVNormal DP models
+//' @param data_list List of data matrices (one per group)
+//' @param hdp_params Parameters for the hierarchical DP
+//' @param mcmc_params MCMC parameters (iterations, burn-in, etc.)
+//' @return List containing MCMC samples and diagnostics
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_mvnormal_run(
      const Rcpp::List& data_list,
@@ -30,14 +30,14 @@
  }
 
 //' @title Create Hierarchical MVNormal mixing distributions (C++)
- //' @description Initialize hierarchical MVNormal mixing structure
- //' @param n_groups Number of groups
- //' @param prior_params Prior parameters for base distribution
- //' @param alpha_prior Prior for local concentration parameters
- //' @param gamma_prior Prior for global concentration parameter
- //' @param n_sticks Number of stick-breaking components
- //' @return List representing the mixing distribution
- //' @export
+//' @description Initialize hierarchical MVNormal mixing structure
+//' @param n_groups Number of groups
+//' @param prior_params Prior parameters for base distribution
+//' @param alpha_prior Prior for local concentration parameters
+//' @param gamma_prior Prior for global concentration parameter
+//' @param n_sticks Number of stick-breaking components
+//' @return List representing the mixing distribution
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_mvnormal_create_mixing(
      int n_groups,
@@ -54,11 +54,11 @@
  }
 
 //' @title Update cluster assignments for Hierarchical MVNormal (C++)
- //' @description Update cluster assignments using Algorithm 8 for a single group
- //' @param dp_obj Dirichlet process object for a single group
- //' @param global_params Current global parameters
- //' @return Updated DP object
- //' @export
+//' @description Update cluster assignments using Algorithm 8 for a single group
+//' @param dp_obj Dirichlet process object for a single group
+//' @param global_params Current global parameters
+//' @return Updated DP object
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_mvnormal_update_clusters(
      Rcpp::List dp_obj,
@@ -85,13 +85,13 @@
  }
 
 //' @title Fit Hierarchical MVNormal DP (C++)
- //' @description Complete fitting routine for hierarchical MVNormal DP
- //' @param dp_list List of DP objects for each group
- //' @param iterations Number of MCMC iterations
- //' @param update_prior Whether to update hyperparameters
- //' @param progress_bar Whether to show progress
- //' @return Updated hierarchical DP object
- //' @export
+//' @description Complete fitting routine for hierarchical MVNormal DP
+//' @param dp_list List of DP objects for each group
+//' @param iterations Number of MCMC iterations
+//' @param update_prior Whether to update hyperparameters
+//' @param progress_bar Whether to show progress
+//' @return Updated hierarchical DP object
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_mvnormal_fit_cpp(
      Rcpp::List dp_list,
@@ -109,12 +109,12 @@
  }
 
 //' @title Sample from hierarchical MVNormal posterior (C++)
- //' @description Draw samples from the posterior predictive distribution
- //' @param hdp_state Current state of the hierarchical DP
- //' @param n_samples Number of samples to draw
- //' @param group_index Which group to sample for (0-indexed)
- //' @return Matrix of samples
- //' @export
+//' @description Draw samples from the posterior predictive distribution
+//' @param hdp_state Current state of the hierarchical DP
+//' @param n_samples Number of samples to draw
+//' @param group_index Which group to sample for (0-indexed)
+//' @return Matrix of samples
+//' @export
  // [[Rcpp::export]]
  arma::mat hierarchical_mvnormal_posterior_sample(
      const Rcpp::List& hdp_state,

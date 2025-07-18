@@ -4,12 +4,12 @@
 #include "../inst/include/RcppConversions.h"
 
 //' @title Draw from a Multivariate Normal semi-conjugate prior (C++)
- //' @description C++ implementation for drawing from the prior distribution of a
- //'   Multivariate Normal semi-conjugate model.
- //' @param priorParams A list containing prior parameters (mu0, sigma0, phi0, nu0).
- //' @param n The number of samples to draw.
- //' @return A list containing the sampled parameters (mu and sig).
- //' @export
+//' @description C++ implementation for drawing from the prior distribution of a
+//'   Multivariate Normal semi-conjugate model.
+//' @param priorParams A list containing prior parameters (mu0, sigma0, phi0, nu0).
+//' @param n The number of samples to draw.
+//' @return A list containing the sampled parameters (mu and sig).
+//' @export
  // [[Rcpp::export]]
  Rcpp::List mvnormal2_prior_draw_cpp(Rcpp::List priorParams, int n = 1) {
    dp::MVNormal2MixingDistribution md(priorParams);
@@ -17,13 +17,13 @@
  }
 
 //' @title Draw from a Multivariate Normal semi-conjugate posterior (C++)
- //' @description C++ implementation for drawing from the posterior distribution of a
- //'   Multivariate Normal semi-conjugate model.
- //' @param priorParams A list containing prior parameters.
- //' @param x A numeric matrix of data points.
- //' @param n The number of samples to draw.
- //' @return A list containing the sampled parameters (mu and sig).
- //' @export
+//' @description C++ implementation for drawing from the posterior distribution of a
+//'   Multivariate Normal semi-conjugate model.
+//' @param priorParams A list containing prior parameters.
+//' @param x A numeric matrix of data points.
+//' @param n The number of samples to draw.
+//' @return A list containing the sampled parameters (mu and sig).
+//' @export
  // [[Rcpp::export]]
  Rcpp::List mvnormal2_posterior_draw_cpp(Rcpp::List priorParams,
                                          Rcpp::NumericMatrix x,
@@ -34,11 +34,11 @@
  }
 
 //' @title Calculate MVNormal2 likelihood (C++)
- //' @description C++ implementation for calculating multivariate normal likelihood.
- //' @param x A numeric vector of a single data point.
- //' @param theta A list containing mu and sig parameters.
- //' @return A numeric vector of likelihood values.
- //' @export
+//' @description C++ implementation for calculating multivariate normal likelihood.
+//' @param x A numeric vector of a single data point.
+//' @param theta A list containing mu and sig parameters.
+//' @return A numeric vector of likelihood values.
+//' @export
  // [[Rcpp::export]]
  Rcpp::NumericVector mvnormal2_likelihood_cpp(Rcpp::NumericVector x,
                                               Rcpp::List theta) {
@@ -48,10 +48,10 @@
  }
 
 //' @title Update cluster components for MVNormal2 (C++ non-conjugate)
- //' @description C++ implementation of the cluster component update for MVNormal2 non-conjugate models.
- //' @param dpObj A list representing the Dirichlet Process object.
- //' @return A list with updated cluster assignments and parameters.
- //' @export
+//' @description C++ implementation of the cluster component update for MVNormal2 non-conjugate models.
+//' @param dpObj A list representing the Dirichlet Process object.
+//' @return A list with updated cluster assignments and parameters.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List nonconjugate_mvnormal2_cluster_component_update_cpp(Rcpp::List dpObj) {
    // Extract necessary components
@@ -97,10 +97,10 @@
  }
 
 //' @title Update cluster parameters for MVNormal2 (C++ non-conjugate)
- //' @description C++ implementation of the cluster parameter update for MVNormal2 non-conjugate models.
- //' @param dpObj A list representing the Dirichlet Process object.
- //' @return A list containing the updated cluster parameters.
- //' @export
+//' @description C++ implementation of the cluster parameter update for MVNormal2 non-conjugate models.
+//' @param dpObj A list representing the Dirichlet Process object.
+//' @return A list containing the updated cluster parameters.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List nonconjugate_mvnormal2_cluster_parameter_update_cpp(Rcpp::List dpObj) {
    // Extract necessary components
@@ -135,13 +135,13 @@
  }
 
 //' @title Fit Hierarchical MVNormal2 DP (C++)
- //' @description C++ implementation for fitting a Hierarchical MVNormal2 DP.
- //' @param dpList An R list representing the hierarchical DP object.
- //' @param iterations Number of iterations.
- //' @param updatePrior Whether to update prior parameters.
- //' @param progressBar Whether to show progress bar.
- //' @return Updated hierarchical DP object.
- //' @export
+//' @description C++ implementation for fitting a Hierarchical MVNormal2 DP.
+//' @param dpList An R list representing the hierarchical DP object.
+//' @param iterations Number of iterations.
+//' @param updatePrior Whether to update prior parameters.
+//' @param progressBar Whether to show progress bar.
+//' @return Updated hierarchical DP object.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_mvnormal2_fit_cpp(Rcpp::List dpList, int iterations,
                                            bool updatePrior = false,
@@ -165,14 +165,14 @@
  }
 
 //' @title Create Hierarchical MVNormal2 mixing distributions (C++)
- //' @description C++ implementation for creating hierarchical MVNormal2 mixing distributions.
- //' @param n Number of datasets.
- //' @param priorParameters Prior parameters for the MVNormal2 distribution.
- //' @param alphaPrior Alpha prior parameters.
- //' @param gammaPrior Gamma prior parameters.
- //' @param num_sticks Number of stick breaking values.
- //' @return List of mixing distributions.
- //' @export
+//' @description C++ implementation for creating hierarchical MVNormal2 mixing distributions.
+//' @param n Number of datasets.
+//' @param priorParameters Prior parameters for the MVNormal2 distribution.
+//' @param alphaPrior Alpha prior parameters.
+//' @param gammaPrior Gamma prior parameters.
+//' @param num_sticks Number of stick breaking values.
+//' @return List of mixing distributions.
+//' @export
  // [[Rcpp::export]]
  Rcpp::List hierarchical_mvnormal2_mixing_create_cpp(
      int n,
