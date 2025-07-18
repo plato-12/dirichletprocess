@@ -102,10 +102,10 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
   # Use C++ implementation if enabled and available
   if (using_cpp()) {
     if (inherits(dpObj, "beta") && exists("nonconjugate_beta_cluster_component_update_cpp")) {
-      return(ClusterComponentUpdate.beta.nonconjugate.cpp(dpObj))
+      return(nonconjugate_beta_cluster_component_update_cpp(dpObj))
     }
     if (inherits(dpObj, "mvnormal2") && exists("nonconjugate_mvnormal2_cluster_component_update_cpp")) {
-      return(ClusterComponentUpdate.mvnormal2.nonconjugate.cpp(dpObj))
+      return(nonconjugate_mvnormal2_cluster_component_update_cpp(dpObj))
     }
   }
 

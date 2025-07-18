@@ -94,38 +94,6 @@ PriorParametersUpdate.weibull <- function(mdObj, clusterParameters, n = 1) {
   return(mdObj)
 }
 
-#' @export
-#' @rdname PriorParametersUpdate
-PriorParametersUpdate.beta <- function(mdObj, clusterParameters, n = 1) {
-  # For beta distributions, implement empirical Bayes update
-  if (length(clusterParameters) == 0) {
-    return(mdObj)
-  }
-
-  # Extract alpha and beta parameters
-  alphas <- numeric(length(clusterParameters))
-  betas <- numeric(length(clusterParameters))
-
-  for (i in seq_along(clusterParameters)) {
-    if (is.list(clusterParameters[[i]]) && length(clusterParameters[[i]]) >= 2) {
-      alphas[i] <- clusterParameters[[i]][[1]]
-      betas[i] <- clusterParameters[[i]][[2]]
-    }
-  }
-
-  # Remove invalid parameters
-  valid_idx <- alphas > 0 & betas > 0 & is.finite(alphas) & is.finite(betas)
-  alphas <- alphas[valid_idx]
-  betas <- betas[valid_idx]
-
-  if (length(alphas) > 0) {
-    # Update prior parameters
-    mdObj$priorParameters[1] <- mean(alphas)
-    mdObj$priorParameters[2] <- mean(betas)
-  }
-
-  return(mdObj)
-}
 
 #' @export
 #' @rdname PriorParametersUpdate

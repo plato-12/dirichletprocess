@@ -161,7 +161,7 @@ PriorParametersUpdate.beta <- function(mdObj, clusterParameters, n = 1) {
 
   newGamma <- rgamma(n, posteriorShape, posteriorRate)
 
-  newPriorParameters <- matrix(c(priorParameters[1], newGamma), ncol = 2)
+  newPriorParameters <- matrix(c(priorParameters[1], newGamma), nrow = 1, ncol = 2)
   mdObj$priorParameters <- newPriorParameters
 
   return(mdObj)

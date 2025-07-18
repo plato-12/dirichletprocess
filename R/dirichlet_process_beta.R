@@ -11,6 +11,10 @@
 #' @export
 DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
                                  mhStepSize = c(0.1, 0.1), verbose = TRUE) {
+  # Handle case where alphaPriors is a single value
+  if (length(alphaPriors) == 1) {
+    alphaPriors <- c(alphaPriors, 0.5)
+  }
   mdObj <- BetaMixtureCreate(priorParameters = c(2, 8),
                              mhStepSize = mhStepSize,
                              maxT = 1)
