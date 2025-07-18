@@ -20,12 +20,10 @@ Rcpp::List weibull_prior_draw_cpp(const Rcpp::NumericVector& priorParams, int n 
 
 // [[Rcpp::export]]
 Rcpp::NumericVector weibull_likelihood_cpp(const Rcpp::NumericVector& x, double alpha, double lambda) {
-  // Validate inputs
-  if (alpha <= 0 || !std::isfinite(alpha)) {
-    Rcpp::stop("alpha must be positive and finite");
-  }
-  if (lambda <= 0 || !std::isfinite(lambda)) {
-    Rcpp::stop("lambda must be positive and finite");
+  // Validate inputs - handle NaN/Inf by returning zero likelihood
+  if (alpha <= 0 || !std::isfinite(alpha) || lambda <= 0 || !std::isfinite(lambda)) {
+    // Return zero likelihood for invalid parameters instead of throwing error
+    return Rcpp::NumericVector(x.size(), 1e-300);
   }
 
   arma::vec x_arma = Rcpp::as<arma::vec>(x);

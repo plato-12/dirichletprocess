@@ -1,4 +1,12 @@
 MetropolisHastings <- function(mixingDistribution, x, start_pos, no_draws=100){
+  # For list objects, dispatch based on the second class in the hierarchy
+  if (is.list(mixingDistribution) && length(class(mixingDistribution)) > 1) {
+    dist_class <- class(mixingDistribution)[2]
+    method_name <- paste0("MetropolisHastings.", dist_class)
+    if (exists(method_name, mode = "function")) {
+      return(get(method_name)(mixingDistribution, x, start_pos, no_draws))
+    }
+  }
   UseMethod("MetropolisHastings", mixingDistribution)
 }
 

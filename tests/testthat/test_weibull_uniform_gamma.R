@@ -38,8 +38,14 @@ test_that("Weibull Likelihood: Negative x", {
 
 
 test_that("Weibull Prior Density", {
-
-  expect_equal(PriorDensity(test_mdobj, matrix(c(1,1),ncol=2)), dunif(1, 0,1))
+  
+  # Create proper parameter format (list with 3D arrays)
+  theta <- list(
+    array(1, dim = c(1, 1, 1)),
+    array(1, dim = c(1, 1, 1))
+  )
+  
+  expect_equal(PriorDensity(test_mdobj, theta), dunif(1, 0,1))
 
 })
 
