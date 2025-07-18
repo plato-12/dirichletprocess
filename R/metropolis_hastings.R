@@ -1,12 +1,5 @@
+#' @export
 MetropolisHastings <- function(mixingDistribution, x, start_pos, no_draws=100){
-  # For list objects, dispatch based on the second class in the hierarchy
-  if (is.list(mixingDistribution) && length(class(mixingDistribution)) > 1) {
-    dist_class <- class(mixingDistribution)[2]
-    method_name <- paste0("MetropolisHastings.", dist_class)
-    if (exists(method_name, mode = "function")) {
-      return(get(method_name)(mixingDistribution, x, start_pos, no_draws))
-    }
-  }
   UseMethod("MetropolisHastings", mixingDistribution)
 }
 
@@ -114,57 +107,19 @@ MetropolisHastings.weibull <- function(mixingDistribution, x, start_pos, no_draw
 }
 
 #' @export
-MetropolisHastings.beta <- function(mixingDistribution, x, start_pos, no_draws) {
-  # Initialize parameter storage
-  parameter_samples <- list()
-  for (i in seq_along(start_pos)) {
-    parameter_samples[[i]] <- array(dim = c(dim(start_pos[[i]])[1:2], no_draws))
-    parameter_samples[[i]][, , 1] <- start_pos[[i]][, , 1]
-  }
-
-  accept_count <- 0
-  old_param <- start_pos
-
-  # Calculate initial log prior and likelihood
-  old_prior <- log(PriorDensity(mixingDistribution, old_param))
-  old_likelihood <- sum(log(Likelihood(mixingDistribution, x, old_param)))
-
-  # MCMC loop
-  for (i in seq_len(no_draws - 1)) {
-    # Propose new parameters
-    prop_param <- MhParameterProposal(mixingDistribution, old_param)
-
-    # Calculate new log prior and likelihood
-    new_prior <- log(PriorDensity(mixingDistribution, prop_param))
-    new_likelihood <- sum(log(Likelihood(mixingDistribution, x, prop_param)))
-
-    # Calculate acceptance probability
-    log_ratio <- (new_prior + new_likelihood) - (old_prior + old_likelihood)
-    accept_prob <- min(1, exp(log_ratio))
-
-    # Handle numerical issues
-    if (is.na(accept_prob) || !is.finite(accept_prob)) {
-      accept_prob <- 0
-    }
-
-    # Accept or reject
-    if (runif(1) < accept_prob) {
-      accept_count <- accept_count + 1
-      sampled_param <- prop_param
-      old_likelihood <- new_likelihood
-      old_prior <- new_prior
-    } else {
-      sampled_param <- old_param
-    }
-
-    # Store parameters
-    old_param <- sampled_param
-    for (j in seq_along(start_pos)) {
-      parameter_samples[[j]][, , i + 1] <- sampled_param[[j]][, , 1]
+MetropolisHastings.list <- function(mixingDistribution, x, start_pos, no_draws = 100) {
+  # For list objects, dispatch based on the second class in the hierarchy
+  if (length(class(mixingDistribution)) > 1) {
+    dist_class <- class(mixingDistribution)[2]
+    method_name <- paste0("MetropolisHastings.", dist_class)
+    ns <- getNamespace("dirichletprocess")
+    if (exists(method_name, envir = ns)) {
+      method_func <- get(method_name, envir = ns)
+      return(method_func(mixingDistribution, x, start_pos, no_draws))
     }
   }
-
-  accept_ratio <- accept_count / no_draws
-
-  return(list(parameter_samples = parameter_samples, accept_ratio = accept_ratio))
+  
+  # Fall back to default method
+  return(MetropolisHastings.default(mixingDistribution, x, start_pos, no_draws))
 }
+

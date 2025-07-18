@@ -259,3 +259,59 @@ PenalisedLikelihood.beta <- function(mdObj, x) {
     nu = array(tau_est, dim = c(1, 1, 1))
   ))
 }
+
+#' @export
+MetropolisHastings.beta <- function(mixingDistribution, x, start_pos, no_draws) {
+  # Initialize parameter storage
+  parameter_samples <- list()
+  for (i in seq_along(start_pos)) {
+    parameter_samples[[i]] <- array(dim = c(dim(start_pos[[i]])[1:2], no_draws))
+    parameter_samples[[i]][, , 1] <- start_pos[[i]][, , 1]
+  }
+
+  accept_count <- 0
+  old_param <- start_pos
+
+  # Calculate initial log prior and likelihood
+  old_prior <- log(PriorDensity(mixingDistribution, old_param))
+  old_likelihood <- sum(log(Likelihood(mixingDistribution, x, old_param)))
+
+  # MCMC loop
+  for (i in seq_len(no_draws - 1)) {
+    # Propose new parameters
+    prop_param <- MhParameterProposal(mixingDistribution, old_param)
+
+    # Calculate new log prior and likelihood
+    new_prior <- log(PriorDensity(mixingDistribution, prop_param))
+    new_likelihood <- sum(log(Likelihood(mixingDistribution, x, prop_param)))
+
+    # Calculate acceptance probability
+    log_ratio <- (new_prior + new_likelihood) - (old_prior + old_likelihood)
+    accept_prob <- min(1, exp(log_ratio))
+
+    # Handle numerical issues
+    if (is.na(accept_prob) || !is.finite(accept_prob)) {
+      accept_prob <- 0
+    }
+
+    # Accept or reject
+    if (runif(1) < accept_prob) {
+      accept_count <- accept_count + 1
+      sampled_param <- prop_param
+      old_likelihood <- new_likelihood
+      old_prior <- new_prior
+    } else {
+      sampled_param <- old_param
+    }
+
+    # Store parameters
+    old_param <- sampled_param
+    for (j in seq_along(start_pos)) {
+      parameter_samples[[j]][, , i + 1] <- sampled_param[[j]][, , 1]
+    }
+  }
+
+  accept_ratio <- accept_count / no_draws
+
+  return(list(parameter_samples = parameter_samples, accept_ratio = accept_ratio))
+}
