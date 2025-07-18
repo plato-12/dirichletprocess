@@ -41,33 +41,6 @@ nonconjugate_beta_cluster_component_update_cpp <- function(dp_list) {
     .Call(`_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp`, dp_list)
 }
 
-#' @title Draw from an Exponential distribution prior (C++)
-NULL
-
-#' @title Calculate Exponential log-likelihood (C++)
-NULL
-
-#' @title Draw from an Exponential distribution posterior (C++)
-NULL
-
-#' @title Calculate Exponential posterior parameters (C++)
-NULL
-
-#' @title Calculate Exponential likelihood (C++)
-NULL
-
-#' @title Calculate Exponential predictive distribution (C++)
-NULL
-
-#' @title Update cluster components (C++ conjugate exponential)
-NULL
-
-#' @title Update alpha for conjugate exponential DP (C++)
-NULL
-
-#' @title Update cluster parameters (C++ conjugate exponential)
-NULL
-
 exponential_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_exponential_prior_draw_cpp`, priorParams, n)
 }
@@ -108,24 +81,6 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
     .Call(`_dirichletprocess_run_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
 }
 
-#' @title Fit Hierarchical Beta DP (C++)
-NULL
-
-#' @title Update cluster components for Hierarchical Beta DP (C++)
-NULL
-
-#' @title Update global parameters for Hierarchical Beta DP (C++)
-NULL
-
-#' @title Update G0 for Hierarchical Beta DP (C++)
-NULL
-
-#' @title Update gamma for Hierarchical Beta DP (C++)
-NULL
-
-#' @title Create Hierarchical Beta mixing distributions (C++)
-NULL
-
 hierarchical_beta_fit_cpp <- function(dpList, iterations, updatePrior = FALSE, progressBar = TRUE) {
     .Call(`_dirichletprocess_hierarchical_beta_fit_cpp`, dpList, iterations, updatePrior, progressBar)
 }
@@ -150,21 +105,6 @@ hierarchical_beta_mixing_create_cpp <- function(n, priorParameters, hyperPriorPa
     .Call(`_dirichletprocess_hierarchical_beta_mixing_create_cpp`, n, priorParameters, hyperPriorParameters, alphaPrior, maxT, gammaPrior, mhStepSize, num_sticks)
 }
 
-#' @title Run Hierarchical MVNormal MCMC (C++)
-NULL
-
-#' @title Create Hierarchical MVNormal mixing distributions (C++)
-NULL
-
-#' @title Update cluster assignments for Hierarchical MVNormal (C++)
-NULL
-
-#' @title Fit Hierarchical MVNormal DP (C++)
-NULL
-
-#' @title Sample from hierarchical MVNormal posterior (C++)
-NULL
-
 hierarchical_mvnormal_run <- function(data_list, hdp_params, mcmc_params) {
     .Call(`_dirichletprocess_hierarchical_mvnormal_run`, data_list, hdp_params, mcmc_params)
 }
@@ -184,22 +124,6 @@ hierarchical_mvnormal_fit_cpp <- function(dp_list, iterations, update_prior = TR
 hierarchical_mvnormal_posterior_sample <- function(hdp_state, n_samples, group_index) {
     .Call(`_dirichletprocess_hierarchical_mvnormal_posterior_sample`, hdp_state, n_samples, group_index)
 }
-
-#' @title Draw from a Multivariate Normal-Wishart prior (C++)
-NULL
-
-#' @title Draw from a Multivariate Normal-Wishart posterior (C++)
-NULL
-
-#' @title Calculate MVNormal posterior parameters (C++)
-NULL
-
-#' @title Calculate MVNormal predictive distribution (C++)
-NULL
-
-#' @title Calculate MVNormal likelihood (C++)
-NULL
-
 mvnormal_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_mvnormal_prior_draw_cpp`, priorParams, n)
 }
@@ -219,37 +143,6 @@ mvnormal_predictive_cpp <- function(priorParams, x) {
 mvnormal_likelihood_cpp <- function(x, mu, sigma) {
     .Call(`_dirichletprocess_mvnormal_likelihood_cpp`, x, mu, sigma)
 }
-
-#' @title Update alpha for conjugate MVNormal DP (C++)
-#' @description C++ implementation of the concentration parameter update for conjugate MVNormal.
-#' @param dpObj A list representing the Dirichlet Process object.
-#' @return Updated alpha value.
-#' @export
-conjugate_mvnormal_update_alpha_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_mvnormal_update_alpha_cpp`, dpObj)
-}
-
-#' @title Draw from a Multivariate Normal semi-conjugate prior (C++)
-NULL
-
-#' @title Draw from a Multivariate Normal semi-conjugate posterior (C++)
-NULL
-
-#' @title Calculate MVNormal2 likelihood (C++)
-NULL
-
-#' @title Update cluster components for MVNormal2 (C++ non-conjugate)
-NULL
-
-#' @title Update cluster parameters for MVNormal2 (C++ non-conjugate)
-NULL
-
-#' @title Fit Hierarchical MVNormal2 DP (C++)
-NULL
-
-#' @title Create Hierarchical MVNormal2 mixing distributions (C++)
-NULL
-
 mvnormal2_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_mvnormal2_prior_draw_cpp`, priorParams, n)
 }
@@ -277,35 +170,6 @@ hierarchical_mvnormal2_fit_cpp <- function(dpList, iterations, updatePrior = FAL
 hierarchical_mvnormal2_mixing_create_cpp <- function(n, priorParameters, alphaPrior, gammaPrior, num_sticks) {
     .Call(`_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp`, n, priorParameters, alphaPrior, gammaPrior, num_sticks)
 }
-
-#' @title Update alpha for non-conjugate MVNormal2 DP (C++)
-#' @description C++ implementation of the concentration parameter update for MVNormal2.
-#' @param dpObj A list representing the Dirichlet Process object.
-#' @return Updated alpha value.
-#' @export
-nonconjugate_mvnormal2_update_alpha_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp`, dpObj)
-}
-
-mvnormal_log_likelihood_cpp <- function(x, mu, Sigma) {
-    .Call(`_dirichletprocess_mvnormal_log_likelihood_cpp`, x, mu, Sigma)
-}
-
-#' @title Create a Markov DP from R object (C++)
-NULL
-
-#' @title Fit Markov DP (C++)
-NULL
-
-#' @title Update states for Markov DP (C++)
-NULL
-
-#' @title Update alpha and beta for Markov DP (C++)
-NULL
-
-#' @title Update parameters for Markov DP (C++)
-NULL
-
 markov_dp_create_cpp <- function(dpObj) {
     .Call(`_dirichletprocess_markov_dp_create_cpp`, dpObj)
 }
@@ -333,22 +197,6 @@ get_memory_tracking <- function() {
 clear_memory_tracking <- function() {
     invisible(.Call(`_dirichletprocess_clear_memory_tracking`))
 }
-
-#' @title Draw from a Normal distribution prior (C++)
-NULL
-
-#' @title Draw from a Normal distribution posterior (C++)
-NULL
-
-#' @title Update cluster components (C++ conjugate)
-NULL
-
-#' @title Update cluster parameters (C++ conjugate)
-NULL
-
-#' @title Calculate Normal posterior parameters (C++)
-NULL
-
 normal_prior_draw_cpp <- function(priorParams, n = 1L) {
     .Call(`_dirichletprocess_normal_prior_draw_cpp`, priorParams, n)
 }

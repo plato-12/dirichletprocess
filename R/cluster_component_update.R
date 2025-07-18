@@ -44,25 +44,31 @@ ClusterComponentUpdate.conjugate <- function(dpObj) {
 
     for (j in 1:numLabels) {
       if (pointsPerCluster[j] > 0) {
-        # Extract the parameters for cluster j, preserving dimensions
+        # Extract the parameters for cluster j, preserving dimensions and names
         single_cluster_params <- list()
         for (k in seq_along(clusterParams)) {
+          param_name <- names(clusterParams)[k]
+          if (is.null(param_name) || param_name == "") {
+            # If no name, use the index (fallback)
+            param_name <- k
+          }
           param_dims <- dim(clusterParams[[k]])
           if (length(param_dims) == 3) {
             # For 3D arrays (FULL covariance models), extract the slice for cluster j
-            single_cluster_params[[k]] <- array(
+            single_cluster_params[[param_name]] <- array(
               clusterParams[[k]][, , j],
               dim = c(param_dims[1], param_dims[2], 1)
             )
           } else if (length(param_dims) == 2) {
             # For 2D arrays (constrained covariance models), extract column j
-            single_cluster_params[[k]] <- clusterParams[[k]][, j, drop = FALSE]
+            single_cluster_params[[param_name]] <- clusterParams[[k]][, j, drop = FALSE]
           } else {
             # Fallback for 1D or scalar structures
-            single_cluster_params[[k]] <- clusterParams[[k]][j]
+            single_cluster_params[[param_name]] <- clusterParams[[k]][j]
           }
         }
 
+        
         likelihood_val <- Likelihood(mdObj, y[i, , drop = FALSE], single_cluster_params)
         cluster_probs[j] <- pointsPerCluster[j] * as.numeric(likelihood_val[1])
       } else {

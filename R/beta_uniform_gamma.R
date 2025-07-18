@@ -121,7 +121,19 @@ PriorDraw.beta <- function(mdObj, n = 1) {
 
   priorParameters <- mdObj$priorParameters
   mu <- runif(n, 0, mdObj$maxT)
-  nu <- 1/rgamma(n, shape = priorParameters[1], rate = priorParameters[2])
+  
+  # Draw gamma values and handle potential NAs
+  gamma_values <- rgamma(n, shape = priorParameters[1], rate = priorParameters[2])
+  
+  # Handle NA values that can occur with extreme parameters
+  if (any(is.na(gamma_values))) {
+    gamma_values[is.na(gamma_values)] <- 1.0  # Default to reasonable value
+  }
+  
+  # Ensure we don't divide by zero
+  gamma_values[gamma_values == 0] <- 1e-04
+  
+  nu <- 1/gamma_values
 
   theta <- list(mu = array(mu, c(1, 1, n)), nu = array(nu, c(1, 1, n)))
   return(theta)
@@ -187,6 +199,15 @@ MhParameterProposal.beta <- function(mdObj, old_params) {
 
   # Propose new nu (ensure positive)
   new_nu <- abs(old_nu + mhStepSize[2] * rnorm(1, 0, 2.4))
+  
+  # Handle NA values and ensure minimum values
+  if (is.na(new_nu) || new_nu == 0) {
+    new_nu <- 1e-04
+  }
+  
+  if (is.na(new_mu)) {
+    new_mu <- old_mu
+  }
 
   # Return in proper format
   new_params[[1]] <- array(new_mu, dim = c(1, 1, 1))

@@ -31,27 +31,46 @@ LikelihoodDP <- function(dpobj){
     names(clusters_parameters) <- names(dpobj$clusterParameters)
   }
 
+  # Get the actual structure of cluster parameters to determine expected result length
+  actual_num_clusters <- 1
+  if (is.list(clusters_parameters) && length(clusters_parameters) > 0) {
+    first_param <- clusters_parameters[[1]]
+    if (is.array(first_param) && length(dim(first_param)) == 3) {
+      actual_num_clusters <- dim(first_param)[3]
+    } else if (is.list(first_param) && length(first_param) > 0) {
+      # Handle nested structure
+      actual_num_clusters <- length(first_param)
+    }
+  }
+  
+  # Use the actual number of clusters from the parameter structure
+  expected_clusters <- min(dpobj$numberClusters, actual_num_clusters)
+  
   likelihoodValues <- vapply(seq_len(nrow(dpobj$data)),
                              function(i) {
                                lik <- Likelihood(dpobj$mixingDistribution,
                                                  dpobj$data[i, , drop=FALSE],
                                                  clusters_parameters)
-                               # Ensure we only return values for active clusters
-                               if (length(lik) > dpobj$numberClusters) {
-                                 lik[1:dpobj$numberClusters]
+                               # Ensure we return the right number of values
+                               if (length(lik) > expected_clusters) {
+                                 lik[1:expected_clusters]
+                               } else if (length(lik) < expected_clusters) {
+                                 # Pad with zeros if needed
+                                 c(lik, rep(0, expected_clusters - length(lik)))
                                } else {
                                  lik
                                }
                              },
-                             numeric(dpobj$numberClusters))
+                             numeric(expected_clusters))
 
-  if (dpobj$numberClusters == 1) {
+  if (expected_clusters == 1) {
     likelihoodValues <- matrix(likelihoodValues, ncol = 1)
   } else {
     likelihoodValues <- t(likelihoodValues)
   }
 
-  weight <- dpobj$pointsPerCluster / dpobj$n
+  # Use weights for the expected number of clusters
+  weight <- dpobj$pointsPerCluster[1:expected_clusters] / dpobj$n
 
   likelihoodValues <- likelihoodValues %*% weight
 

@@ -13,6 +13,5 @@ NULL
 #'
 #'
 #'
-#' @docType package
-#' @aliases dirichletprocess
-NULL
+#' @keywords internal
+"_PACKAGE"

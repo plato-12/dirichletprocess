@@ -203,6 +203,7 @@ Initialise.nonconjugate <- function(dpObj, posterior = TRUE, m = 3, verbose = TR
 
 InitialisePredictive <- function(dpObj) UseMethod("InitialisePredictive", dpObj)
 
+#' @export
 InitialisePredictive.conjugate <- function(dpObj) {
 
   dpObj$predictiveArray <- Predictive(dpObj$mixingDistribution, dpObj$data)
@@ -210,6 +211,7 @@ InitialisePredictive.conjugate <- function(dpObj) {
   return(dpObj)
 }
 
+#' @export
 InitialisePredictive.nonconjugate <- function(dpObj) {
   return(dpObj)
 }
