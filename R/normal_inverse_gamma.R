@@ -26,8 +26,25 @@ PriorDraw.normal <- function(mdObj, n = 1) {
 
   priorParameters <- mdObj$priorParameters
 
+  # Draw gamma values and handle potential NAs
   lambda <- rgamma(n, priorParameters[3], priorParameters[4])
+  
+  # Handle NA values that can occur with extreme parameters
+  if (any(is.na(lambda))) {
+    lambda[is.na(lambda)] <- 1.0  # Default to reasonable value
+  }
+  
+  # Ensure we don't divide by zero
+  lambda[lambda == 0] <- 1e-04
+  
+  # Draw normal values and handle potential NAs
   mu <- rnorm(n, priorParameters[1], (priorParameters[2] * lambda)^(-0.5))
+  
+  # Handle NA values
+  if (any(is.na(mu))) {
+    mu[is.na(mu)] <- priorParameters[1]  # Default to prior mean
+  }
+  
   theta <- list(mu = array(mu, dim = c(1, 1, n)), sigma = array(sqrt(1/lambda), dim = c(1, 1, n)))
   return(theta)
 }

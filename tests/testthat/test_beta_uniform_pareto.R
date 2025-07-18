@@ -17,6 +17,7 @@ test_that("Beta2 Likelihood", {
   testTheta <- list()
   testTheta[[1]] <- array(0.5, dim=c(1,1,1))
   testTheta[[2]] <- array(0.5, dim=c(1,1,1))
+  names(testTheta) <- c("mu", "nu")
 
   oldLik <- Likelihood(betaObj, c(0.1, 0.2), testTheta)
   newLik <- Likelihood(beta2Obj, c(0.1, 0.2), testTheta)

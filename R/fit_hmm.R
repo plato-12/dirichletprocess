@@ -41,6 +41,15 @@ initialize_hmm_params <- function(dpObj) {
   return(dpObj)
 }
 
+#' Fit Hidden Markov Model
+#'
+#' Internal function for fitting Hidden Markov Dirichlet Process models.
+#'
+#' @param dpObj Dirichlet Process object
+#' @param its Number of iterations
+#' @param progressBar Display progress bar
+#' @return Fitted Dirichlet Process object
+#' @export
 fit_hmm <- function(dpObj, its, progressBar=F){
 
   if (progressBar){

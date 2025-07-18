@@ -26,7 +26,14 @@ PriorDraw.normalFixedVariance <- function(mdObj, n = 1) {
 
   priorParameters <- mdObj$priorParameters
 
+  # Draw normal values and handle potential NAs
   mu <- rnorm(n, priorParameters[1], mdObj$sigma)
+  
+  # Handle NA values that can occur with extreme parameters
+  if (any(is.na(mu))) {
+    mu[is.na(mu)] <- priorParameters[1]  # Default to prior mean
+  }
+  
   theta <- list(array(mu, dim = c(1, 1, n)))
   return(theta)
 }

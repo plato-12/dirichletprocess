@@ -1,3 +1,10 @@
+#' Update States for Dirichlet Process
+#'
+#' Updates the states of a Dirichlet process object using either C++ or R implementation.
+#'
+#' @param dp A Dirichlet process object
+#' @return Updated Dirichlet process object
+#' @export
 UpdateStates <- function(dp){
   # Use C++ implementation if enabled
   if (using_cpp_markov_samplers()) {
