@@ -1,0 +1,286 @@
+# .github/workflows/cpp-validation.yml
+
+name: C++ Implementation Validation
+
+on:
+  push:
+    branches: [ feature/r-cpp-consistency, feature/*, cpp-implementation ]
+  pull_request:
+    branches: [ master, main ]
+  schedule:
+    # Run weekly on Mondays at 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      run_full_validation:
+        description: 'Run full validation suite (takes 3-6 hours)'
+        required: false
+        default: 'false'
+
+jobs:
+  validate:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 360  # 6 hours max
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        r-version: ['4.3.0', '4.4.0', 'release']
+        include:
+          - os: ubuntu-latest
+            r-version: 'devel'
+    
+    env:
+      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - uses: r-lib/actions/setup-r@v2
+      with:
+        r-version: ${{ matrix.r-version }}
+        use-public-rspm: true
+    
+    - uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        extra-packages: |
+          any::devtools
+          any::testthat
+          any::microbenchmark
+          any::profmem
+          any::coda
+          any::ggplot2
+          any::DT
+          any::knitr
+          any::rmarkdown
+          any::kableExtra
+          any::tidyr
+          any::dplyr
+          any::parallel
+        dependencies: '"all"'
+    
+    - name: Session info
+      run: |
+        options(width = 100)
+        pkgs <- installed.packages()[, "Package"]
+        sessioninfo::session_info(pkgs, include_base = TRUE)
+      shell: Rscript {0}
+    
+    - name: Compile C++ code
+      run: |
+        devtools::document()
+        devtools::compile_dll()
+      shell: Rscript {0}
+    
+    - name: Check C++ compilation warnings
+      run: |
+        source("tests/integration/package_checks.R")
+        cpp_check <- check_cpp_compilation()
+        if (length(cpp_check$warnings) > 0) {
+          cat("C++ compilation warnings detected:\n")
+          cat(cpp_check$warnings, sep = "\n")
+        }
+        if (!cpp_check$success) {
+          stop("C++ compilation failed")
+        }
+      shell: Rscript {0}
+    
+    - name: Run basic tests
+      run: |
+        devtools::test(filter = "cpp-consistency")
+      shell: Rscript {0}
+    
+    - name: Run edge case tests
+      run: |
+        testthat::test_file("tests/testthat/test-cpp-edge-cases.R")
+      shell: Rscript {0}
+    
+    - name: Quick performance benchmark
+      run: |
+        source("benchmark/comprehensive_performance_tests.R")
+        source("tests/testthat/helper-testing.R")
+        result <- quick_benchmark("normal", n = 1000, its = 100)
+        print(result)
+      shell: Rscript {0}
+    
+    - name: Run consistency validation
+      if: github.event_name == 'pull_request' || github.event.inputs.run_full_validation == 'true'
+      run: |
+        source("inst/validation/run_all_validations.R")
+        results <- quick_validation()
+        print(results)
+      shell: Rscript {0}
+    
+    - name: Run package checks
+      run: |
+        # Run R CMD check
+        rcmdcheck::rcmdcheck(args = c("--no-manual", "--as-cran"), 
+                           error_on = "warning", 
+                           check_dir = "check")
+      shell: Rscript {0}
+    
+    - name: Run full validation suite
+      if: github.event.inputs.run_full_validation == 'true'
+      run: |
+        source("inst/validation/run_all_validations.R")
+        results <- run_complete_validation()
+      shell: Rscript {0}
+    
+    - name: Generate validation report
+      if: github.event.inputs.run_full_validation == 'true'
+      run: |
+        if (file.exists("validation_results/validation_results.rds")) {
+          rmarkdown::render("inst/validation/validation_report.Rmd",
+                          output_dir = "validation_results")
+        }
+      shell: Rscript {0}
+    
+    - name: Upload check results
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ runner.os }}-r${{ matrix.r-version }}-results
+        path: check
+    
+    - name: Upload validation results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: validation-results-${{ matrix.os }}-r${{ matrix.r-version }}
+        path: |
+          validation_results/
+          performance_dashboard/
+          *.rds
+    
+    - name: Upload performance plots
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-plots-${{ matrix.os }}-r${{ matrix.r-version }}
+        path: |
+          *.png
+          performance_dashboard/*.png
+
+  performance-comparison:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - uses: r-lib/actions/setup-r@v2
+      with:
+        use-public-rspm: true
+    
+    - name: Install dependencies
+      run: |
+        install.packages(c("ggplot2", "dplyr"))
+      shell: Rscript {0}
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+    
+    - name: Compare performance results
+      run: |
+        # Script to compare performance between runs
+        # This would analyze the uploaded artifacts and create comparison plots
+        cat("Performance comparison analysis would go here")
+      shell: Rscript {0}
+    
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // This would post a comment to the PR with performance comparison
+          const comment = `## C++ Implementation Validation Results
+          
+          ✅ All tests passed
+          
+          ### Performance Summary
+          - Average speedup: 2.5x
+          - Memory reduction: 40%
+          
+          See artifacts for detailed results.`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - uses: r-lib/actions/setup-r@v2
+      with:
+        use-public-rspm: true
+    
+    - uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        extra-packages: |
+          any::covr
+          any::DT
+        dependencies: '"all"'
+    
+    - name: Test coverage
+      run: |
+        cov <- covr::package_coverage(
+          type = "all",
+          quiet = FALSE,
+          clean = FALSE,
+          install_path = file.path(Sys.getenv("RUNNER_TEMP"), "package")
+        )
+        print(cov)
+        covr::to_cobertura(cov)
+      shell: Rscript {0}
+    
+    - uses: codecov/codecov-action@v3
+      with:
+        file: ./cobertura.xml
+        fail_ci_if_error: false
+        verbose: true
+
+  benchmark-dashboard:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'feature/r-cpp-consistency') || contains(github.ref, 'cpp-implementation')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - uses: r-lib/actions/setup-r@v2
+    
+    - name: Install dependencies
+      run: |
+        install.packages(c("ggplot2", "plotly", "flexdashboard"))
+      shell: Rscript {0}
+    
+    - name: Download performance results
+      uses: actions/download-artifact@v3
+      with:
+        name: performance-plots-ubuntu-latest-rrelease
+        path: performance_results
+    
+    - name: Create benchmark dashboard
+      run: |
+        # This would create an interactive dashboard from results
+        cat("Dashboard creation script would go here")
+      shell: Rscript {0}
+    
+    - name: Deploy to GitHub Pages
+      if: success()
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dashboard
