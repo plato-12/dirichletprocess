@@ -49,17 +49,9 @@ jobs:
         extra-packages: |
           any::devtools
           any::testthat
+          any::sessioninfo
           any::microbenchmark
-          any::profmem
-          any::coda
           any::ggplot2
-          any::DT
-          any::knitr
-          any::rmarkdown
-          any::kableExtra
-          any::tidyr
-          any::dplyr
-          any::parallel
           any::atime
         dependencies: '"all"'
     
