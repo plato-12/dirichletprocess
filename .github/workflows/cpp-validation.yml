@@ -60,6 +60,7 @@ jobs:
           any::tidyr
           any::dplyr
           any::parallel
+          any::atime
         dependencies: '"all"'
     
     - name: Session info
@@ -231,6 +232,7 @@ jobs:
         extra-packages: |
           any::covr
           any::DT
+          any::atime
         dependencies: '"all"'
     
     - name: Test coverage
