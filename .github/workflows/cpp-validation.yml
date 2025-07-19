@@ -65,7 +65,6 @@ jobs:
     - name: Compile C++ code
       run: |
         devtools::document()
-        devtools::compile_dll()
       shell: Rscript {0}
     
     - name: Check C++ compilation warnings
