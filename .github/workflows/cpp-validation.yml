@@ -141,14 +141,14 @@ jobs:
     
     - name: Upload check results
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ runner.os }}-r${{ matrix.r-version }}-results
         path: check
     
     - name: Upload validation results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: validation-results-${{ matrix.os }}-r${{ matrix.r-version }}
         path: |
@@ -158,7 +158,7 @@ jobs:
     
     - name: Upload performance plots
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-plots-${{ matrix.os }}-r${{ matrix.r-version }}
         path: |
@@ -183,7 +183,7 @@ jobs:
       shell: Rscript {0}
     
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: artifacts
     
@@ -269,7 +269,7 @@ jobs:
       shell: Rscript {0}
     
     - name: Download performance results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: performance-plots-ubuntu-latest-rrelease
         path: performance_results
