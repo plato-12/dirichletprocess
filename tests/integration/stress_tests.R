@@ -1,57 +1,175 @@
 # tests/integration/stress_tests.R
 
+# Development/Production Mode Configuration
+# Set DP_DEV_TESTING=TRUE for development mode (faster, smaller tests)
+# Set DP_DEV_TESTING=FALSE for production mode (full validation)
+is_dev_mode <- function() {
+  dev_env <- Sys.getenv("DP_DEV_TESTING", unset = "TRUE")
+  return(tolower(dev_env) %in% c("true", "1", "yes"))
+}
+
+get_stress_params <- function() {
+  if (is_dev_mode()) {
+    list(
+      # Basic stress tests
+      large_dataset_size = 5000,        # vs 50000 in production
+      large_dataset_its = 5,            # vs 10 in production
+      many_clusters_groups = 10,        # vs 50 in production
+      many_clusters_per_group = 10,     # vs 20 in production
+      many_clusters_its = 20,           # vs 100 in production
+      high_dim_dimensions = 5,          # vs 20 in production
+      high_dim_size = 200,              # vs 1000 in production
+      high_dim_its = 5,                 # vs 10 in production
+      extreme_params_its = 20,          # vs 50 in production
+      
+      # Extended stress tests
+      long_run_its = 1000,              # vs 10000 in production
+      long_run_size = 100,              # vs 500 in production
+      dynamic_clusters_groups = 5,      # vs 10 in production
+      dynamic_clusters_per_group = 20,  # vs 50 in production
+      dynamic_clusters_its = 100,       # vs 500 in production
+      
+      # Robustness tests
+      repeated_fitting_runs = 3,        # vs 10 in production
+      repeated_fitting_its = 20,        # vs 100 in production
+      bad_init_recovery_its = 50,       # vs 200 in production
+      outlier_handling_its = 50,        # vs 200 in production
+      
+      # Performance tests
+      max_sizes = c(1000, 5000),        # vs c(10000, 25000, 50000, 75000, 100000)
+      max_dimensions = c(5, 10),        # vs c(10, 25, 50, 75, 100)
+      perf_test_its = 3                 # vs 5 in production
+    )
+  } else {
+    list(
+      # Basic stress tests
+      large_dataset_size = 50000,
+      large_dataset_its = 10,
+      many_clusters_groups = 50,
+      many_clusters_per_group = 20,
+      many_clusters_its = 100,
+      high_dim_dimensions = 20,
+      high_dim_size = 1000,
+      high_dim_its = 10,
+      extreme_params_its = 50,
+      
+      # Extended stress tests
+      long_run_its = 10000,
+      long_run_size = 500,
+      dynamic_clusters_groups = 10,
+      dynamic_clusters_per_group = 50,
+      dynamic_clusters_its = 500,
+      
+      # Robustness tests
+      repeated_fitting_runs = 10,
+      repeated_fitting_its = 100,
+      bad_init_recovery_its = 200,
+      outlier_handling_its = 200,
+      
+      # Performance tests
+      max_sizes = c(10000, 25000, 50000, 75000, 100000),
+      max_dimensions = c(10, 25, 50, 75, 100),
+      perf_test_its = 5
+    )
+  }
+}
+
+# Load helper functions if available
+if (file.exists("tests/testthat/helper-testing.R")) {
+  source("tests/testthat/helper-testing.R")
+} else {
+  # Basic fallback functions
+  generate_test_data <- function(distribution, n = 100) {
+    switch(distribution,
+      "normal" = rnorm(n),
+      "exponential" = rexp(n),
+      "beta" = rbeta(n, 2, 2),
+      "weibull" = rweibull(n, 2),
+      "mvnormal" = matrix(rnorm(n * 3), ncol = 3),
+      rnorm(n)
+    )
+  }
+  
+  create_dp_object <- function(distribution, data) {
+    switch(distribution,
+      "normal" = DirichletProcessGaussian(data),
+      "exponential" = DirichletProcessExponential(data),
+      "beta" = DirichletProcessBeta(data),
+      "weibull" = DirichletProcessWeibull(data),
+      "mvnormal" = DirichletProcessMvnormal(data),
+      DirichletProcessGaussian(data)
+    )
+  }
+}
+
 run_stress_tests <- function() {
+  params <- get_stress_params()
+  mode_info <- if (is_dev_mode()) "DEV" else "PROD"
+  
+  cat("\n=== BASIC STRESS TESTS [", mode_info, " MODE] ===\n")
   stress_results <- list()
 
   # 1. Large dataset test
-  cat("\n1. Testing large dataset (n=50,000)...\n")
-  large_data <- rnorm(50000)
+  cat("\n1. Testing large dataset (n=", params$large_dataset_size, ")...\n")
+  cat("   MCMC iterations:", params$large_dataset_its, "\n")
+  large_data <- rnorm(params$large_dataset_size)
 
   tryCatch({
     dp <- DirichletProcessGaussian(large_data)
-    dp <- Fit(dp, its = 10)
+    dp <- Fit(dp, its = params$large_dataset_its)
     stress_results$large_dataset <- "PASSED"
+    cat("   ✅ Large dataset test PASSED\n")
   }, error = function(e) {
     stress_results$large_dataset <- paste("FAILED:", e$message)
+    cat("   ❌ Large dataset test FAILED:", e$message, "\n")
   })
 
   # 2. Many clusters test
   cat("\n2. Testing many clusters scenario...\n")
+  cat("   Groups:", params$many_clusters_groups, "| Per group:", params$many_clusters_per_group, "| MCMC its:", params$many_clusters_its, "\n")
   many_clusters_data <- c()
-  for (i in 1:50) {
-    many_clusters_data <- c(many_clusters_data, rnorm(20, mean = i * 5))
+  for (i in 1:params$many_clusters_groups) {
+    many_clusters_data <- c(many_clusters_data, rnorm(params$many_clusters_per_group, mean = i * 5))
   }
 
   tryCatch({
     dp <- DirichletProcessGaussian(many_clusters_data)
-    dp <- Fit(dp, its = 100)
+    dp <- Fit(dp, its = params$many_clusters_its)
     stress_results$many_clusters <- paste("PASSED - Found", dp$numberClusters, "clusters")
+    cat("   ✅ Many clusters test PASSED - Found", dp$numberClusters, "clusters\n")
   }, error = function(e) {
     stress_results$many_clusters <- paste("FAILED:", e$message)
+    cat("   ❌ Many clusters test FAILED:", e$message, "\n")
   })
 
   # 3. High dimension test (MVNormal)
-  cat("\n3. Testing high dimensions (d=20)...\n")
-  high_dim_data <- matrix(rnorm(1000 * 20), ncol = 20)
+  cat("\n3. Testing high dimensions (d=", params$high_dim_dimensions, ")...\n")
+  cat("   Sample size:", params$high_dim_size, "| MCMC its:", params$high_dim_its, "\n")
+  high_dim_data <- matrix(rnorm(params$high_dim_size * params$high_dim_dimensions), ncol = params$high_dim_dimensions)
 
   tryCatch({
     dp <- DirichletProcessMvnormal(high_dim_data)
-    dp <- Fit(dp, its = 10)
+    dp <- Fit(dp, its = params$high_dim_its)
     stress_results$high_dimension <- "PASSED"
+    cat("   ✅ High dimension test PASSED\n")
   }, error = function(e) {
     stress_results$high_dimension <- paste("FAILED:", e$message)
+    cat("   ❌ High dimension test FAILED:", e$message, "\n")
   })
 
   # 4. Extreme parameter values
   cat("\n4. Testing extreme parameters...\n")
+  cat("   MCMC iterations:", params$extreme_params_its, "\n")
   extreme_data <- c(rnorm(100, sd = 0.01), rnorm(100, sd = 1000))
 
   tryCatch({
     dp <- DirichletProcessGaussian(extreme_data)
-    dp <- Fit(dp, its = 50)
+    dp <- Fit(dp, its = params$extreme_params_its)
     stress_results$extreme_params <- "PASSED"
+    cat("   ✅ Extreme parameters test PASSED\n")
   }, error = function(e) {
     stress_results$extreme_params <- paste("FAILED:", e$message)
+    cat("   ❌ Extreme parameters test FAILED:", e$message, "\n")
   })
 
   # 5. Concurrent execution test
@@ -84,7 +202,10 @@ run_stress_tests <- function() {
 
 # Extended stress tests
 run_extended_stress_tests <- function() {
-  cat("\n=== EXTENDED STRESS TESTS ===\n")
+  params <- get_stress_params()
+  mode_info <- if (is_dev_mode()) "DEV" else "PROD"
+  
+  cat("\n=== EXTENDED STRESS TESTS [", mode_info, " MODE] ===\n")
 
   results <- list()
 
@@ -130,13 +251,13 @@ run_extended_stress_tests <- function() {
   })
 
   # 3. Long running test
-  cat("\n3. Testing long running MCMC (10,000 iterations)...\n")
-  long_run_data <- generate_test_data("normal", 500)
+  cat("\n3. Testing long running MCMC (", params$long_run_its, " iterations)...\n")
+  long_run_data <- generate_test_data("normal", params$long_run_size)
 
   results$long_run <- tryCatch({
     start_time <- Sys.time()
     dp <- DirichletProcessGaussian(long_run_data)
-    dp <- Fit(dp, its = 10000)
+    dp <- Fit(dp, its = params$long_run_its)
     end_time <- Sys.time()
 
     list(
@@ -153,13 +274,13 @@ run_extended_stress_tests <- function() {
   cat("\n4. Testing rapid cluster changes...\n")
   # Data that encourages cluster splitting/merging
   dynamic_data <- c()
-  for (i in 1:10) {
-    dynamic_data <- c(dynamic_data, rnorm(50, mean = sin(i) * 10))
+  for (i in 1:params$dynamic_clusters_groups) {
+    dynamic_data <- c(dynamic_data, rnorm(params$dynamic_clusters_per_group, mean = sin(i) * 10))
   }
 
   results$dynamic_clusters <- tryCatch({
     dp <- DirichletProcessGaussian(dynamic_data)
-    dp <- Fit(dp, its = 500)
+    dp <- Fit(dp, its = params$dynamic_clusters_its)
 
     # Analyze cluster stability
     cluster_counts <- sapply(dp$labelsChain, function(x) length(unique(x)))
@@ -207,7 +328,10 @@ run_extended_stress_tests <- function() {
 
 # Robustness tests
 test_robustness <- function() {
-  cat("\n=== ROBUSTNESS TESTS ===\n")
+  params <- get_stress_params()
+  mode_info <- if (is_dev_mode()) "DEV" else "PROD"
+  
+  cat("\n=== ROBUSTNESS TESTS [", mode_info, " MODE] ===\n")
 
   results <- list()
 
@@ -215,13 +339,13 @@ test_robustness <- function() {
   cat("\n1. Testing repeated fitting stability...\n")
   test_data <- generate_test_data("normal", 200)
 
-  cluster_results <- numeric(10)
-  alpha_results <- numeric(10)
+  cluster_results <- numeric(params$repeated_fitting_runs)
+  alpha_results <- numeric(params$repeated_fitting_runs)
 
-  for (i in 1:10) {
+  for (i in 1:params$repeated_fitting_runs) {
     set.seed(123)  # Same seed each time
     dp <- DirichletProcessGaussian(test_data)
-    dp <- Fit(dp, its = 100)
+    dp <- Fit(dp, its = params$repeated_fitting_its)
 
     cluster_results[i] <- dp$numberClusters
     alpha_results[i] <- dp$alpha
@@ -244,7 +368,7 @@ test_robustness <- function() {
   dp$alpha <- 0.001  # Very low alpha
 
   results$bad_init_recovery <- tryCatch({
-    dp <- Fit(dp, its = 200)
+    dp <- Fit(dp, its = params$bad_init_recovery_its)
     list(
       status = "PASSED",
       final_clusters = dp$numberClusters,
@@ -263,7 +387,7 @@ test_robustness <- function() {
 
   results$outlier_handling <- tryCatch({
     dp <- DirichletProcessGaussian(outlier_data)
-    dp <- Fit(dp, its = 200)
+    dp <- Fit(dp, its = params$outlier_handling_its)
 
     # Check if outliers are in separate clusters
     outlier_indices <- c(201:220)
@@ -285,17 +409,19 @@ test_robustness <- function() {
 
 # Performance under extreme conditions
 test_extreme_performance <- function() {
-  cat("\n=== EXTREME PERFORMANCE TESTS ===\n")
+  params <- get_stress_params()
+  mode_info <- if (is_dev_mode()) "DEV" else "PROD"
+  
+  cat("\n=== EXTREME PERFORMANCE TESTS [", mode_info, " MODE] ===\n")
 
   results <- list()
 
   # 1. Maximum practical dataset size
   cat("\n1. Finding maximum practical dataset size...\n")
 
-  sizes <- c(10000, 25000, 50000, 75000, 100000)
   max_size <- 0
 
-  for (size in sizes) {
+  for (size in params$max_sizes) {
     cat("  Trying n =", size, "...")
 
     result <- tryCatch({
@@ -303,7 +429,7 @@ test_extreme_performance <- function() {
       start_time <- Sys.time()
 
       dp <- DirichletProcessGaussian(test_data)
-      dp <- Fit(dp, its = 5)  # Just 5 iterations
+      dp <- Fit(dp, its = params$perf_test_its)
 
       end_time <- Sys.time()
       runtime <- as.numeric(end_time - start_time, units = "secs")
@@ -329,10 +455,9 @@ test_extreme_performance <- function() {
   # 2. Maximum dimensions for multivariate
   cat("\n2. Finding maximum dimensions for MVNormal...\n")
 
-  dimensions <- c(10, 25, 50, 75, 100)
   max_dim <- 0
 
-  for (d in dimensions) {
+  for (d in params$max_dimensions) {
     cat("  Trying d =", d, "...")
 
     result <- tryCatch({

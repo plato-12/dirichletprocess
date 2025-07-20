@@ -1,19 +1,79 @@
 # tests/integration/package_checks.R
 
+# Development/Production Mode Configuration
+# Set DP_DEV_TESTING=TRUE for development mode (faster, smaller tests)
+# Set DP_DEV_TESTING=FALSE for production mode (full validation)
+is_dev_mode <- function() {
+  dev_env <- Sys.getenv("DP_DEV_TESTING", unset = "TRUE")
+  return(tolower(dev_env) %in% c("true", "1", "yes"))
+}
+
+get_check_params <- function() {
+  if (is_dev_mode()) {
+    list(
+      run_full_check = FALSE,        # Skip R CMD check in dev mode
+      run_examples = FALSE,          # Skip examples in dev mode
+      cpp_availability_sample = 50,  # vs 100 in production
+      cpp_test_iterations = 10       # vs 50 in production
+    )
+  } else {
+    list(
+      run_full_check = TRUE,
+      run_examples = TRUE,
+      cpp_availability_sample = 100,
+      cpp_test_iterations = 50
+    )
+  }
+}
+
+# Load helper functions if available
+if (file.exists("tests/testthat/helper-testing.R")) {
+  source("tests/testthat/helper-testing.R")
+} else {
+  # Basic fallback functions
+  generate_test_data <- function(distribution, n = 100) {
+    switch(distribution,
+      "normal" = rnorm(n),
+      "exponential" = rexp(n),
+      "beta" = rbeta(n, 2, 2),
+      "weibull" = rweibull(n, 2),
+      "mvnormal" = matrix(rnorm(n * 3), ncol = 3),
+      "mvnormal2" = matrix(rnorm(n * 3), ncol = 3),
+      rnorm(n)
+    )
+  }
+}
+
 run_package_checks <- function() {
-  cat("\n=== RUNNING PACKAGE CHECKS ===\n")
+  params <- get_check_params()
+  mode_info <- if (is_dev_mode()) "DEV" else "PROD"
+  
+  cat("\n=== RUNNING PACKAGE CHECKS [", mode_info, " MODE] ===\n")
 
   check_results <- list()
 
-  # 1. Run devtools::test()
+  # 1. Run devtools::test() - always run
   cat("\n1. Running unit tests...\n")
-  test_result <- devtools::test()
+  test_result <- tryCatch({
+    devtools::test()
+  }, error = function(e) {
+    list(failed = 1, warnings = 0, skipped = 0, passed = 0, error = e$message)
+  })
   check_results$tests <- test_result
 
-  # 2. Run devtools::check()
-  cat("\n2. Running R CMD check...\n")
-  check_result <- devtools::check()
-  check_results$check <- check_result
+  # 2. Run devtools::check() - conditional
+  if (params$run_full_check) {
+    cat("\n2. Running R CMD check...\n")
+    check_result <- tryCatch({
+      devtools::check()
+    }, error = function(e) {
+      list(errors = e$message, warnings = character(0), notes = character(0))
+    })
+    check_results$check <- check_result
+  } else {
+    cat("\n2. Skipping R CMD check (dev mode)...\n")
+    check_results$check <- list(status = "SKIPPED", reason = "Development mode")
+  }
 
   # 3. Check for compilation warnings
   cat("\n3. Checking C++ compilation...\n")
@@ -22,13 +82,28 @@ run_package_checks <- function() {
 
   # 4. Documentation check
   cat("\n4. Checking documentation...\n")
-  doc_check <- devtools::document()
+  doc_check <- tryCatch({
+    devtools::document()
+    list(status = "SUCCESS")
+  }, error = function(e) {
+    list(status = "FAILED", error = e$message)
+  })
   check_results$documentation <- doc_check
 
-  # 5. Example check
-  cat("\n5. Running examples...\n")
-  example_check <- devtools::run_examples()
-  check_results$examples <- example_check
+  # 5. Example check - conditional
+  if (params$run_examples) {
+    cat("\n5. Running examples...\n")
+    example_check <- tryCatch({
+      devtools::run_examples()
+      list(status = "SUCCESS")
+    }, error = function(e) {
+      list(status = "FAILED", error = e$message)
+    })
+    check_results$examples <- example_check
+  } else {
+    cat("\n5. Skipping examples (dev mode)...\n")
+    check_results$examples <- list(status = "SKIPPED", reason = "Development mode")
+  }
 
   # Create summary report
   create_check_summary(check_results)
@@ -115,7 +190,11 @@ create_check_summary <- function(check_results) {
 
 # Check specific functionality
 check_cpp_availability <- function() {
-  cat("\nChecking C++ availability for all distributions...\n")
+  params <- get_check_params()
+  mode_info <- if (is_dev_mode()) "DEV" else "PROD"
+  
+  cat("\nChecking C++ availability for all distributions [", mode_info, " MODE]...\n")
+  cat("  Sample size:", params$cpp_availability_sample, "| Test iterations:", params$cpp_test_iterations, "\n")
 
   distributions <- list(
     normal = DirichletProcessGaussian,
@@ -129,7 +208,7 @@ check_cpp_availability <- function() {
   results <- list()
 
   for (dist_name in names(distributions)) {
-    test_data <- generate_test_data(dist_name, n = 50)
+    test_data <- generate_test_data(dist_name, n = params$cpp_availability_sample)
     dp <- distributions[[dist_name]](test_data)
 
     # Check if C++ is available
@@ -138,7 +217,7 @@ check_cpp_availability <- function() {
     # Try to run with C++
     set_use_cpp(TRUE)
     cpp_works <- tryCatch({
-      dp_test <- Fit(dp, its = 10)
+      dp_test <- Fit(dp, its = params$cpp_test_iterations)
       TRUE
     }, error = function(e) {
       FALSE

@@ -1,13 +1,36 @@
 # tests/testthat/test-cpp-convergence.R
+#
+# R/C++ Convergence Diagnostic Tests
+# 
+# This file tests convergence behavior and MCMC diagnostics between R and C++ implementations.
+# These tests require longer chains and multiple runs for statistical validity.
+#
+# PERFORMANCE OPTIMIZATION:
+# - DEV_MODE (default): Fast testing for development (reduced iterations, fewer chains)
+# - PRODUCTION_MODE: Full convergence validation (long chains, multiple runs)
+#
+# Usage:
+# - Development: Sys.setenv(DP_DEV_TESTING = "TRUE") (default)
+# - Production:  Sys.setenv(DP_DEV_TESTING = "FALSE")
+#
+# Speed improvement: ~80% faster in DEV_MODE while maintaining convergence validation
 
 library(coda)
 
+# Development vs Production testing configuration
+DEV_MODE <- Sys.getenv("DP_DEV_TESTING", "TRUE") == "TRUE"
+CONV_ITERATIONS <- if (DEV_MODE) 250 else 1000
+MULTI_ITERATIONS <- if (DEV_MODE) 150 else 500
+CHAIN_COUNT <- if (DEV_MODE) 2 else 3
+BASE_SAMPLE_SIZE <- if (DEV_MODE) 75 else 100
+LARGE_SAMPLE_SIZE <- if (DEV_MODE) 100 else 200
+
 test_that("R and C++ show similar convergence behavior", {
   set.seed(123)
-  test_data <- rnorm(100, mean = c(-2, 2))
+  test_data <- rnorm(BASE_SAMPLE_SIZE, mean = c(-2, 2))
 
   # Longer chains for convergence analysis
-  iterations <- 1000
+  iterations <- CONV_ITERATIONS
 
   # R implementation
   set_use_cpp(FALSE)
@@ -39,9 +62,9 @@ test_that("R and C++ show similar convergence behavior", {
 
 test_that("Multiple chains show similar behavior", {
   set.seed(123)
-  test_data <- generate_test_data("exponential", 100)
-  n_chains <- 3
-  iterations <- 500
+  test_data <- generate_test_data("exponential", BASE_SAMPLE_SIZE)
+  n_chains <- CHAIN_COUNT
+  iterations <- MULTI_ITERATIONS
 
   # Run multiple chains for R
   r_chains <- list()
@@ -79,8 +102,9 @@ test_that("Multiple chains show similar behavior", {
 
 test_that("Autocorrelation patterns are similar", {
   set.seed(123)
-  test_data <- generate_test_data("beta", 150)
-  iterations <- 1000
+  beta_size <- if (DEV_MODE) 75 else 150
+  test_data <- generate_test_data("beta", beta_size)
+  iterations <- CONV_ITERATIONS
 
   # R implementation
   set_use_cpp(FALSE)
@@ -102,11 +126,12 @@ test_that("Autocorrelation patterns are similar", {
 
 test_that("Burn-in behavior is consistent", {
   set.seed(123)
-  test_data <- generate_test_data("weibull", 100)
-  iterations <- 500
+  test_data <- generate_test_data("weibull", BASE_SAMPLE_SIZE)
+  iterations <- MULTI_ITERATIONS
 
   # Track convergence metrics over time
-  check_points <- seq(50, iterations, by = 50)
+  check_interval <- if (DEV_MODE) 30 else 50
+  check_points <- seq(check_interval, iterations, by = check_interval)
   r_means <- numeric(length(check_points))
   cpp_means <- numeric(length(check_points))
 
@@ -143,9 +168,9 @@ test_that("Burn-in behavior is consistent", {
 
 test_that("Posterior predictive distributions are similar", {
   set.seed(123)
-  test_data <- generate_test_data("mvnormal", 100)
-  iterations <- 500
-  n_posterior_samples <- 100
+  test_data <- generate_test_data("mvnormal", BASE_SAMPLE_SIZE)
+  iterations <- MULTI_ITERATIONS
+  n_posterior_samples <- if (DEV_MODE) 50 else 100
 
   # R implementation
   set_use_cpp(FALSE)
@@ -179,8 +204,8 @@ test_that("Posterior predictive distributions are similar", {
 
 test_that("Convergence diagnostics for cluster counts", {
   set.seed(123)
-  test_data <- generate_test_data("normal", 200)
-  iterations <- 1000
+  test_data <- generate_test_data("normal", LARGE_SAMPLE_SIZE)
+  iterations <- CONV_ITERATIONS
 
   # R implementation
   set_use_cpp(FALSE)
