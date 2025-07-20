@@ -232,7 +232,7 @@ Likelihood.mvnormal <- function(mdObj, x, theta) {
 
   # R implementation
   if (!is.matrix(x)) {
-    x <- matrix(x, ncol = 1)
+    x <- matrix(x, nrow = 1)
   }
 
   # Check if theta contains mu and sig fields
@@ -331,12 +331,15 @@ Likelihood.mvnormal <- function(mdObj, x, theta) {
 #' @rdname PosteriorParameters
 PosteriorParameters.mvnormal <- function(mdObj, x) {
   if (using_cpp_samplers()) {
-    return(mvnormal_posterior_parameters_cpp(mdObj$priorParameters, as.matrix(x)))
+    if (!is.matrix(x)) {
+      x <- matrix(x, nrow = 1)
+    }
+    return(mvnormal_posterior_parameters_cpp(mdObj$priorParameters, x))
   }
 
   # R implementation
   if (!is.matrix(x)) {
-    x <- matrix(x, ncol = 1)
+    x <- matrix(x, nrow = 1)
   }
 
   priorParameters <- mdObj$priorParameters
@@ -384,6 +387,7 @@ PosteriorParameters.mvnormal <- function(mdObj, x) {
 
   # Update Lambda
   diff <- x_bar - priorParameters$mu0
+  
   t_n <- priorParameters$Lambda + S +
     (priorParameters$kappa0 * n / kappa_n) * outer(diff, diff)
 
@@ -489,12 +493,15 @@ PosteriorDraw.mvnormal <- function(mdObj, x, n = 1, ...) {
 #' @rdname Predictive
 Predictive.mvnormal <- function(mdObj, x) {
   if (using_cpp_samplers()) {
-    return(mvnormal_predictive_cpp(mdObj$priorParameters, as.matrix(x)))
+    if (!is.matrix(x)) {
+      x <- matrix(x, nrow = 1)
+    }
+    return(mvnormal_predictive_cpp(mdObj$priorParameters, x))
   }
 
   # R implementation
   if (!is.matrix(x)) {
-    x <- matrix(x, ncol = 1)
+    x <- matrix(x, nrow = 1)
   }
 
   priorParameters <- mdObj$priorParameters

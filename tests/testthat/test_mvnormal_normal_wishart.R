@@ -48,7 +48,7 @@ test_that("Multivariate Normal Posterior Parameters", {
   post_params_test <- PosteriorParameters(mdobj, test_data)
 
   expect_is(post_params_test, "list")
-  expect_equal(length(post_params_test), 4)
+  expect_equal(length(post_params_test), 5)
 })
 
 test_that("Multivariate Normal Posterior Parameters 1 Data Point", {
@@ -59,7 +59,7 @@ test_that("Multivariate Normal Posterior Parameters 1 Data Point", {
 
   post_params_test2 <- PosteriorParameters(mdobj, test_data[1, ])
   expect_is(post_params_test2, "list")
-  expect_equal(length(post_params_test2), 4)
+  expect_equal(length(post_params_test2), 5)
 })
 
 test_that("Multivariate Normal Posterior Draw", {

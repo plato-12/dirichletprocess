@@ -13,8 +13,16 @@ Likelihood <- function(mdObj, x, theta) {
     dist_type <- class(mdObj)[class(mdObj) != "list" & class(mdObj) != "MixingDistribution"][1]
 
     tryCatch({
-      # Convert x to numeric vector if needed
-      x <- as.numeric(x)
+      # Convert x to appropriate format based on distribution type
+      if (dist_type == "mvnormal" || any(grepl("mvnormal", class(mdObj)))) {
+        # For multivariate data, keep as matrix
+        if (!is.matrix(x)) {
+          x <- matrix(x, nrow = 1)
+        }
+      } else {
+        # For univariate data, convert to numeric vector
+        x <- as.numeric(x)
+      }
 
       # Dispatch to the appropriate C++ function
       if (dist_type == "weibull") {

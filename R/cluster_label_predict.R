@@ -21,8 +21,15 @@ ClusterLabelPredict <- function(dpobj, newData){
 #' @export
 ClusterLabelPredict.conjugate <- function(dpobj, newData) {
 
-  if (!is.matrix(newData))
-    newData <- matrix(newData, ncol = 1)
+  if (!is.matrix(newData)) {
+    # For multivariate distributions, single observations should be row vectors
+    if ("mvnormal" %in% class(dpobj$mixingDistribution)) {
+      newData <- matrix(newData, nrow = 1)
+    } else {
+      # For univariate distributions, use column vector
+      newData <- matrix(newData, ncol = 1)
+    }
+  }
 
   alpha <- dpobj$alpha
   clusterParams <- dpobj$clusterParameters
@@ -66,7 +73,8 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
     # FIX: Re-extract active parameters inside the loop to reflect the current number of clusters.
     active_clusterParams <- clusterParams
     if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
-      active_clusterParams <- list()
+      active_clusterParams <- vector("list", length(clusterParams))
+      names(active_clusterParams) <- names(clusterParams)
       for (j in seq_along(clusterParams)) {
         param_dims <- dim(clusterParams[[j]])
         if (length(param_dims) == 3 && param_dims[3] >= numLabels) {
@@ -77,7 +85,8 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
         }
       }
     } else if (is.list(clusterParams)) { # General case for other array-based distributions
-      active_clusterParams <- list()
+      active_clusterParams <- vector("list", length(clusterParams))
+      names(active_clusterParams) <- names(clusterParams)
       for (j in seq_along(clusterParams)) {
         param_dims <- dim(clusterParams[[j]])
         if (length(param_dims) == 3 && param_dims[3] >= numLabels) {
@@ -144,8 +153,15 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
 #' @export
 ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
 
-  if (!is.matrix(newData))
-    newData <- matrix(newData, ncol = 1)
+  if (!is.matrix(newData)) {
+    # For multivariate distributions, single observations should be row vectors
+    if ("mvnormal" %in% class(dpobj$mixingDistribution)) {
+      newData <- matrix(newData, nrow = 1)
+    } else {
+      # For univariate distributions, use column vector
+      newData <- matrix(newData, ncol = 1)
+    }
+  }
 
   alpha <- dpobj$alpha
 
