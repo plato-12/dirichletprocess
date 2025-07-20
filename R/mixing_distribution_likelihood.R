@@ -45,26 +45,33 @@ Likelihood <- function(mdObj, x, theta) {
           return(result)
         }
       } else if (dist_type == "normal" || dist_type == "gaussian") {
-        # Similar handling for normal distribution
+        # Handle both scalar and array parameters for normal distribution
         mu_array <- theta[[1]]
         sigma_array <- theta[[2]]
 
-        num_clusters <- dim(mu_array)[3]
-        if (is.null(num_clusters)) num_clusters <- 1
-
-        if (num_clusters == 1) {
-          mu <- as.numeric(mu_array[1, 1, 1])
-          sigma <- as.numeric(sigma_array[1, 1, 1])
-          return(normal_likelihood_cpp(x, mu, sigma))
-        } else {
-          result <- numeric(num_clusters)
-          for (k in 1:num_clusters) {
-            mu <- as.numeric(mu_array[1, 1, k])
-            sigma <- as.numeric(sigma_array[1, 1, k])
-            lik_values <- normal_likelihood_cpp(x, mu, sigma)
-            result[k] <- lik_values[1]
+        # Check if parameters are arrays or scalars
+        if (is.array(mu_array) && length(dim(mu_array)) == 3) {
+          # 3D array case - multiple clusters
+          num_clusters <- dim(mu_array)[3]
+          if (num_clusters == 1) {
+            mu <- as.numeric(mu_array[1, 1, 1])
+            sigma <- as.numeric(sigma_array[1, 1, 1])
+            return(normal_likelihood_cpp(x, mu, sigma))
+          } else {
+            result <- numeric(num_clusters)
+            for (k in 1:num_clusters) {
+              mu <- as.numeric(mu_array[1, 1, k])
+              sigma <- as.numeric(sigma_array[1, 1, k])
+              lik_values <- normal_likelihood_cpp(x, mu, sigma)
+              result[k] <- lik_values[1]
+            }
+            return(result)
           }
-          return(result)
+        } else {
+          # Scalar or simple vector case
+          mu <- as.numeric(mu_array)
+          sigma <- as.numeric(sigma_array)
+          return(normal_likelihood_cpp(x, mu, sigma))
         }
       } else if (dist_type == "exponential") {
         # Handle exponential distribution
