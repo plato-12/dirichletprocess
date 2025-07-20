@@ -86,6 +86,12 @@ jobs:
         cat("✅ C++ compilation successful\n")
       shell: Rscript {0}
     
+    - name: Install package
+      run: |
+        devtools::install(".", upgrade = "never")
+        cat("✅ Package installed successfully\n")
+      shell: Rscript {0}
+    
     - name: Run testthat test suite
       run: |
         source("inst/validation/run_all_validations.R")
