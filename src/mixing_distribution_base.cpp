@@ -6,6 +6,8 @@
 #include "../inst/include/weibull_mixing.h"
 #include "../inst/include/exponential_mixing.h"
 #include "../inst/include/hierarchical_beta_mixing.h"
+#include "../inst/include/beta2_mixing.h"
+#include "../inst/include/normal_fixed_variance_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {
@@ -21,6 +23,15 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
     double beta0 = Rcpp::as<double>(params["beta0"]);
     return std::unique_ptr<MixingDistribution>(
       new GaussianMixing(mu0, kappa0, alpha0, beta0));
+  } else if (type == "normalFixedVariance") {
+    double mu0 = params.containsElementNamed("mu0") ?
+    Rcpp::as<double>(params["mu0"]) : 0.0;
+    double sigma0 = params.containsElementNamed("sigma0") ?
+    Rcpp::as<double>(params["sigma0"]) : 1.0;
+    double sigma = Rcpp::as<double>(params["sigma"]);  // Required parameter
+
+    return std::unique_ptr<MixingDistribution>(
+      new NormalFixedVarianceMixing(mu0, sigma0, sigma));
   } else if (type == "beta") {
     double alpha0 = Rcpp::as<double>(params["alpha0"]);
     double beta0 = Rcpp::as<double>(params["beta0"]);
@@ -29,6 +40,25 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
 
     return std::unique_ptr<MixingDistribution>(
       new BetaMixing(alpha0, beta0, maxT));
+  } else if (type == "beta2") {
+    double gamma_prior = params.containsElementNamed("gamma_prior") ?
+    Rcpp::as<double>(params["gamma_prior"]) : 2.0;
+    double maxT = params.containsElementNamed("maxT") ?
+    Rcpp::as<double>(params["maxT"]) : 1.0;
+
+    arma::vec mh_step_size(2);
+    if (params.containsElementNamed("mh_step_size")) {
+      mh_step_size = Rcpp::as<arma::vec>(params["mh_step_size"]);
+    } else {
+      mh_step_size.fill(1.0);
+    }
+
+    int mh_draws = params.containsElementNamed("mh_draws") ?
+    Rcpp::as<int>(params["mh_draws"]) : 250;
+
+    return std::unique_ptr<MixingDistribution>(
+      new Beta2Mixing(gamma_prior, maxT, mh_step_size, mh_draws));
+
   } else if (type == "mvnormal") {
     arma::vec mu0 = Rcpp::as<arma::vec>(params["mu0"]);
     double kappa0 = Rcpp::as<double>(params["kappa0"]);

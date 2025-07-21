@@ -1093,6 +1093,49 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_beta2_prior_draw
+Rcpp::NumericVector cpp_beta2_prior_draw(double gamma_prior, double maxT, int n);
+RcppExport SEXP _dirichletprocess_cpp_beta2_prior_draw(SEXP gamma_priorSEXP, SEXP maxTSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type gamma_prior(gamma_priorSEXP);
+    Rcpp::traits::input_parameter< double >::type maxT(maxTSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_beta2_prior_draw(gamma_prior, maxT, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_beta2_posterior_draw
+Rcpp::NumericVector cpp_beta2_posterior_draw(arma::mat data, double gamma_prior, double maxT, arma::vec mh_step_size, int n, int mh_draws);
+RcppExport SEXP _dirichletprocess_cpp_beta2_posterior_draw(SEXP dataSEXP, SEXP gamma_priorSEXP, SEXP maxTSEXP, SEXP mh_step_sizeSEXP, SEXP nSEXP, SEXP mh_drawsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma_prior(gamma_priorSEXP);
+    Rcpp::traits::input_parameter< double >::type maxT(maxTSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mh_step_size(mh_step_sizeSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type mh_draws(mh_drawsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_beta2_posterior_draw(data, gamma_prior, maxT, mh_step_size, n, mh_draws));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_beta2_likelihood
+Rcpp::NumericVector cpp_beta2_likelihood(arma::vec x, double mu, double nu, double maxT);
+RcppExport SEXP _dirichletprocess_cpp_beta2_likelihood(SEXP xSEXP, SEXP muSEXP, SEXP nuSEXP, SEXP maxTSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< double >::type maxT(maxTSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_beta2_likelihood(x, mu, nu, maxT));
+    return rcpp_result_gen;
+END_RCPP
+}
 // run_hierarchical_mcmc_cpp
 Rcpp::List run_hierarchical_mcmc_cpp(Rcpp::List datasets, Rcpp::List mixing_dist_params, Rcpp::List mcmc_params);
 RcppExport SEXP _dirichletprocess_run_hierarchical_mcmc_cpp(SEXP datasetsSEXP, SEXP mixing_dist_paramsSEXP, SEXP mcmc_paramsSEXP) {
@@ -1155,6 +1198,62 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type mixing_dist_params(mixing_dist_paramsSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type mcmc_params(mcmc_paramsSEXP);
     rcpp_result_gen = Rcpp::wrap(run_markov_mcmc_cpp(data, mixing_dist_params, mcmc_params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_normal_fixed_variance_prior_draw
+Rcpp::NumericVector cpp_normal_fixed_variance_prior_draw(double mu0, double sigma0, double sigma, int n);
+RcppExport SEXP _dirichletprocess_cpp_normal_fixed_variance_prior_draw(SEXP mu0SEXP, SEXP sigma0SEXP, SEXP sigmaSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type mu0(mu0SEXP);
+    Rcpp::traits::input_parameter< double >::type sigma0(sigma0SEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_normal_fixed_variance_prior_draw(mu0, sigma0, sigma, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_normal_fixed_variance_posterior_draw
+Rcpp::NumericVector cpp_normal_fixed_variance_posterior_draw(arma::mat data, double mu0, double sigma0, double sigma, int n);
+RcppExport SEXP _dirichletprocess_cpp_normal_fixed_variance_posterior_draw(SEXP dataSEXP, SEXP mu0SEXP, SEXP sigma0SEXP, SEXP sigmaSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< double >::type mu0(mu0SEXP);
+    Rcpp::traits::input_parameter< double >::type sigma0(sigma0SEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_normal_fixed_variance_posterior_draw(data, mu0, sigma0, sigma, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_normal_fixed_variance_likelihood
+Rcpp::NumericVector cpp_normal_fixed_variance_likelihood(arma::vec x, double mu, double sigma);
+RcppExport SEXP _dirichletprocess_cpp_normal_fixed_variance_likelihood(SEXP xSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_normal_fixed_variance_likelihood(x, mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_normal_fixed_variance_posterior_parameters
+Rcpp::NumericVector cpp_normal_fixed_variance_posterior_parameters(arma::mat data, double mu0, double sigma0, double sigma);
+RcppExport SEXP _dirichletprocess_cpp_normal_fixed_variance_posterior_parameters(SEXP dataSEXP, SEXP mu0SEXP, SEXP sigma0SEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< double >::type mu0(mu0SEXP);
+    Rcpp::traits::input_parameter< double >::type sigma0(sigma0SEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_normal_fixed_variance_posterior_parameters(data, mu0, sigma0, sigma));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1250,11 +1349,18 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_weibull_prior_parameters_update_cpp", (DL_FUNC) &_dirichletprocess_weibull_prior_parameters_update_cpp, 4},
     {"_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp, 1},
+    {"_dirichletprocess_cpp_beta2_prior_draw", (DL_FUNC) &_dirichletprocess_cpp_beta2_prior_draw, 3},
+    {"_dirichletprocess_cpp_beta2_posterior_draw", (DL_FUNC) &_dirichletprocess_cpp_beta2_posterior_draw, 6},
+    {"_dirichletprocess_cpp_beta2_likelihood", (DL_FUNC) &_dirichletprocess_cpp_beta2_likelihood, 4},
     {"_dirichletprocess_run_hierarchical_mcmc_cpp", (DL_FUNC) &_dirichletprocess_run_hierarchical_mcmc_cpp, 3},
     {"_dirichletprocess_normal_likelihood_cpp", (DL_FUNC) &_dirichletprocess_normal_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_cpp", (DL_FUNC) &_dirichletprocess_likelihood_cpp, 3},
     {"_dirichletprocess_likelihood_normal_cpp", (DL_FUNC) &_dirichletprocess_likelihood_normal_cpp, 3},
     {"_dirichletprocess_run_markov_mcmc_cpp", (DL_FUNC) &_dirichletprocess_run_markov_mcmc_cpp, 3},
+    {"_dirichletprocess_cpp_normal_fixed_variance_prior_draw", (DL_FUNC) &_dirichletprocess_cpp_normal_fixed_variance_prior_draw, 4},
+    {"_dirichletprocess_cpp_normal_fixed_variance_posterior_draw", (DL_FUNC) &_dirichletprocess_cpp_normal_fixed_variance_posterior_draw, 5},
+    {"_dirichletprocess_cpp_normal_fixed_variance_likelihood", (DL_FUNC) &_dirichletprocess_cpp_normal_fixed_variance_likelihood, 3},
+    {"_dirichletprocess_cpp_normal_fixed_variance_posterior_parameters", (DL_FUNC) &_dirichletprocess_cpp_normal_fixed_variance_posterior_parameters, 4},
     {NULL, NULL, 0}
 };
 

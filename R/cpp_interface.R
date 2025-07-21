@@ -162,7 +162,16 @@ prepare_mixing_dist_params <- function(dp_obj) {
       mhStepSize = md$mhStepSize,
       hyperPriorParameters = md$hyperPriorParameters
     )
-  } else if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
+  } else if (dist_type == "beta2") {
+    return(list(
+      type = "beta2",
+      gamma_prior = mdObj$priorParameters[1],
+      maxT = mdObj$maxT,
+      mh_step_size = mdObj$mhStepSize,
+      mh_draws = if (!is.null(mdObj$mhDraws)) mdObj$mhDraws else 250
+    ))
+  }
+  else if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
     # Gaussian parameters
     if (!is.null(md$priors)) {
       list(
@@ -181,6 +190,13 @@ prepare_mixing_dist_params <- function(dp_obj) {
         beta0 = md$priorParameters[4]
       )
     }
+  } else if (dist_type == "normalFixedVariance") {
+    return(list(
+      type = "normalFixedVariance",
+      mu0 = mdObj$priorParameters[1],
+      sigma0 = mdObj$priorParameters[2],
+      sigma = mdObj$sigma
+    ))
   } else if (inherits(md, "exponential")) {
     list(
       type = "exponential",

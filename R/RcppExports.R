@@ -646,6 +646,18 @@ nonconjugate_weibull_cluster_component_update_cpp <- function(dp_list) {
     .Call(`_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp`, dp_list)
 }
 
+cpp_beta2_prior_draw <- function(gamma_prior, maxT, n) {
+    .Call(`_dirichletprocess_cpp_beta2_prior_draw`, gamma_prior, maxT, n)
+}
+
+cpp_beta2_posterior_draw <- function(data, gamma_prior, maxT, mh_step_size, n, mh_draws) {
+    .Call(`_dirichletprocess_cpp_beta2_posterior_draw`, data, gamma_prior, maxT, mh_step_size, n, mh_draws)
+}
+
+cpp_beta2_likelihood <- function(x, mu, nu, maxT) {
+    .Call(`_dirichletprocess_cpp_beta2_likelihood`, x, mu, nu, maxT)
+}
+
 run_hierarchical_mcmc_cpp <- function(datasets, mixing_dist_params, mcmc_params) {
     .Call(`_dirichletprocess_run_hierarchical_mcmc_cpp`, datasets, mixing_dist_params, mcmc_params)
 }
@@ -664,5 +676,21 @@ likelihood_normal_cpp <- function(mdObj, x, theta) {
 
 run_markov_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
     .Call(`_dirichletprocess_run_markov_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
+cpp_normal_fixed_variance_prior_draw <- function(mu0, sigma0, sigma, n) {
+    .Call(`_dirichletprocess_cpp_normal_fixed_variance_prior_draw`, mu0, sigma0, sigma, n)
+}
+
+cpp_normal_fixed_variance_posterior_draw <- function(data, mu0, sigma0, sigma, n) {
+    .Call(`_dirichletprocess_cpp_normal_fixed_variance_posterior_draw`, data, mu0, sigma0, sigma, n)
+}
+
+cpp_normal_fixed_variance_likelihood <- function(x, mu, sigma) {
+    .Call(`_dirichletprocess_cpp_normal_fixed_variance_likelihood`, x, mu, sigma)
+}
+
+cpp_normal_fixed_variance_posterior_parameters <- function(data, mu0, sigma0, sigma) {
+    .Call(`_dirichletprocess_cpp_normal_fixed_variance_posterior_parameters`, data, mu0, sigma0, sigma)
 }
 

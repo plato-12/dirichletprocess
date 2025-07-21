@@ -17,11 +17,11 @@ BetaMixture2Create <- function(priorParameters = 2, mhStepSize = c(1, 1), maxT =
 #' @export
 #' @rdname Likelihood
 Likelihood.beta2 <- function(mdObj, x, theta){
-  
+
   # Create a temporary beta object with the same parameters
   temp_mdObj <- mdObj
   class(temp_mdObj) <- c("list", "beta", "nonconjugate")
-  
+
   Likelihood.beta(temp_mdObj, x, theta)
 }
 
@@ -29,29 +29,37 @@ Likelihood.beta2 <- function(mdObj, x, theta){
 #' @rdname PriorDraw
 PriorDraw.beta2 <- function(mdObj, n=1){
 
+  # Use C++ if enabled
+  if (can_use_cpp()) {
+    params <- cpp_beta2_prior_draw(mdObj$priorParameters[1], mdObj$maxT, n)
+    mu <- params[1:n]
+    nu <- params[(n+1):(2*n)]
+    return(list(mu = array(mu, c(1, 1, n)), nu = array(nu, c(1, 1, n))))
+  }
+
   priorParameters <- mdObj$priorParameters
 
   mu <- runif(n, 0, mdObj$maxT)
-  
+
   # Handle NA values in mu
   if (any(is.na(mu))) {
     mu[is.na(mu)] <- mdObj$maxT / 2  # Default to middle value
   }
 
   muLim <- vapply(mu, function(x) max(1/(x/mdObj$maxT), 1/(1-(x/mdObj$maxT))), numeric(1))
-  
+
   # Handle potential NA or infinite values in muLim
   if (any(is.na(muLim)) || any(is.infinite(muLim))) {
     muLim[is.na(muLim) | is.infinite(muLim)] <- 10  # Default reasonable value
   }
-  
+
   nu <- rpareto(n, muLim, priorParameters[1])
-  
+
   # Handle NA values in nu
   if (any(is.na(nu))) {
     nu[is.na(nu)] <- 1.0  # Default to reasonable value
   }
-  
+
   # Ensure nu doesn't have zero values
   nu[nu == 0] <- 1e-04
 
@@ -79,7 +87,7 @@ MhParameterProposal.beta2 <- function(mdObj, old_params){
   mhStepSize <- mdObj$mhStepSize
 
   new_params <- old_params
-  
+
   # Extract current values
   old_mu <- as.numeric(old_params[[1]])
   old_nu <- as.numeric(old_params[[2]])
@@ -90,7 +98,7 @@ MhParameterProposal.beta2 <- function(mdObj, old_params){
   if (new_mu > mdObj$maxT || new_mu < 0) {
     new_mu <- old_mu
   }
-  
+
   # Handle NA values
   if (is.na(new_mu)) {
     new_mu <- old_mu
@@ -98,12 +106,12 @@ MhParameterProposal.beta2 <- function(mdObj, old_params){
 
   # Propose new nu (ensure positive)
   new_nu <- abs(old_nu + mhStepSize[2] * rnorm(1, 0, 2.4))
-  
+
   # Handle NA values and ensure minimum values
   if (is.na(new_nu) || new_nu == 0) {
     new_nu <- 1e-04
   }
-  
+
   # Return in proper format
   new_params[[1]] <- array(new_mu, dim = c(1, 1, 1))
   new_params[[2]] <- array(new_nu, dim = c(1, 1, 1))
