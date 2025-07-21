@@ -1,4 +1,3 @@
-#include <Rcpp.h>
 #include <RcppArmadillo.h>
 #include "../inst/include/normal_fixed_variance_mixing.h"
 
