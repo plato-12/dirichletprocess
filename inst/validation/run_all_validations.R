@@ -137,8 +137,18 @@ generate_validation_report <- function(results, output_dir) {
 determine_overall_status <- function(results) {
   # Check for any errors in testthat tests
   has_errors <- any(sapply(results, function(x) {
-    !is.null(x$error) ||
-      (is.list(x) && any(sapply(x, function(y) !is.null(y$error))))
+    # Skip non-list items that can't have errors
+    if (!is.list(x)) return(FALSE)
+    
+    # Check if this item has an error
+    if (!is.null(x$error)) return(TRUE)
+    
+    # Check nested items for errors
+    if (is.list(x) && any(sapply(x, function(y) {
+      is.list(y) && !is.null(y$error)
+    }))) return(TRUE)
+    
+    return(FALSE)
   }))
 
   if (has_errors) {
@@ -169,7 +179,7 @@ format_all_test_results <- function(test_results) {
   for (test_name in names(test_results)) {
     result <- test_results[[test_name]]
     
-    if (!is.null(result$error)) {
+    if (is.list(result) && !is.null(result$error)) {
       lines <- c(lines, sprintf("- **%s**: ❌ ERROR - %s", test_name, result$error))
     } else if (inherits(result, "testthat_results")) {
       passed <- sum(sapply(result, function(x) if(is.null(x$failed) || length(x$failed) == 0) 1 else 0))
@@ -194,9 +204,9 @@ format_integration_results <- function(integration_results) {
   for (test_name in names(integration_results)) {
     result <- integration_results[[test_name]]
     
-    if (!is.null(result$error)) {
+    if (is.list(result) && !is.null(result$error)) {
       lines <- c(lines, sprintf("- **%s**: ❌ ERROR - %s", test_name, result$error))
-    } else if (result$status == "completed") {
+    } else if (is.list(result) && result$status == "completed") {
       lines <- c(lines, sprintf("- **%s**: ✅ COMPLETED", test_name))
     } else {
       lines <- c(lines, sprintf("- **%s**: ⚠️ %s", test_name, result$status))
@@ -215,7 +225,7 @@ generate_test_summary <- function(results) {
   
   # Count errors
   total_errors <- sum(sapply(c(test_results, integration_results), function(x) {
-    !is.null(x$error)
+    is.list(x) && !is.null(x$error)
   }))
   
   # Count test failures (only for testthat tests)
@@ -245,7 +255,7 @@ generate_recommendations <- function(results) {
 
   # Check for errors
   error_count <- sum(sapply(results, function(x) {
-    !is.null(x$error)
+    is.list(x) && !is.null(x$error)
   }))
 
   if (error_count > 0) {
@@ -298,7 +308,7 @@ print_validation_summary <- function(results) {
   cat("  Integration files:", length(integration_results), "\n")
   
   # Count errors and failures
-  error_count <- sum(sapply(c(test_results, integration_results), function(x) !is.null(x$error)))
+  error_count <- sum(sapply(c(test_results, integration_results), function(x) is.list(x) && !is.null(x$error)))
   failure_count <- sum(sapply(test_results, function(x) {
     if (inherits(x, "testthat_results")) {
       sum(sapply(x, function(test) if(!is.null(test$failed) && length(test$failed) > 0) 1 else 0))

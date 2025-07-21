@@ -1,4 +1,4 @@
-// inst/include/dirichletprocess.h
+// inst/include/DirichletProcess.h
 #ifndef DIRICHLETPROCESS_MAIN_H
 #define DIRICHLETPROCESS_MAIN_H
 
