@@ -4,7 +4,6 @@
 #define DIRICHLETPROCESS_H
 
 // Core Rcpp headers
-#include <Rcpp.h>
 #include <RcppArmadillo.h>
 
 // Base classes and utilities
