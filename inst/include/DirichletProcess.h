@@ -12,8 +12,7 @@
 #include "utilities.h"
 #include "mixing_distribution_base.h"
 
-// Core Dirichlet Process implementation
-#include "DirichletProcess.h"
+// Core Dirichlet Process implementation (defined in DirichletProcessBase.h)
 
 // MCMC runners
 #include "mcmc_runner.h"
