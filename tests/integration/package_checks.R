@@ -1,5 +1,8 @@
 # tests/integration/package_checks.R
 
+# Load required library
+library(dirichletprocess)
+
 # Development/Production Mode Configuration
 # Set DP_DEV_TESTING=TRUE for development mode (faster, smaller tests)
 # Set DP_DEV_TESTING=FALSE for production mode (full validation)

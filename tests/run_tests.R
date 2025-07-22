@@ -14,6 +14,9 @@ run_dp_tests <- function(suite = "quick", verbose = TRUE, save_results = TRUE) {
     stop("Please run this script from the package root directory")
   }
 
+  # Load required library
+  library(dirichletprocess)
+
   # Load required functions
   source("tests/testthat/helper-testing.R")
 
