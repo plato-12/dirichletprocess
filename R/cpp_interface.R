@@ -48,21 +48,23 @@ get_cpp_status <- function() {
 #' Check if C++ can be used for a given DP object
 #' @param dp_obj Dirichlet process object
 #' @return Logical indicating whether C++ implementation is available
-#' @keywords internal
+#' @export
 can_use_cpp <- function(dp_obj = NULL) {
+  ns <- getNamespace("dirichletprocess")
+  
   if (is.null(dp_obj)) {
     # If no dp_obj provided, just check if C++ is available
-    return(exists("_dirichletprocess_run_mcmc_cpp"))
+    return(exists("_dirichletprocess_run_mcmc_cpp", where = ns))
   }
 
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+  if (!exists("_dirichletprocess_run_mcmc_cpp", where = ns)) {
     return(FALSE)
   }
 
   # Special case for mvnormal - needs specific functions
   if (inherits(dp_obj$mixingDistribution, "mvnormal")) {
-    return(exists("conjugate_mvnormal_cluster_component_update_cpp") &&
-             exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
+    return(exists("conjugate_mvnormal_cluster_component_update_cpp", where = ns) &&
+             exists("conjugate_mvnormal_cluster_parameter_update_cpp", where = ns))
   }
 
   # Supported types for unified MCMCRunner
@@ -162,16 +164,15 @@ prepare_mixing_dist_params <- function(dp_obj) {
       mhStepSize = md$mhStepSize,
       hyperPriorParameters = md$hyperPriorParameters
     )
-  } else if (dist_type == "beta2") {
+  } else if (inherits(md, "beta2")) {
     return(list(
       type = "beta2",
-      gamma_prior = mdObj$priorParameters[1],
-      maxT = mdObj$maxT,
-      mh_step_size = mdObj$mhStepSize,
-      mh_draws = if (!is.null(mdObj$mhDraws)) mdObj$mhDraws else 250
+      gamma_prior = md$priorParameters[1],
+      maxT = md$maxT,
+      mh_step_size = md$mhStepSize,
+      mh_draws = if (!is.null(md$mhDraws)) md$mhDraws else 250
     ))
-  }
-  else if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
+  } else if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
     # Gaussian parameters
     if (!is.null(md$priors)) {
       list(
@@ -190,12 +191,12 @@ prepare_mixing_dist_params <- function(dp_obj) {
         beta0 = md$priorParameters[4]
       )
     }
-  } else if (dist_type == "normalFixedVariance") {
+  } else if (inherits(md, "normalFixedVariance")) {
     return(list(
       type = "normalFixedVariance",
-      mu0 = mdObj$priorParameters[1],
-      sigma0 = mdObj$priorParameters[2],
-      sigma = mdObj$sigma
+      mu0 = md$priorParameters[1],
+      sigma0 = md$priorParameters[2],
+      sigma = md$sigma
     ))
   } else if (inherits(md, "exponential")) {
     list(
@@ -248,5 +249,6 @@ enable_cpp_samplers <- function() {
 #' Check if using C++ samplers
 #' @export
 using_cpp_samplers <- function() {
-  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", mode = "function")
+  ns <- getNamespace("dirichletprocess")
+  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns, mode = "function")
 }

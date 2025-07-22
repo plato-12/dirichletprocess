@@ -39,9 +39,13 @@ Manual C++ MCMC Runner Class
 
 \item{\code{get_membership_matrix()}}{Get cluster membership matrix}
 
+\item{\code{get_n_clusters()}}{Get number of clusters}
+
 \item{\code{get_results()}}{Get complete results}
 
 \item{\code{get_state()}}{Get current state of the sampler}
+
+\item{\code{get_temperature()}}{Get current temperature}
 
 \item{\code{is_complete()}}{Check if all iterations are complete}
 
@@ -54,6 +58,8 @@ Manual C++ MCMC Runner Class
 \item{\code{sample_predictive(n_samples)}}{Sample from posterior predictive}
 
 \item{\code{set_auxiliary_count(m)}}{Set number of auxiliary parameters}
+
+\item{\code{set_auxiliary_params(params)}}{Set auxiliary parameters}
 
 \item{\code{set_bounds(lower, upper)}}{Set parameter bounds}
 

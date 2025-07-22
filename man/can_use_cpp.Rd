@@ -15,4 +15,3 @@ Logical indicating whether C++ implementation is available
 \description{
 Check if C++ can be used for a given DP object
 }
-\keyword{internal}

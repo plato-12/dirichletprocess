@@ -172,10 +172,11 @@ Likelihood <- function(mdObj, x, theta) {
         }
       } else {
         # For other distributions, fall back to R
-        stop("C++ implementation not available for distribution: ", dist_type)
+        stop("C++ implementation not available for distribution: ", 
+             class(mdObj)[class(mdObj) != "list" & class(mdObj) != "MixingDistribution"][1])
       }
     }, error = function(e) {
-      warning("C++ implementation failed, falling back to R: ", e$message)
+      warning("C++ implementation failed, falling back to R implementation: ", e$message)
     })
   }
 

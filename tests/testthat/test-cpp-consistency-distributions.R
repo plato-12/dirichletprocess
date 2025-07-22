@@ -116,9 +116,9 @@ test_that("Consistency holds for different sample sizes", {
     results <- validate_r_cpp_consistency("normal", test_data, iterations = dev_iterations, n_runs = dev_runs)
 
     expect_lt(results$alpha_mean_diff, ALPHA_TOLERANCE,
-              info = paste("Failed for sample size", n))
+              label = paste("Failed for sample size", n))
     expect_lt(results$cluster_count_diff, CLUSTER_TOLERANCE,
-              info = paste("Failed for sample size", n))
+              label = paste("Failed for sample size", n))
   }
 })
 
@@ -133,8 +133,8 @@ test_that("Consistency holds for different iteration counts", {
                                           iterations = its, n_runs = iter_runs)
 
     expect_lt(results$alpha_mean_diff, ALPHA_TOLERANCE,
-              info = paste("Failed for", its, "iterations"))
+              label = paste("Failed for", its, "iterations"))
     expect_gt(results$likelihood_correlation, 0.9,  # Slightly lower for fewer iterations
-              info = paste("Failed for", its, "iterations"))
+              label = paste("Failed for", its, "iterations"))
   }
 })
