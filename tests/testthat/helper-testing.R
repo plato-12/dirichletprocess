@@ -33,16 +33,20 @@ generate_test_data <- function(distribution, n = 100) {
            mu1 <- c(0, 0)
            mu2 <- c(3, 3)
            sigma <- diag(2)
-           rbind(mvtnorm::rmvnorm(n/2, mu1, sigma),
-                 mvtnorm::rmvnorm(n/2, mu2, sigma))
+           n1 <- floor(n/2)
+           n2 <- n - n1
+           rbind(mvtnorm::rmvnorm(n1, mu1, sigma),
+                 mvtnorm::rmvnorm(n2, mu2, sigma))
          },
          "mvnormal2" = {
            # Mixture with correlated covariance
            mu1 <- c(-2, -2)
            mu2 <- c(2, 2)
            sigma <- matrix(c(1, 0.5, 0.5, 1), 2, 2)
-           rbind(mvtnorm::rmvnorm(n/2, mu1, sigma),
-                 mvtnorm::rmvnorm(n/2, mu2, sigma))
+           n1 <- floor(n/2)
+           n2 <- n - n1
+           rbind(mvtnorm::rmvnorm(n1, mu1, sigma),
+                 mvtnorm::rmvnorm(n2, mu2, sigma))
          },
          stop("Unknown distribution: ", distribution)
   )
