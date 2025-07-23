@@ -54,16 +54,56 @@ MVNormal2MixingDistribution::~MVNormal2MixingDistribution() {
 }
 
 Rcpp::NumericVector MVNormal2MixingDistribution::likelihood(const arma::vec& x, const Rcpp::List& theta) const {
+  // Validate input
+  if (theta.size() < 2) {
+    Rcpp::stop("theta list must have at least 2 elements (mu and sig)");
+  }
+  
+  if (x.n_elem == 0) {
+    Rcpp::stop("x vector cannot be empty");
+  }
+  
   // Extract parameters from theta
   Rcpp::NumericVector mu_array = theta[0];
   Rcpp::NumericVector sig_array = theta[1];
+  
+  // Check if arrays are empty
+  if (mu_array.size() == 0) {
+    Rcpp::stop("mu_array cannot be empty");
+  }
+  
+  if (sig_array.size() == 0) {
+    Rcpp::stop("sig_array cannot be empty");
+  }
 
   // Get dimensions
   Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
   Rcpp::IntegerVector sig_dim = sig_array.attr("dim");
+  
+  // Validate dimension vectors
+  if (mu_dim.size() < 3) {
+    Rcpp::stop("mu_array must be a 3D array (dim length must be >= 3)");
+  }
+  
+  if (sig_dim.size() < 3) {
+    Rcpp::stop("sig_array must be a 3D array (dim length must be >= 3)");
+  }
 
   int d = mu_dim[1];  // Number of dimensions
   int n_clusters = mu_dim[2];  // Number of clusters
+  
+  // Validate dimensions
+  if (d <= 0) {
+    Rcpp::stop("Number of dimensions must be positive");
+  }
+  
+  if (n_clusters <= 0) {
+    Rcpp::stop("Number of clusters must be positive");
+  }
+  
+  if (x.n_elem != static_cast<arma::uword>(d)) {
+    Rcpp::stop("x vector length must match number of dimensions");
+  }
 
   // Convert x to matrix (single row)
   arma::mat x_mat(1, x.n_elem);

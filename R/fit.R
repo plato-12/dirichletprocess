@@ -88,7 +88,23 @@ Fit.conjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interac
 
 #' @export
 Fit.nonconjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
-  # For nonconjugate, check if C++ implementation is available
+  # Special handling for MVNormal2 - use specific C++ implementation
+  if (using_cpp() && inherits(dpObj, "mvnormal2") && 
+      exists("nonconjugate_mvnormal2_cluster_component_update_cpp") &&
+      exists("nonconjugate_mvnormal2_cluster_parameter_update_cpp") &&
+      exists("nonconjugate_mvnormal2_update_alpha_cpp")) {
+    
+    tryCatch({
+      # Use specific MVNormal2 C++ MCMC implementation
+      return(fit_mvnormal2_cpp(dpObj, its, updatePrior, progressBar, ...))
+    }, error = function(e) {
+      warning("MVNormal2 C++ implementation failed: ", e$message,
+              "\nFalling back to R implementation")
+      return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+    })
+  }
+  
+  # For other nonconjugate distributions, check if unified C++ implementation is available
   if (using_cpp() && can_use_cpp(dpObj)) {
     return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar, ...))
   }

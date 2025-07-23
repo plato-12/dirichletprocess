@@ -17,6 +17,40 @@ Mvnormal2Create <- function(priorParameters) {
 #' @export
 #' @rdname Likelihood
 Likelihood.mvnormal2 <- function(mdObj, x, theta) {
+  # Try C++ implementation first if available
+  if (using_cpp() && exists("mvnormal2_likelihood_cpp")) {
+    tryCatch({
+      if (!is.matrix(x)) {
+        x <- matrix(x, nrow = 1)
+      }
+      
+      # Check for NULL parameters
+      if (is.null(theta) || is.null(theta[[1]]) || is.null(theta[[2]])) {
+        return(rep(0, nrow(x)))
+      }
+      
+      # Convert theta to C++ format (indexed list, not named)
+      mu_array <- theta[[1]]
+      sig_array <- theta[[2]]
+      
+      # Validate arrays have dimension attributes
+      if (is.null(dim(mu_array)) || is.null(dim(sig_array))) {
+        stop("MVNormal2 theta parameters must be arrays with dimensions")
+      }
+      
+      # Create C++ compatible theta list
+      cpp_theta <- list(mu_array, sig_array)
+      
+      # Call C++ likelihood function
+      return(mvnormal2_likelihood_cpp(as.numeric(x), cpp_theta))
+      
+    }, error = function(e) {
+      # Fall back to R implementation if C++ fails
+      warning("MVNormal2 C++ implementation failed, using R: ", e$message)
+    })
+  }
+  
+  # R implementation fallback
   if (!is.matrix(x)) {
     x <- matrix(x, nrow = 1)
   }

@@ -154,6 +154,20 @@ prepare_mixing_dist_params <- function(dp_obj) {
     } else {
       stop("MVNormal mixing distribution missing prior parameters")
     }
+  } else if (inherits(md, "mvnormal2")) {
+    # Extract MVNormal2 parameters
+    if (!is.null(md$priorParameters)) {
+      pp <- md$priorParameters
+      list(
+        type = "mvnormal2",
+        mu0 = as.matrix(pp$mu0),
+        sigma0 = as.matrix(pp$sigma0),
+        phi0 = as.matrix(pp$phi0),
+        nu0 = as.numeric(pp$nu0)
+      )
+    } else {
+      stop("MVNormal2 mixing distribution missing prior parameters")
+    }
   } else if (inherits(md, "beta")) {
     # Beta distribution parameters
     list(

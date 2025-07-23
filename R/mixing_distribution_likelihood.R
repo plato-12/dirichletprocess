@@ -8,6 +8,11 @@
 #' @return Likelihood of the data
 #' @export
 Likelihood <- function(mdObj, x, theta) {
+  # For MVNormal2, always use S3 dispatch (has its own C++ integration)
+  if (any(class(mdObj) == "mvnormal2")) {
+    return(UseMethod("Likelihood", mdObj))
+  }
+  
   if (using_cpp()) {
     # Get the distribution type
     dist_type <- class(mdObj)[class(mdObj) != "list" & class(mdObj) != "MixingDistribution"][1]
@@ -123,60 +128,62 @@ Likelihood <- function(mdObj, x, theta) {
           }
           return(result)
         }
-      } else if (dist_type == "mvnormal" || any(grepl("mvnormal", class(mdObj)))) {
+      } else if (dist_type == "mvnormal" || any(grepl("mvnormal", class(mdObj)) & !grepl("mvnormal2", class(mdObj)))) {
+        # Handle mvnormal distributions only (mvnormal2 has its own S3 method)
         # Handle mvnormal distribution
-        mu_array <- theta$mu
-        sig_array <- theta$sig
-        
-        # Get dimensions
-        mu_dim <- dim(mu_array)
-        
-        # Extract number of clusters
-        if (is.null(mu_dim) || length(mu_dim) < 3) {
-          num_clusters <- 1
-        } else {
-          num_clusters <- mu_dim[3]
-        }
-        
-        if (num_clusters == 1) {
-          # Single cluster case
-          cluster_theta <- list(mu = as.vector(mu_array), sig = sig_array)
-          return(mvnormal_likelihood_wrapper_cpp(x, cluster_theta, mdObj$priorParameters))
-        } else {
-          # Multi-cluster case
-          result <- numeric(num_clusters)
-          d <- length(x)
+          mu_array <- theta$mu
+          sig_array <- theta$sig
           
-          for (k in 1:num_clusters) {
-            # Extract parameters for cluster k
-            if (length(mu_dim) == 2) {
-              cluster_mu <- mu_array[, k]
-              if (mdObj$priorParameters$covModel == "FULL") {
-                cluster_sig <- sig_array[, , k]
-              } else {
-                cluster_sig <- sig_array[, k]
-              }
-            } else {
-              cluster_mu <- mu_array[, , k]
-              if (mdObj$priorParameters$covModel == "FULL") {
-                cluster_sig <- sig_array[, , k]
-              } else {
-                cluster_sig <- sig_array[, k]
-              }
-            }
-            
-            cluster_theta <- list(mu = cluster_mu, sig = cluster_sig)
-            result[k] <- mvnormal_likelihood_wrapper_cpp(x, cluster_theta, mdObj$priorParameters)
+          # Get dimensions
+          mu_dim <- dim(mu_array)
+          
+          # Extract number of clusters
+          if (is.null(mu_dim) || length(mu_dim) < 3) {
+            num_clusters <- 1
+          } else {
+            num_clusters <- mu_dim[3]
           }
-          return(result)
-        }
+          
+          if (num_clusters == 1) {
+            # Single cluster case
+            cluster_theta <- list(mu = as.vector(mu_array), sig = sig_array)
+            return(mvnormal_likelihood_wrapper_cpp(x, cluster_theta, mdObj$priorParameters))
+          } else {
+            # Multi-cluster case
+            result <- numeric(num_clusters)
+            d <- length(x)
+            
+            for (k in 1:num_clusters) {
+              # Extract parameters for cluster k
+              if (length(mu_dim) == 2) {
+                cluster_mu <- mu_array[, k]
+                if (mdObj$priorParameters$covModel == "FULL") {
+                  cluster_sig <- sig_array[, , k]
+                } else {
+                  cluster_sig <- sig_array[, k]
+                }
+              } else {
+                cluster_mu <- mu_array[, , k]
+                if (mdObj$priorParameters$covModel == "FULL") {
+                  cluster_sig <- sig_array[, , k]
+                } else {
+                  cluster_sig <- sig_array[, k]
+                }
+              }
+              
+              cluster_theta <- list(mu = cluster_mu, sig = cluster_sig)
+              result[k] <- mvnormal_likelihood_wrapper_cpp(x, cluster_theta, mdObj$priorParameters)
+            }
+            return(result)
+          }
       } else {
         # For other distributions, fall back to R
         stop("C++ implementation not available for distribution: ", 
              class(mdObj)[class(mdObj) != "list" & class(mdObj) != "MixingDistribution"][1])
       }
     }, error = function(e) {
-      warning("C++ implementation failed, falling back to R implementation: ", e$message)
+      # Silently fall back to R implementation for other distributions
+      # MVNormal2 now has its own S3 method with proper C++ integration
     })
   }
 

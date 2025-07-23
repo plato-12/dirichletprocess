@@ -8,6 +8,7 @@
 #include "../inst/include/hierarchical_beta_mixing.h"
 #include "../inst/include/beta2_mixing.h"
 #include "../inst/include/normal_fixed_variance_mixing.h"
+#include "../inst/include/mvnormal2_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {
@@ -123,6 +124,16 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
           Rcpp::as<arma::mat>(params["Lambda"]),
           Rcpp::as<double>(params["nu"])
       )
+    );
+  } else if (type == "mvnormal2") {
+    // MVNormal2 semi-conjugate distribution
+    arma::mat mu0 = Rcpp::as<arma::mat>(params["mu0"]);
+    arma::mat sigma0 = Rcpp::as<arma::mat>(params["sigma0"]);
+    arma::mat phi0 = Rcpp::as<arma::mat>(params["phi0"]);
+    double nu0 = Rcpp::as<double>(params["nu0"]);
+
+    return std::unique_ptr<MixingDistribution>(
+      new MVNormal2Mixing(mu0, sigma0, phi0, nu0)
     );
   }
 
