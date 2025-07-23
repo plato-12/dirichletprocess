@@ -66,6 +66,9 @@ ClusterComponentUpdate.mvnormal2.cpp <- function(dpObj) {
     stop("This C++ implementation is only for MVNormal2 distributions")
   }
 
+  # Store original class structure
+  original_class <- class(dpObj)
+  
   # Convert labels
   dpObj$clusterLabels <- dpObj$clusterLabels - 1
 
@@ -75,11 +78,14 @@ ClusterComponentUpdate.mvnormal2.cpp <- function(dpObj) {
   # Convert back
   result$clusterLabels <- result$clusterLabels + 1
 
-  # Update dpObj
+  # Update dpObj while preserving its structure
   dpObj$clusterLabels <- result$clusterLabels
   dpObj$pointsPerCluster <- result$pointsPerCluster
   dpObj$numberClusters <- result$numberClusters
   dpObj$clusterParameters <- result$clusterParameters
+
+  # Ensure class structure is preserved
+  class(dpObj) <- original_class
 
   return(dpObj)
 }
@@ -91,6 +97,9 @@ ClusterParameterUpdate.mvnormal2.cpp <- function(dpObj) {
     stop("This C++ implementation is only for MVNormal2 distributions")
   }
 
+  # Store original class structure
+  original_class <- class(dpObj)
+  
   # Convert labels
   dpObj$clusterLabels <- dpObj$clusterLabels - 1
 
@@ -99,6 +108,9 @@ ClusterParameterUpdate.mvnormal2.cpp <- function(dpObj) {
 
   # Convert back
   dpObj$clusterLabels <- dpObj$clusterLabels + 1
+
+  # Ensure class structure is preserved
+  class(dpObj) <- original_class
 
   return(dpObj)
 }

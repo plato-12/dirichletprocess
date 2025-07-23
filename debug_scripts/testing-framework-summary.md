@@ -2,7 +2,7 @@
 
 This document summarizes all files created for the comprehensive testing framework.
 
-## Files Created (17 files)
+## Files Created (22 files)
 
 ### 1. Test Files (tests/testthat/)
 
@@ -16,14 +16,20 @@ This document summarizes all files created for the comprehensive testing framewo
    - Statistical comparison utilities
    - Result aggregation functions
 
-3. **`test-cpp-consistency-distributions.R`** - Distribution-specific tests
-   - Tests for all 6 distributions
-   - Sample size variations
-   - Iteration count variations
-   - **✅ OPTIMIZED (2025-07-20)**: Added development/production mode toggle
-     - DEV_MODE: 50 iterations, smaller samples (~75% faster)
-     - PRODUCTION_MODE: 200 iterations, full validation
-     - Environment variable: `DP_DEV_TESTING` (TRUE=dev, FALSE=prod)
+3. **Distribution-Specific Test Files** - Individual distribution testing
+   - **✅ REORGANIZED (2025-07-22)**: Split into separate files for isolated testing
+   - **`test-cpp-consistency-normal.R`** - Normal/Gaussian distribution only
+   - **`test-cpp-consistency-exponential.R`** - Exponential distribution only
+   - **`test-cpp-consistency-beta.R`** - Beta distribution only
+   - **`test-cpp-consistency-weibull.R`** - Weibull distribution only
+   - **`test-cpp-consistency-mvnormal.R`** - Multivariate Normal distribution only
+   - **`test-cpp-consistency-mvnormal2.R`** - MVNormal2 (semi-conjugate) distribution only
+   - **Benefits**: 
+     - Individual distribution testing to isolate C++ issues
+     - Faster debugging by testing specific distributions
+     - Easier identification of problematic implementations
+     - Reduced test interference between distributions
+   - **Environment variable**: `DP_DEV_TESTING` (TRUE=dev, FALSE=prod) applies to all files
 
 4. **`test-cpp-manual-mcmc.R`** - Manual MCMC interface tests
    - CppMCMCRunner validation
@@ -161,9 +167,10 @@ results <- run_complete_validation()
 source("inst/validation/run_all_validations.R")
 results <- quick_validation()  # Only runs test-cpp-consistency.R (~5-10 min)
 
-# Individual optimized tests (development mode - default)
-test_file("tests/testthat/test-cpp-consistency-distributions.R")  # ~75% faster
-test_file("tests/testthat/test-cpp-convergence.R")                # ~80% faster
+# Individual distribution tests (development mode - default)
+test_file("tests/testthat/test-cpp-consistency-normal.R")      # ~75% faster
+test_file("tests/testthat/test-cpp-consistency-mvnormal2.R")   # ~75% faster
+test_file("tests/testthat/test-cpp-convergence.R")             # ~80% faster
 
 # Integration tests (development mode - default)
 source("tests/integration/memory_tests.R"); test_memory_stability()  # ~50-80% faster
@@ -252,7 +259,18 @@ The testing framework validates:
 
 3. Address any failing tests based on automated recommendations
 
-4. For production deployment:
+4. Test individual distributions to isolate issues:
+   ```r
+   # Test each distribution separately to identify problems
+   test_file("tests/testthat/test-cpp-consistency-normal.R")
+   test_file("tests/testthat/test-cpp-consistency-exponential.R") 
+   test_file("tests/testthat/test-cpp-consistency-beta.R")
+   test_file("tests/testthat/test-cpp-consistency-weibull.R")
+   test_file("tests/testthat/test-cpp-consistency-mvnormal.R")
+   test_file("tests/testthat/test-cpp-consistency-mvnormal2.R")
+   ```
+
+5. For production deployment:
    ```r
    Sys.setenv(DP_DEV_TESTING = "FALSE")  # Enable production mode
    results <- run_complete_validation()  # Full validation
@@ -262,5 +280,5 @@ The testing framework validates:
 
 **Framework Version**: 1.0.0  
 **Created**: 2024-07-19  
-**Total Files**: 17  
+**Total Files**: 22  
 **Estimated Full Validation Time**: 3-6 hours

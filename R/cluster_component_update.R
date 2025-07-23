@@ -111,7 +111,7 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
       return(nonconjugate_beta_cluster_component_update_cpp(dpObj))
     }
     if (inherits(dpObj, "mvnormal2") && exists("nonconjugate_mvnormal2_cluster_component_update_cpp")) {
-      return(nonconjugate_mvnormal2_cluster_component_update_cpp(dpObj))
+      return(ClusterComponentUpdate.mvnormal2.cpp(dpObj))
     }
   }
 
