@@ -2,7 +2,7 @@
 
 This document summarizes all files created for the comprehensive testing framework.
 
-## Files Created (22 files)
+## Files Created (27 files)
 
 ### 1. Test Files (tests/testthat/)
 
@@ -24,11 +24,20 @@ This document summarizes all files created for the comprehensive testing framewo
    - **`test-cpp-consistency-weibull.R`** - Weibull distribution only
    - **`test-cpp-consistency-mvnormal.R`** - Multivariate Normal distribution only
    - **`test-cpp-consistency-mvnormal2.R`** - MVNormal2 (semi-conjugate) distribution only
+   - **✅ NEW (2025-07-24): Hierarchical Distribution Tests**
+     - **`test-cpp-consistency-hierarchical-beta.R`** - Hierarchical Beta distribution only
+     - **`test-cpp-consistency-hierarchical-mvnormal.R`** - Hierarchical MVNormal distribution only  
+     - **`test-cpp-consistency-hierarchical-mvnormal2.R`** - Hierarchical MVNormal2 distribution only
+   - **✅ NEW (2025-07-24): Additional Distribution Tests**
+     - **`test-cpp-consistency-beta2.R`** - Beta2 (Uniform-Pareto) distribution only
+     - **`test-cpp-consistency-normal-fixed-variance.R`** - Normal Fixed Variance distribution only
    - **Benefits**: 
      - Individual distribution testing to isolate C++ issues
      - Faster debugging by testing specific distributions
      - Easier identification of problematic implementations
      - Reduced test interference between distributions
+     - Complete hierarchical distribution coverage
+     - Complete additional distribution coverage (Beta2, Normal Fixed Variance)
    - **Environment variable**: `DP_DEV_TESTING` (TRUE=dev, FALSE=prod) applies to all files
 
 4. **`test-cpp-manual-mcmc.R`** - Manual MCMC interface tests
@@ -201,7 +210,9 @@ print(results)  # Console summary
 ## Key Features
 
 1. **Comprehensive Coverage**
-   - All 6 distributions tested
+   - All 6 standard distributions tested
+   - All 3 hierarchical distributions tested (NEW 2025-07-24)
+   - All 2 additional distributions tested (Beta2, Normal Fixed Variance) (NEW 2025-07-24)
    - R/C++ statistical equivalence
    - Performance benchmarking
    - Memory profiling
@@ -261,13 +272,22 @@ The testing framework validates:
 
 4. Test individual distributions to isolate issues:
    ```r
-   # Test each distribution separately to identify problems
+   # Standard distributions
    test_file("tests/testthat/test-cpp-consistency-normal.R")
    test_file("tests/testthat/test-cpp-consistency-exponential.R") 
    test_file("tests/testthat/test-cpp-consistency-beta.R")
    test_file("tests/testthat/test-cpp-consistency-weibull.R")
    test_file("tests/testthat/test-cpp-consistency-mvnormal.R")
    test_file("tests/testthat/test-cpp-consistency-mvnormal2.R")
+   
+   # Hierarchical distributions (NEW 2025-07-24)
+   test_file("tests/testthat/test-cpp-consistency-hierarchical-beta.R")
+   test_file("tests/testthat/test-cpp-consistency-hierarchical-mvnormal.R")
+   test_file("tests/testthat/test-cpp-consistency-hierarchical-mvnormal2.R")
+   
+   # Additional distributions (NEW 2025-07-24)
+   test_file("tests/testthat/test-cpp-consistency-beta2.R")
+   test_file("tests/testthat/test-cpp-consistency-normal-fixed-variance.R")
    ```
 
 5. For production deployment:
@@ -278,7 +298,8 @@ The testing framework validates:
 
 ---
 
-**Framework Version**: 1.0.0  
+**Framework Version**: 1.2.0  
 **Created**: 2024-07-19  
-**Total Files**: 22  
+**Updated**: 2025-07-24 (Added hierarchical + additional distribution tests)  
+**Total Files**: 27  
 **Estimated Full Validation Time**: 3-6 hours

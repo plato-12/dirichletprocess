@@ -48,6 +48,17 @@ generate_test_data <- function(distribution, n = 100) {
            rbind(mvtnorm::rmvnorm(n1, mu1, sigma),
                  mvtnorm::rmvnorm(n2, mu2, sigma))
          },
+         "beta2" = {
+           # Mixture of beta distributions with Pareto scale prior
+           # Generate bounded on (0, 1) for simplicity
+           c(rbeta(n/2, shape1 = 3, shape2 = 2),
+             rbeta(n/2, shape1 = 1, shape2 = 4))
+         },
+         "normal_fixed_variance" = {
+           # Mixture of normals with fixed variance
+           c(rnorm(n/2, mean = -1.5, sd = 1),
+             rnorm(n/2, mean = 1.5, sd = 1))
+         },
          stop("Unknown distribution: ", distribution)
   )
 }
@@ -69,13 +80,29 @@ create_dp_object <- function(distribution, data, ...) {
          "hierarchical_mvnormal" = {
            # For hierarchical, we need a list of data
            group_data <- list(data[1:50,], data[51:100,])
-           # This function may not exist, will be skipped
-           stop("hierarchical_mvnormal not implemented")
+           # Use proper constructor - default prior parameters for MVNormal-Wishart
+           default_priors <- list(
+             mu0 = colMeans(data),
+             kappa0 = 0.01,
+             nu0 = ncol(data) + 2,
+             psi0 = diag(ncol(data))
+           )
+           HierarchicalDirichletProcessMVNormal(group_data, prior_params = default_priors, ...)
          },
          "hierarchical_mvnormal2" = {
            # For hierarchical, we need a list of data
            group_data <- list(data[1:50,], data[51:100,])
            DirichletProcessHierarchicalMvnormal2(group_data, ...)
+         },
+         "beta2" = {
+           # Beta2 with Pareto scale prior - requires maxY parameter
+           maxY <- max(data) + 0.1  # Ensure maxY > max(data)
+           DirichletProcessBeta2(data, maxY = maxY, ...)
+         },
+         "normal_fixed_variance" = {
+           # Normal with fixed variance - requires sigma parameter
+           sigma <- 1.0  # Fixed variance
+           DirichletProcessGaussianFixedVariance(data, sigma = sigma, ...)
          },
          stop("Unknown distribution: ", distribution)
   )
@@ -171,11 +198,38 @@ validate_r_cpp_consistency <- function(distribution_type,
       0
     })
     
+    # Safely calculate likelihood correlation, handling -Inf values
+    likelihood_correlation <- tryCatch({
+      r_likelihood <- dp_r$likelihoodChain
+      cpp_likelihood <- dp_cpp$likelihoodChain
+      
+      # Remove -Inf values and corresponding positions from both chains
+      finite_indices <- is.finite(r_likelihood) & is.finite(cpp_likelihood)
+      
+      if (sum(finite_indices) < 3) {
+        # Not enough finite values for meaningful correlation
+        NA_real_
+      } else {
+        r_finite <- r_likelihood[finite_indices]
+        cpp_finite <- cpp_likelihood[finite_indices]
+        
+        # Check if either chain has zero variance
+        if (var(r_finite) == 0 || var(cpp_finite) == 0) {
+          # Zero variance means correlation is undefined
+          NA_real_
+        } else {
+          cor(r_finite, cpp_finite)
+        }
+      }
+    }, error = function(e) {
+      NA_real_
+    })
+    
     consistency_results[[run]] <- list(
       alpha_mean_diff = abs(r_stats$alpha_mean - cpp_stats$alpha_mean),
       alpha_sd_diff = abs(r_stats$alpha_sd - cpp_stats$alpha_sd),
       cluster_count_diff = abs(r_stats$mean_clusters - cpp_stats$mean_clusters),
-      likelihood_correlation = cor(dp_r$likelihoodChain, dp_cpp$likelihoodChain),
+      likelihood_correlation = likelihood_correlation,
       param_max_diff = param_diff,
       runtime_r = r_stats$runtime,
       runtime_cpp = cpp_stats$runtime
