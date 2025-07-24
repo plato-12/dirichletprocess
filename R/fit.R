@@ -88,23 +88,7 @@ Fit.conjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interac
 
 #' @export
 Fit.nonconjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
-  # Special handling for MVNormal2 - use specific C++ implementation
-  if (using_cpp() && inherits(dpObj, "mvnormal2") && 
-      exists("nonconjugate_mvnormal2_cluster_component_update_cpp") &&
-      exists("nonconjugate_mvnormal2_cluster_parameter_update_cpp") &&
-      exists("nonconjugate_mvnormal2_update_alpha_cpp")) {
-    
-    tryCatch({
-      # Use specific MVNormal2 C++ MCMC implementation
-      return(fit_mvnormal2_cpp(dpObj, its, updatePrior, progressBar, ...))
-    }, error = function(e) {
-      warning("MVNormal2 C++ implementation failed: ", e$message,
-              "\nFalling back to R implementation")
-      return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
-    })
-  }
-  
-  # For other nonconjugate distributions, check if unified C++ implementation is available
+  # Use unified C++ implementation if available (including MVNormal2)
   if (using_cpp() && can_use_cpp(dpObj)) {
     return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar, ...))
   }
@@ -139,8 +123,8 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
       }
 
       # Prepare parameters for C++
-      mixing_params <- prepare_mixing_dist_params(dpObj)
-      mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, n_burn, thin)
+      mixing_params <- dirichletprocess:::prepare_mixing_dist_params(dpObj)
+      mcmc_params <- dirichletprocess:::prepare_mcmc_params(dpObj, its, updatePrior, n_burn, thin)
 
       # Initialize cluster labels if not present
       if (is.null(dpObj$clusterLabels)) {
@@ -148,7 +132,7 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
       }
 
       # Run C++ MCMC
-      results <- run_mcmc_cpp(
+      results <- dirichletprocess:::run_mcmc_cpp(
         data = as.matrix(dpObj$data),
         mixing_dist_params = mixing_params,
         mcmc_params = mcmc_params
@@ -156,17 +140,25 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 
       # Update dpObj with results
       if (!is.null(results$cluster_labels)) {
-        # Get the final cluster labels
-        dpObj$clusterLabels <- results$cluster_labels[[length(results$cluster_labels)]]
+        # Get the final cluster labels and convert from 0-indexed to 1-indexed
+        final_labels <- results$cluster_labels[[length(results$cluster_labels)]]
+        dpObj$clusterLabels <- final_labels + 1
       }
 
       if (!is.null(results$alpha)) {
-        # Get the final alpha value
-        dpObj$alpha <- tail(results$alpha, 1)
+        # Get the final alpha value (handle both vector and list cases)
+        alpha_chain <- results$alpha
+        if (is.list(alpha_chain)) {
+          dpObj$alpha <- as.numeric(alpha_chain[[length(alpha_chain)]])
+        } else {
+          dpObj$alpha <- as.numeric(tail(alpha_chain, 1))
+        }
       }
 
-      # Store chains
-      dpObj$labelsChain <- results$labelsChain
+      # Store chains (convert label chains from 0-indexed to 1-indexed)
+      if (!is.null(results$labelsChain)) {
+        dpObj$labelsChain <- lapply(results$labelsChain, function(labels) labels + 1)
+      }
       dpObj$alphaChain <- results$alphaChain
       dpObj$likelihoodChain <- results$likelihoodChain
 
@@ -185,9 +177,12 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 
       # Store parameter chains
       dpObj$clusterParametersChain <- results$cluster_params
-      dpObj$weightsChain <- lapply(results$cluster_labels, function(labels) {
-        table(labels) / length(labels)
-      })
+      if (!is.null(results$cluster_labels)) {
+        dpObj$weightsChain <- lapply(results$cluster_labels, function(labels) {
+          # Convert 0-indexed to 1-indexed labels for weight calculation
+          table(labels + 1) / length(labels)
+        })
+      }
 
       # Prior parameters chain if updated
       if (updatePrior && !is.null(results$prior_params_chain)) {

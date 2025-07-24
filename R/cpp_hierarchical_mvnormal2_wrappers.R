@@ -137,12 +137,8 @@ Likelihood.mvnormal2.cpp <- function(mdObj, x, theta) {
     x <- matrix(x, nrow = 1)
   }
 
-  result <- numeric(nrow(x))
-  for (i in 1:nrow(x)) {
-    result[i] <- mvnormal2_likelihood_cpp(x[i,], theta)[1]
-  }
-
-  return(result)
+  # The C++ function now handles the full matrix
+  return(mvnormal2_likelihood_cpp(x, theta))
 }
 
 #' @rdname cpp_hierarchical_mvnormal2_wrappers
@@ -152,60 +148,10 @@ Likelihood.mvnormal2.cpp <- function(mdObj, x, theta) {
 #' @param progressBar Whether to show progress bar
 #' @export
 fit_mvnormal2_cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
-  if (!inherits(dpObj, "mvnormal2")) {
-    stop("This C++ implementation is only for MVNormal2 distributions")
-  }
+  # DEPRECATED: MVNormal2 now uses unified CppMCMCRunner interface
+  warning("fit_mvnormal2_cpp is deprecated. MVNormal2 now uses the unified interface through Fit(). ",
+          "Please use Fit() instead, which will automatically use the unified C++ implementation.")
   
-  # Validate inputs
-  if (its <= 0) {
-    stop("Number of iterations must be positive")
-  }
-  
-  # Initialize chains for storing MCMC results
-  if (is.null(dpObj$alphaChain)) {
-    dpObj$alphaChain <- numeric(0)
-  }
-  if (is.null(dpObj$likelihoodChain)) {
-    dpObj$likelihoodChain <- numeric(0)
-  }
-  if (is.null(dpObj$labelsChain)) {
-    dpObj$labelsChain <- list()
-  }
-  
-  # Show progress if requested
-  if (progressBar && interactive()) {
-    pb <- txtProgressBar(min = 0, max = its, style = 3)
-  }
-  
-  # Run MCMC iterations
-  for (i in 1:its) {
-    # Update cluster assignments
-    dpObj <- ClusterComponentUpdate.mvnormal2.cpp(dpObj)
-    
-    # Update cluster parameters
-    dpObj$clusterParameters <- ClusterParameterUpdate.mvnormal2.cpp(dpObj)
-    
-    # Update concentration parameter
-    if (updatePrior) {
-      dpObj$alpha <- nonconjugate_mvnormal2_update_alpha_cpp(dpObj)
-    }
-    
-    # Store chain values
-    dpObj$alphaChain <- c(dpObj$alphaChain, dpObj$alpha)
-    dpObj$likelihoodChain <- c(dpObj$likelihoodChain, LikelihoodDP(dpObj))
-    dpObj$labelsChain[[length(dpObj$labelsChain) + 1]] <- dpObj$clusterLabels
-    
-    # Update progress
-    if (progressBar && interactive()) {
-      setTxtProgressBar(pb, i)
-    }
-  }
-  
-  # Close progress bar
-  if (progressBar && interactive()) {
-    close(pb)
-    cat("\n")
-  }
-  
-  return(dpObj)
+  # Redirect to unified interface
+  return(Fit(dpObj, its, updatePrior, progressBar, ...))
 }

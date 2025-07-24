@@ -41,8 +41,8 @@ Likelihood.mvnormal2 <- function(mdObj, x, theta) {
       # Create C++ compatible theta list
       cpp_theta <- list(mu_array, sig_array)
       
-      # Call C++ likelihood function
-      return(mvnormal2_likelihood_cpp(as.numeric(x), cpp_theta))
+      # Call C++ likelihood function - pass x as matrix, not flattened vector
+      return(mvnormal2_likelihood_cpp(x, cpp_theta))
       
     }, error = function(e) {
       # Fall back to R implementation if C++ fails

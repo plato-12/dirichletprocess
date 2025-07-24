@@ -24,10 +24,22 @@ weighted_function_generator <- function(func, weights, params) {
       if (cumWeight > (1 - 1e-6)){
         break
       }
-      cl_params <- vector("list", length = length(params))
-      for (j in seq_along(params)) {
-        cl_params[[j]] <- params[[j]][, , i, drop = FALSE]
+      
+      # Handle MVNormal2 named parameter structure vs indexed structure
+      if (!is.null(names(params)) && all(c("mu", "sig") %in% names(params))) {
+        # MVNormal2 case: named parameters (mu, sig)
+        cl_params <- list(
+          mu = params$mu[, , i, drop = FALSE],
+          sig = params$sig[, , i, drop = FALSE]
+        )
+      } else {
+        # Standard case: indexed parameters
+        cl_params <- vector("list", length = length(params))
+        for (j in seq_along(params)) {
+          cl_params[[j]] <- params[[j]][, , i, drop = FALSE]
+        }
       }
+      
       out <- out + weights[i] * func(y, cl_params)
       cumWeight <- cumWeight + weights[i]
     }

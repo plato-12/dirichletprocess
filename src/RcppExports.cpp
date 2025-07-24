@@ -505,12 +505,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // mvnormal2_likelihood_cpp
-Rcpp::NumericVector mvnormal2_likelihood_cpp(Rcpp::NumericVector x, Rcpp::List theta);
+Rcpp::NumericVector mvnormal2_likelihood_cpp(Rcpp::NumericMatrix x, Rcpp::List theta);
 RcppExport SEXP _dirichletprocess_mvnormal2_likelihood_cpp(SEXP xSEXP, SEXP thetaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type theta(thetaSEXP);
     rcpp_result_gen = Rcpp::wrap(mvnormal2_likelihood_cpp(x, theta));
     return rcpp_result_gen;

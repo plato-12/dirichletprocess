@@ -40,11 +40,19 @@
 //' @return A numeric vector of likelihood values.
 //' @export
  // [[Rcpp::export]]
- Rcpp::NumericVector mvnormal2_likelihood_cpp(Rcpp::NumericVector x,
+ Rcpp::NumericVector mvnormal2_likelihood_cpp(Rcpp::NumericMatrix x,
                                               Rcpp::List theta) {
    dp::MVNormal2MixingDistribution md(Rcpp::List::create());
-   arma::vec x_arma = Rcpp::as<arma::vec>(x);
-   return md.likelihood(x_arma, theta);
+   arma::mat x_arma = Rcpp::as<arma::mat>(x);
+   
+   // Handle each row of the matrix
+   Rcpp::NumericVector result(x_arma.n_rows);
+   for (size_t i = 0; i < x_arma.n_rows; i++) {
+     arma::vec x_row = x_arma.row(i).t();
+     Rcpp::NumericVector row_result = md.likelihood(x_row, theta);
+     result[i] = row_result[0];
+   }
+   return result;
  }
 
 //' @title Update cluster components for MVNormal2 (C++ non-conjugate)
