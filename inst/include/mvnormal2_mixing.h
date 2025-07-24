@@ -33,6 +33,8 @@ public:
   arma::vec prior_draw() const override;
 
   int param_dim() const override;
+  
+  bool is_conjugate() const override { return false; }
 
   // Helper methods
   arma::vec flatten_params(const arma::vec& mu, const arma::mat& Sigma) const;

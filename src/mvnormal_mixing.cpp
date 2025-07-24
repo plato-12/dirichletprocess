@@ -161,4 +161,52 @@ void MVNormalMixing::unflatten_params(const arma::vec& params,
   Sigma = ensureSymmetric(Sigma);
 }
 
+double MVNormalMixing::predictive_probability(const arma::vec& data_point) const {
+  // Normal-Wishart predictive distribution
+  // This is the multivariate Student's t-distribution
+  
+  arma::vec x = data_point;
+  
+  // Predictive parameters
+  arma::vec mu_pred = mu0;
+  double nu_pred = nu - d + 1;
+  
+  // Scale matrix for predictive distribution
+  arma::mat Lambda_inv;
+  try {
+    Lambda_inv = arma::inv_sympd(Lambda);
+  } catch (...) {
+    Lambda_inv = arma::pinv(Lambda);
+  }
+  
+  arma::mat Scale = Lambda_inv * (kappa0 + 1) / (kappa0 * nu_pred);
+  
+  // Compute multivariate t log-density
+  arma::vec x_centered = x - mu_pred;
+  
+  double log_det_val;
+  double sign;
+  arma::log_det(log_det_val, sign, Scale);
+  
+  if (sign <= 0) {
+    return 0.0;  // Invalid covariance
+  }
+  
+  arma::mat Scale_inv;
+  try {
+    Scale_inv = arma::inv_sympd(Scale);
+  } catch (...) {
+    return 0.0;
+  }
+  
+  double quad_form = arma::as_scalar(x_centered.t() * Scale_inv * x_centered);
+  
+  // Log probability of multivariate t-distribution
+  double log_prob = std::lgamma((nu_pred + d) / 2.0) - std::lgamma(nu_pred / 2.0) - 
+                   (d / 2.0) * std::log(nu_pred * M_PI) - 0.5 * log_det_val - 
+                   ((nu_pred + d) / 2.0) * std::log(1 + quad_form / nu_pred);
+  
+  return std::exp(log_prob);
+}
+
 } // namespace dirichletprocess

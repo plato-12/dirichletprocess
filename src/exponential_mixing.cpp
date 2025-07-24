@@ -53,6 +53,16 @@ arma::vec ExponentialMixing::posterior_parameters(const arma::mat& cluster_data)
   return post_params;
 }
 
+double ExponentialMixing::predictive_probability(const arma::vec& data_point) const {
+  double x = data_point[0];
+  if (x < 0.0) return 0.0;
+
+  // Exponential-Gamma predictive distribution (Lomax/Pareto Type II)
+  // p(x|prior) = α₀ * β₀^α₀ / (β₀ + x)^(α₀ + 1)
+  
+  return alpha0 * std::pow(beta0, alpha0) / std::pow(beta0 + x, alpha0 + 1.0);
+}
+
 double ExponentialMixing::predictive_density(double x, const arma::mat& cluster_data) const {
   if (x < 0.0) return 0.0;
 

@@ -28,6 +28,8 @@ public:
   arma::vec prior_draw() const override;
 
   int param_dim() const override { return 1; }  // Only mu is unknown
+  
+  bool is_conjugate() const override { return true; }
 
   // Conjugate specific methods
   arma::vec posterior_parameters(const arma::mat& cluster_data) const;

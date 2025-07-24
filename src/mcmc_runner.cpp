@@ -125,10 +125,24 @@ Rcpp::List MCMCRunner::run() {
   state->cluster_params.resize(1);
   state->cluster_params[0] = mixing_dist->prior_draw();
 
+  // Pre-compute predictive probabilities for conjugate distributions
+  std::vector<double> predictive_probs;
+  if (mixing_dist->is_conjugate()) {
+    predictive_probs.resize(data.n_rows);
+    for (size_t i = 0; i < data.n_rows; ++i) {
+      arma::vec data_point = data.row(i).t();
+      predictive_probs[i] = mixing_dist->predictive_probability(data_point);
+    }
+  }
+
   // MCMC loop
   for (int iter = 0; iter < n_iter; ++iter) {
-    // Update cluster assignments using Algorithm 8
-    update_cluster_assignments_algorithm8();
+    // Update cluster assignments - choose algorithm based on conjugacy
+    if (mixing_dist->is_conjugate()) {
+      update_cluster_assignments_algorithm4(predictive_probs);
+    } else {
+      update_cluster_assignments_algorithm8();
+    }
 
     // Update cluster parameters
     update_cluster_parameters();
@@ -199,6 +213,91 @@ Rcpp::List MCMCRunner::run() {
     Rcpp::Named("alpha") = alpha_chain,
     Rcpp::Named("theta") = theta_chain
   );
+}
+
+void MCMCRunner::update_cluster_assignments_algorithm4(const std::vector<double>& predictive_probs) {
+  // Algorithm 4 (Neal 2000): Chinese Restaurant Process for conjugate distributions
+  // This matches the R implementation in cluster_component_update.R
+  
+  for (size_t i = 0; i < data.n_rows; ++i) {
+    arma::vec obs = data.row(i).t();
+    int current_cluster = state->cluster_labels[i];
+
+    // Remove observation from current cluster
+    if (current_cluster >= 0 && current_cluster < static_cast<int>(state->cluster_sizes.n_elem)) {
+      if (state->cluster_sizes[current_cluster] > 0) {
+        state->cluster_sizes[current_cluster]--;
+      }
+    }
+
+    // Calculate probabilities for existing clusters
+    std::vector<double> cluster_probs(state->n_clusters);
+    for (int k = 0; k < state->n_clusters; ++k) {
+      if (k < static_cast<int>(state->cluster_sizes.n_elem) && state->cluster_sizes[k] > 0) {
+        // Calculate likelihood of data point under cluster k parameters
+        double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
+        cluster_probs[k] = state->cluster_sizes[k] * std::exp(log_lik);
+      } else {
+        cluster_probs[k] = 0.0;
+      }
+    }
+
+    // Add probability for new cluster using predictive probability
+    double new_cluster_prob = state->alpha * predictive_probs[i];
+    
+    // Combine all probabilities
+    std::vector<double> all_probs(cluster_probs);
+    all_probs.push_back(new_cluster_prob);
+
+    // Handle numerical issues
+    for (auto& p : all_probs) {
+      if (!std::isfinite(p) || p < 0) {
+        p = 0.0;
+      }
+    }
+
+    // Normalize probabilities
+    double prob_sum = std::accumulate(all_probs.begin(), all_probs.end(), 0.0);
+    if (prob_sum <= 0.0) {
+      // Fallback to uniform
+      std::fill(all_probs.begin(), all_probs.end(), 1.0 / all_probs.size());
+    } else {
+      for (auto& p : all_probs) {
+        p /= prob_sum;
+      }
+    }
+
+    // Sample new cluster
+    int chosen_idx = sample_categorical(all_probs);
+
+    if (chosen_idx < state->n_clusters) {
+      // Assign to existing cluster
+      state->cluster_labels[i] = chosen_idx;
+      if (chosen_idx < static_cast<int>(state->cluster_sizes.n_elem)) {
+        state->cluster_sizes[chosen_idx]++;
+      }
+    } else {
+      // Create new cluster
+      int new_cluster_idx = state->n_clusters;
+      
+      // Add new cluster
+      state->cluster_params.push_back(mixing_dist->prior_draw());
+      
+      // Extend cluster sizes
+      arma::vec new_cluster_sizes(state->cluster_sizes.n_elem + 1);
+      if (state->cluster_sizes.n_elem > 0) {
+        new_cluster_sizes.head(state->cluster_sizes.n_elem) = state->cluster_sizes;
+      }
+      new_cluster_sizes(state->cluster_sizes.n_elem) = 1;
+      state->cluster_sizes = new_cluster_sizes;
+      
+      state->cluster_labels[i] = new_cluster_idx;
+      state->n_clusters++;
+    }
+  }
+  
+  // Clean up empty clusters
+  cleanup_empty_clusters();
 }
 
 void MCMCRunner::update_cluster_assignments_algorithm8() {

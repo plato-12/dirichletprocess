@@ -33,6 +33,8 @@ public:
   arma::vec prior_draw() const override;
 
   int param_dim() const override { return 2; }  // [mu, nu]
+  
+  bool is_conjugate() const override { return false; }
 
   // Beta2-specific methods
   double log_prior_density(const arma::vec& params) const;

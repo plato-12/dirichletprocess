@@ -25,6 +25,17 @@ public:
   // Parameter dimension
   virtual int param_dim() const = 0;
 
+  // Check if distribution is conjugate
+  virtual bool is_conjugate() const = 0;
+
+  // Predictive probability for conjugate distributions (used in Algorithm 4)
+  virtual double predictive_probability(const arma::vec& data_point) const {
+    if (!is_conjugate()) {
+      Rcpp::stop("predictive_probability only available for conjugate distributions");
+    }
+    return 1.0; // Default implementation - should be overridden
+  }
+
   // Factory method
   static std::unique_ptr<MixingDistribution> create(const std::string& type,
                                                     const Rcpp::List& params);

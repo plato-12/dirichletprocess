@@ -38,7 +38,9 @@ public:
 
   arma::vec prior_draw() const override;
 
-  int param_dim() const override { return 2; }  // [alpha, lambda]
+  int param_dim() const override { return 2; }
+  
+  bool is_conjugate() const override { return false; }
 
   // Weibull-specific methods
   double log_prior_density(const arma::vec& params) const;

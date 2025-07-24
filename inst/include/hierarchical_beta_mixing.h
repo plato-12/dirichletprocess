@@ -41,6 +41,8 @@ public:
   arma::vec prior_draw() const override;
 
   int param_dim() const override { return 2; }  // [mu, tau]
+  
+  bool is_conjugate() const override { return false; }
 
   // Hierarchical-specific methods
   void update_global_parameters(const std::vector<arma::mat>& all_cluster_data,
