@@ -255,14 +255,59 @@ prepare_mcmc_params <- function(dp_obj, its, updatePrior, n_burn = 0, thin = 1) 
 }
 
 #' Enable C++ implementations for specific samplers
+#' @param enable Logical indicating whether to enable C++ samplers
 #' @export
-enable_cpp_samplers <- function() {
-  invisible(exists("_dirichletprocess_run_mcmc_cpp", mode = "function"))
+enable_cpp_samplers <- function(enable = TRUE) {
+  if (missing(enable)) {
+    # If no argument provided, return status (backward compatibility)
+    return(invisible(exists("_dirichletprocess_run_mcmc_cpp", mode = "function")))
+  }
+  
+  # Set option to force C++ usage
+  options(dirichletprocess.force_cpp_samplers = enable)
+  invisible(enable)
+}
+
+#' Enable C++ implementations for hierarchical models
+#' @param enable Logical indicating whether to enable hierarchical C++ samplers
+#' @export
+enable_cpp_hierarchical_samplers <- function(enable = TRUE) {
+  if (missing(enable)) {
+    # If no argument provided, return status (backward compatibility)
+    return(invisible(exists("_dirichletprocess_hierarchical_beta_fit_cpp", mode = "function")))
+  }
+  
+  # Set option to force hierarchical C++ usage
+  options(dirichletprocess.force_cpp_hierarchical = enable)
+  invisible(enable)
 }
 
 #' Check if using C++ samplers
 #' @export
 using_cpp_samplers <- function() {
   ns <- getNamespace("dirichletprocess")
+  
+  # Check if forced via options
+  force_cpp <- getOption("dirichletprocess.force_cpp_samplers", FALSE)
+  if (force_cpp) {
+    return(using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns, mode = "function"))
+  }
+  
+  # Default behavior
   using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns, mode = "function")
+}
+
+#' Check if using hierarchical C++ samplers
+#' @export
+using_cpp_hierarchical_samplers <- function() {
+  ns <- getNamespace("dirichletprocess")
+  
+  # Check if forced via options
+  force_hierarchical <- getOption("dirichletprocess.force_cpp_hierarchical", FALSE)
+  if (force_hierarchical) {
+    return(using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns, mode = "function"))
+  }
+  
+  # Default behavior
+  using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns, mode = "function")
 }

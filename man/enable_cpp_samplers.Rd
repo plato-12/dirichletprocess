@@ -10,6 +10,8 @@ enable_cpp_samplers(use_cpp = TRUE)
 }
 \arguments{
 \item{use_cpp}{Logical indicating whether to use C++ implementations}
+
+\item{enable}{Logical indicating whether to enable C++ samplers}
 }
 \description{
 This function enables the use of C++ implementations for the core
