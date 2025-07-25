@@ -81,6 +81,41 @@ PriorDensity.beta2 <- function(mdObj, theta){
 }
 
 #' @export
+#' @rdname Initialise
+Initialise.beta2 <- function(dpObj, m = 3, verbose = TRUE, ...) {
+
+  dpObj$m <- m
+  dpObj$numberClusters <- 1
+  dpObj$clusterLabels <- rep(1, dpObj$n)
+  dpObj$pointsPerCluster <- c(dpObj$n)
+
+  # Ensure parameters are properly structured as 3D arrays with correct names
+  priorDraws <- PriorDraw(dpObj$mixingDistribution, 1)
+  dpObj$clusterParameters <- list(
+    mu = array(priorDraws$mu, dim = c(1, 1, 1)),
+    nu = array(priorDraws$nu, dim = c(1, 1, 1))
+  )
+
+  dpObj$alpha <- dpObj$alphaPriorParameters[1] / dpObj$alphaPriorParameters[2]
+
+  # Generate auxiliary parameters with proper structure
+  dpObj$aux <- vector("list", m)
+  for(i in seq_len(m)) {
+    aux_draw <- PriorDraw(dpObj$mixingDistribution, 1)
+    dpObj$aux[[i]] <- list(
+      mu = array(aux_draw$mu, dim = c(1, 1, 1)),
+      nu = array(aux_draw$nu, dim = c(1, 1, 1))
+    )
+  }
+
+  if (verbose) {
+    cat("Beta2 mixture initialized with", dpObj$numberClusters, "cluster(s)\n")
+  }
+
+  return(dpObj)
+}
+
+#' @export
 #' @rdname MhParameterProposal
 MhParameterProposal.beta2 <- function(mdObj, old_params){
 

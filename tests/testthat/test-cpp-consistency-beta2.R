@@ -20,8 +20,7 @@ test_that("Beta2 distribution R/C++ consistency", {
   maxY <- 1.0
   
   results <- validate_r_cpp_consistency("beta2", test_data, 
-                                        iterations = BASE_ITERATIONS,
-                                        maxY = maxY)
+                                        iterations = BASE_ITERATIONS)
 
   expect_lt(results$alpha_mean_diff, ALPHA_TOLERANCE)
   expect_lt(results$cluster_count_diff, CLUSTER_TOLERANCE)
@@ -58,9 +57,12 @@ test_that("Beta2 manual MCMC interface", {
   expect_true(dp$numberClusters >= 1)
   expect_true(all(dp$clusterLabels %in% 1:dp$numberClusters))
   
-  # Check that parameters are within bounds [0, maxY]
-  all_params <- unlist(dp$clusterParameters)
-  expect_true(all(all_params >= 0 & all_params <= maxY))
+  # Check that parameters are within correct bounds
+  # mu should be in (0, maxY), nu should be positive
+  mu_params <- unlist(dp$clusterParameters$mu)
+  nu_params <- unlist(dp$clusterParameters$nu)
+  expect_true(all(mu_params > 0 & mu_params < maxY))
+  expect_true(all(nu_params > 0))
 })
 
 test_that("Beta2 with different maxY values", {
@@ -79,12 +81,14 @@ test_that("Beta2 with different maxY values", {
     expect_no_error({
       dp_maxY <- DirichletProcessBeta2(test_data, maxY = maxY, g0Priors = 2)
       dp_maxY <- Fit(dp_maxY, its = if (DEV_MODE) 20 else 40)
-    }, info = paste("maxY =", maxY))
+    })
     
     # Verify parameters respect bounds
-    all_params <- unlist(dp_maxY$clusterParameters)
-    expect_true(all(all_params >= 0 & all_params <= maxY),
-                info = paste("Parameters within bounds for maxY =", maxY))
+    # mu should be in (0, maxY), nu should be positive
+    mu_params <- unlist(dp_maxY$clusterParameters$mu)
+    nu_params <- unlist(dp_maxY$clusterParameters$nu)
+    expect_true(all(mu_params > 0 & mu_params < maxY))
+    expect_true(all(nu_params > 0))
   }
 })
 
@@ -104,7 +108,7 @@ test_that("Beta2 Pareto scale prior effects", {
       dp_pareto <- DirichletProcessBeta2(test_data, maxY = maxY, 
                                          g0Priors = g0_prior)
       dp_pareto <- Fit(dp_pareto, its = if (DEV_MODE) 20 else 40)
-    }, info = paste("Pareto prior =", g0_prior))
+    })
     
     # Verify basic properties
     expect_s3_class(dp_pareto, "dirichletprocess")
