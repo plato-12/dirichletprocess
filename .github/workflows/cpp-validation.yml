@@ -1,15 +1,16 @@
 # .github/workflows/cpp-validation.yml
+# DISABLED: Temporarily disabled to focus on R CMD check workflow
 
-name: C++ Implementation Validation
+name: C++ Implementation Validation (DISABLED)
 
 on:
-  push:
-    branches: [ feature/r-cpp-consistency, feature/*, cpp-implementation ]
-  pull_request:
-    branches: [ master, main ]
-  schedule:
-    # Run weekly on Mondays at 2 AM UTC
-    - cron: '0 2 * * 1'
+  # push:
+  #   branches: [ feature/r-cpp-consistency, feature/*, cpp-implementation ]
+  # pull_request:
+  #   branches: [ master, main ]
+  # schedule:
+  #   # Run weekly on Mondays at 2 AM UTC
+  #   - cron: '0 2 * * 1'
   workflow_dispatch:
     inputs:
       test_mode:
