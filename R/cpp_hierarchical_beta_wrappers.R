@@ -290,29 +290,5 @@ HierarchicalBetaCreate.cpp <- function(n, priorParameters, hyperPriorParameters,
   })
 }
 
-#' Enable C++ implementations for hierarchical samplers
-#'
-#' This function enables the use of C++ implementations for the hierarchical
-#' Beta DP sampling algorithms when available.
-#'
-#' @param use_cpp Logical indicating whether to use C++ implementations
-#' @export
-enable_cpp_hierarchical_samplers <- function(use_cpp = TRUE) {
-  options(dirichletprocess.use_cpp_hierarchical = use_cpp)
-
-  if (use_cpp) {
-    message("C++ samplers enabled for hierarchical Beta Dirichlet processes")
-  } else {
-    message("Using R implementations for hierarchical samplers")
-  }
-
-  invisible(use_cpp)
-}
-
-#' Check if C++ hierarchical samplers are enabled
-#'
-#' @return Logical indicating if C++ hierarchical samplers are enabled
-#' @export
-using_cpp_hierarchical_samplers <- function() {
-  getOption("dirichletprocess.use_cpp_hierarchical", FALSE)
-}
+# Note: enable_cpp_hierarchical_samplers and using_cpp_hierarchical_samplers 
+# are now defined in cpp_interface.R to avoid duplicate definitions

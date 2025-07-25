@@ -237,6 +237,9 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
     # Update cluster components for each individual DP
     dpObj <- ClusterComponentUpdate(dpObj)
 
+    # Update cluster parameters for each individual DP
+    dpObj <- ClusterParameterUpdate(dpObj)
+
     # Update alpha for each individual DP
     dpObj <- UpdateAlpha(dpObj)
 

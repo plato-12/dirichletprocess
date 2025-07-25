@@ -5,6 +5,7 @@
 \alias{Initialise.beta2}
 \alias{Initialise.beta}
 \alias{Initialise}
+\alias{Initialise.hierarchical}
 \alias{Initialise.mvnormal.E}
 \alias{Initialise.mvnormal.V}
 \alias{Initialise.mvnormal.EII}
@@ -20,6 +21,14 @@
 \method{Initialise}{beta}(dpObj, m = 3, verbose = TRUE, ...)
 
 Initialise(
+  dpObj,
+  posterior = TRUE,
+  m = 3,
+  verbose = TRUE,
+  numInitialClusters = 1
+)
+
+\method{Initialise}{hierarchical}(
   dpObj,
   posterior = TRUE,
   m = 3,

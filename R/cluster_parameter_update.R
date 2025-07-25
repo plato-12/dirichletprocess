@@ -60,6 +60,16 @@ ClusterParameterUpdate.conjugate <- function(dpObj) {
 
 #' @export
 #' @rdname ClusterParameterUpdate
+ClusterParameterUpdate.hierarchical <- function(dpObj) {
+  # For hierarchical objects, update each individual DP
+  for (i in seq_along(dpObj$indDP)) {
+    dpObj$indDP[[i]] <- ClusterParameterUpdate(dpObj$indDP[[i]])
+  }
+  return(dpObj)
+}
+
+#' @export
+#' @rdname ClusterParameterUpdate
 ClusterParameterUpdate.nonconjugate <- function(dpObj) {
 
   if (inherits(dpObj, "beta") && using_cpp_samplers()) {

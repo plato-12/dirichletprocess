@@ -168,6 +168,26 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
   return(dpObj)
 }
 
+#' @export
+#' @rdname Initialise  
+Initialise.hierarchical <- function(dpObj, posterior = TRUE, m = 3, verbose = TRUE, numInitialClusters = 1) {
+  # For hierarchical objects that are not individual DPs, we don't initialize
+  # Individual DPs are initialized separately in the hierarchical constructor
+  if (!"indDP" %in% names(dpObj)) {
+    # This is an individual DP with hierarchical mixing distribution
+    # Delegate to the appropriate method based on the second class
+    if (inherits(dpObj, "beta")) {
+      return(Initialise.beta(dpObj, m = m, verbose = verbose))
+    } else if (inherits(dpObj, "mvnormal") || inherits(dpObj, "mvnormal2")) {
+      return(Initialise.conjugate(dpObj, posterior = posterior, m = m, verbose = verbose, numInitialClusters = numInitialClusters))
+    } else {
+      return(Initialise.nonconjugate(dpObj, posterior = posterior, m = m, verbose = verbose, numInitialClusters = numInitialClusters))
+    }
+  }
+  # For the hierarchical container object, just return as-is
+  return(dpObj)
+}
+
 #'@export
 Initialise.nonconjugate <- function(dpObj, posterior = TRUE, m = 3, verbose = TRUE, numInitialClusters=1) {
 

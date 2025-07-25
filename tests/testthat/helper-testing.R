@@ -74,8 +74,25 @@ create_dp_object <- function(distribution, data, ...) {
          "mvnormal2" = DirichletProcessMvnormal2(data, ...),
          "hierarchical_beta" = {
            # For hierarchical, we need a list of data
-           group_data <- list(data[1:50], data[51:100])
-           DirichletProcessHierarchicalBeta(group_data, ...)
+           # Extract any hierarchical_data parameter, or split regular data
+           if (is.list(data) && !is.data.frame(data)) {
+             group_data <- data
+           } else {
+             group_data <- list(data[1:50], data[51:100])
+           }
+           
+           # Extract maxY from ... or attributes or compute from data
+           dots <- list(...)
+           if ("maxY" %in% names(dots)) {
+             maxY <- dots$maxY
+             dots$maxY <- NULL  # Remove from remaining arguments
+           } else if (!is.null(attr(data, "maxY"))) {
+             maxY <- attr(data, "maxY")
+           } else {
+             maxY <- max(unlist(group_data)) + 0.1
+           }
+           
+           do.call(DirichletProcessHierarchicalBeta, c(list(dataList = group_data, maxY = maxY), dots))
          },
          "hierarchical_mvnormal" = {
            # For hierarchical, we need a list of data
