@@ -6,7 +6,7 @@
 #' for hierarchical Dirichlet process models.
 #'
 #' @param dp_fit A fitted hierarchical Dirichlet process object
-#' @param burn_in Number of burn-in samples to discard (default: 25% of chain)
+#' @param burn_in Number of burn-in samples to discard (default: 25\\% of chain)
 #' @param plot_diagnostics Whether to create diagnostic plots
 #' @return A list of diagnostic statistics and plots
 #' @export
