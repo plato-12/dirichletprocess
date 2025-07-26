@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include "../inst/include/beta2_mixing.h"
+#include "beta2_mixing.h"
 
 using namespace dirichletprocess;
 

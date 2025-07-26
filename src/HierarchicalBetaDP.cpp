@@ -1,7 +1,7 @@
 // src/HierarchicalBetaDP.cpp
-#include "../inst/include/HierarchicalDP.h"
-#include "../inst/include/BetaDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "HierarchicalDP.h"
+#include "BetaDistribution.h"
+#include "RcppConversions.h"
 #include <RcppArmadillo.h>
 #include <memory>
 

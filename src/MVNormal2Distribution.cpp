@@ -1,6 +1,6 @@
 // src/MVNormal2Distribution.cpp
-#include "../inst/include/MVNormal2Distribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "MVNormal2Distribution.h"
+#include "RcppConversions.h"
 #include <RcppArmadillo.h>
 #include <cmath>
 

@@ -1,7 +1,7 @@
 // src/mcmc_runner.cpp
-#include "../inst/include/mcmc_runner.h"
-#include "../inst/include/mixing_distribution_base.h"
-#include "../inst/include/utilities.h"
+#include "mcmc_runner.h"
+#include "mixing_distribution_base.h"
+#include "utilities.h"
 #include <set>
 #include <algorithm>
 #include <numeric>

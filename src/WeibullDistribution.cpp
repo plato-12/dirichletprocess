@@ -1,6 +1,6 @@
 // src/WeibullDistribution.cpp
-#include "../inst/include/WeibullDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "WeibullDistribution.h"
+#include "RcppConversions.h"
 #include <cmath>
 #include <limits>
 #include <memory>

@@ -1,14 +1,14 @@
 // src/mixing_distribution_base.cpp
-#include "../inst/include/mixing_distribution_base.h"
-#include "../inst/include/gaussian_mixing.h"
-#include "../inst/include/beta_mixing.h"
-#include "../inst/include/mvnormal_mixing.h"
-#include "../inst/include/weibull_mixing.h"
-#include "../inst/include/exponential_mixing.h"
-#include "../inst/include/hierarchical_beta_mixing.h"
-#include "../inst/include/beta2_mixing.h"
-#include "../inst/include/normal_fixed_variance_mixing.h"
-#include "../inst/include/mvnormal2_mixing.h"
+#include "mixing_distribution_base.h"
+#include "gaussian_mixing.h"
+#include "beta_mixing.h"
+#include "mvnormal_mixing.h"
+#include "weibull_mixing.h"
+#include "exponential_mixing.h"
+#include "hierarchical_beta_mixing.h"
+#include "beta2_mixing.h"
+#include "normal_fixed_variance_mixing.h"
+#include "mvnormal2_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {

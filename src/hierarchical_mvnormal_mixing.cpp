@@ -1,5 +1,5 @@
-#include "../inst/include/hierarchical_mvnormal_mixing.h"
-#include "../inst/include/utilities.h"
+#include "hierarchical_mvnormal_mixing.h"
+#include "utilities.h"
 #include <RcppArmadillo.h>
 #include <set>
 #include <numeric>

@@ -1,7 +1,7 @@
 // src/HierarchicalBetaExports.cpp
-#include "../inst/include/HierarchicalDP.h"
-#include "../inst/include/BetaDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "HierarchicalDP.h"
+#include "BetaDistribution.h"
+#include "RcppConversions.h"
 
 //' @title Fit Hierarchical Beta DP (C++)
 //' @description C++ implementation for fitting a Hierarchical Beta DP.

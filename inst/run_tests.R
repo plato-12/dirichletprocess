@@ -208,7 +208,7 @@ run_performance_suite <- function(verbose = TRUE) {
 run_integration_suite <- function(verbose = TRUE) {
   if (verbose) cat("Running integration test suite...\n\n")
 
-  source("tests/integration/package_checks.R")
+  source("inst/integration/package_checks.R")
 
   results <- list()
 
@@ -242,7 +242,7 @@ run_integration_suite <- function(verbose = TRUE) {
 run_memory_suite <- function(verbose = TRUE) {
   if (verbose) cat("Running memory test suite...\n\n")
 
-  source("tests/integration/memory_tests.R")
+  source("inst/integration/memory_tests.R")
 
   results <- list()
 
@@ -275,7 +275,7 @@ run_memory_suite <- function(verbose = TRUE) {
 run_stress_suite <- function(verbose = TRUE) {
   if (verbose) cat("Running stress test suite...\n\n")
 
-  source("tests/integration/stress_tests.R")
+  source("inst/integration/stress_tests.R")
 
   # Run comprehensive stress tests
   results <- run_comprehensive_stress_tests()

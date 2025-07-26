@@ -1,6 +1,6 @@
 // src/markov_mcmc_runner.cpp
-#include "../inst/include/markov_mcmc_runner.h"
-#include "../inst/include/mixing_distribution_base.h"
+#include "markov_mcmc_runner.h"
+#include "mixing_distribution_base.h"
 #include <algorithm>
 #include <numeric>
 

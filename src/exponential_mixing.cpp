@@ -1,5 +1,5 @@
 // src/exponential_mixing.cpp
-#include "../inst/include/exponential_mixing.h"
+#include "exponential_mixing.h"
 #include <RcppArmadillo.h>
 
 namespace dirichletprocess {

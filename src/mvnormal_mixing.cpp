@@ -1,4 +1,4 @@
-#include "../inst/include/mvnormal_mixing.h"
+#include "mvnormal_mixing.h"
 #include <RcppArmadillo.h>
 #include <cmath>
 

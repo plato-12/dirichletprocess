@@ -1,7 +1,7 @@
 // src/MVNormal2Exports.cpp
-#include "../inst/include/MVNormal2Distribution.h"
-#include "../inst/include/HierarchicalDP.h"
-#include "../inst/include/RcppConversions.h"
+#include "MVNormal2Distribution.h"
+#include "HierarchicalDP.h"
+#include "RcppConversions.h"
 
 //' @title Draw from a Multivariate Normal semi-conjugate prior (C++)
 //' @description C++ implementation for drawing from the prior distribution of a

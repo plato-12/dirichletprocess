@@ -1,8 +1,8 @@
 // src/BetaExports.cpp
 
 #include <RcppArmadillo.h>
-#include "../inst/include/BetaDistribution.h"
-#include "../inst/include/DirichletProcess.h"
+#include "BetaDistribution.h"
+#include "DirichletProcess.h"
 #include <iostream>
 
 // Helper function to get a single data point (row)

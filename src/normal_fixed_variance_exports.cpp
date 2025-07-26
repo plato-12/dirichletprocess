@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include "../inst/include/normal_fixed_variance_mixing.h"
+#include "normal_fixed_variance_mixing.h"
 
 using namespace dirichletprocess;
 

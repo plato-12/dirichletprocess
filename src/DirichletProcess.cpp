@@ -1,6 +1,6 @@
 // src/DirichletProcess.cpp
-#include "../inst/include/DirichletProcessBase.h"
-#include "../inst/include/RcppConversions.h" // For Rcpp::as and other conversions
+#include "DirichletProcessBase.h"
+#include "RcppConversions.h" // For Rcpp::as and other conversions
 
 namespace dp {
 

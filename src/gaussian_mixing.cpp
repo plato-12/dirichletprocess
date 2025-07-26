@@ -1,6 +1,6 @@
 // src/gaussian_mixing.cpp
 #include <RcppArmadillo.h>
-#include "../inst/include/gaussian_mixing.h"
+#include "gaussian_mixing.h"
 
 namespace dirichletprocess {
 

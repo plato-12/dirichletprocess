@@ -1,6 +1,6 @@
 // src/MVNormalDistribution.cpp
-#include "../inst/include/MVNormalDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "MVNormalDistribution.h"
+#include "RcppConversions.h"
 #include <RcppArmadillo.h>
 
 namespace dp {

@@ -1,6 +1,6 @@
 // src/NormalDistribution.cpp
-#include "../inst/include/NormalDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "NormalDistribution.h"
+#include "RcppConversions.h"
 
 namespace dp {
 

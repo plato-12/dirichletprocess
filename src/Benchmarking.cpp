@@ -1,8 +1,8 @@
 // src/Benchmarking.cpp
-#include "../inst/include/Benchmarking.h"
-#include "../inst/include/RcppConversions.h"
-#include "../inst/include/MemoryProfiling.h"
-#include "../inst/include/NormalDistribution.h"
+#include "Benchmarking.h"
+#include "RcppConversions.h"
+#include "MemoryProfiling.h"
+#include "NormalDistribution.h"
 
 // Platform-specific includes for memory tracking
 #ifdef _WIN32

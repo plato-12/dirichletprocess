@@ -1,7 +1,7 @@
 // src/HierarchicalMVNormal2DP.cpp
-#include "../inst/include/HierarchicalDP.h"
-#include "../inst/include/MVNormal2Distribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "HierarchicalDP.h"
+#include "MVNormal2Distribution.h"
+#include "RcppConversions.h"
 #include <RcppArmadillo.h>
 
 namespace dp {

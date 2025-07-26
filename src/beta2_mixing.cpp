@@ -1,4 +1,4 @@
-#include "../inst/include/beta2_mixing.h"
+#include "beta2_mixing.h"
 #include <Rcpp.h>
 #include <cmath>
 #include <algorithm>

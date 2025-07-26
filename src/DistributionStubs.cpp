@@ -1,14 +1,14 @@
 // src/DistributionStubs.cpp
 // Temporary stub implementations for distribution classes
 
-#include "../inst/include/BetaDistribution.h" // Still needed for other classes if they refer to it
-#include "../inst/include/MVNormalDistribution.h"
-#include "../inst/include/MVNormal2Distribution.h"
-#include "../inst/include/WeibullDistribution.h"
-#include "../inst/include/ExponentialDistribution.h"
-#include "../inst/include/HierarchicalDP.h"
-#include "../inst/include/MarkovDP.h"
-#include "../inst/include/NormalDistribution.h"
+#include "BetaDistribution.h" // Still needed for other classes if they refer to it
+#include "MVNormalDistribution.h"
+#include "MVNormal2Distribution.h"
+#include "WeibullDistribution.h"
+#include "ExponentialDistribution.h"
+#include "HierarchicalDP.h"
+#include "MarkovDP.h"
+#include "NormalDistribution.h"
 
 namespace dp {
 

@@ -1,13 +1,13 @@
 // src/RcppConversions.cpp
-#include "../inst/include/RcppConversions.h"
-#include "../inst/include/NormalDistribution.h"
-#include "../inst/include/BetaDistribution.h"
-#include "../inst/include/MVNormalDistribution.h"
-#include "../inst/include/MVNormal2Distribution.h"
-#include "../inst/include/WeibullDistribution.h"
-#include "../inst/include/ExponentialDistribution.h"
-#include "../inst/include/HierarchicalDP.h"
-#include "../inst/include/MarkovDP.h"
+#include "RcppConversions.h"
+#include "NormalDistribution.h"
+#include "BetaDistribution.h"
+#include "MVNormalDistribution.h"
+#include "MVNormal2Distribution.h"
+#include "WeibullDistribution.h"
+#include "ExponentialDistribution.h"
+#include "HierarchicalDP.h"
+#include "MarkovDP.h"
 
 namespace dp {
 
