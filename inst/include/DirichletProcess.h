@@ -35,6 +35,7 @@
 #include "beta2_mixing.h"
 #include "weibull_mixing.h"
 #include "mvnormal_mixing.h"
+#include "mvnormal2_mixing.h"
 #include "normal_fixed_variance_mixing.h"
 
 // Hierarchical implementations
