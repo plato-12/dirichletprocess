@@ -28,13 +28,12 @@ test_that("Hierarchical MVNormal distribution R/C++ consistency", {
   prior_params <- list(
     mu0 = c(0, 0),
     kappa0 = 0.01,
-    nu0 = 4,  # ncol + 2
-    psi0 = diag(2)
+    nu = 4,  # ncol + 2
+    Lambda = diag(2)
   )
   
   results <- validate_r_cpp_consistency("hierarchical_mvnormal", hierarchical_data, 
-                                        iterations = BASE_ITERATIONS,
-                                        prior_params = prior_params)
+                                        iterations = BASE_ITERATIONS)
 
   expect_lt(results$alpha_mean_diff, ALPHA_TOLERANCE)
   expect_lt(results$cluster_count_diff, CLUSTER_TOLERANCE)
@@ -57,8 +56,8 @@ test_that("Hierarchical MVNormal manual MCMC interface", {
   prior_params <- list(
     mu0 = c(0, 0),
     kappa0 = 0.01,
-    nu0 = 4,
-    psi0 = diag(2)
+    nu = 4,
+    Lambda = diag(2)
   )
   
   # Test HierarchicalDirichletProcessMVNormal constructor
@@ -92,8 +91,8 @@ test_that("Hierarchical MVNormal different dimensions", {
   prior_params <- list(
     mu0 = c(0, 0, 0),
     kappa0 = 0.01,
-    nu0 = 5,  # ncol + 2
-    psi0 = diag(3)
+    nu = 5,  # ncol + 2
+    Lambda = diag(3)
   )
   
   expect_no_error({
@@ -120,8 +119,8 @@ test_that("Hierarchical MVNormal edge cases", {
   prior_params <- list(
     mu0 = c(0, 0),
     kappa0 = 0.01,
-    nu0 = 4,
-    psi0 = diag(2)
+    nu = 4,
+    Lambda = diag(2)
   )
   
   expect_no_error({

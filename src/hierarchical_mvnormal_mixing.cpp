@@ -205,11 +205,20 @@ void HierarchicalMVNormalMixing::update_local_alphas(
 
 // Get current state
 Rcpp::List HierarchicalMVNormalMixing::get_state() const {
+  // Create global_params list with all required parameters for MVNormalMixing
+  Rcpp::List global_params = Rcpp::List::create(
+    Rcpp::Named("mu0") = params.mu0,
+    Rcpp::Named("kappa0") = params.kappa0,
+    Rcpp::Named("Lambda") = params.Lambda,
+    Rcpp::Named("nu") = params.nu
+  );
+  
   return Rcpp::List::create(
     Rcpp::Named("gamma") = params.gamma,
     Rcpp::Named("stick_weights") = params.stick_weights,
     Rcpp::Named("alphas") = params.alphas,
-    Rcpp::Named("pi_k") = params.pi_k
+    Rcpp::Named("pi_k") = params.pi_k,
+    Rcpp::Named("global_params") = global_params
   );
 }
 
