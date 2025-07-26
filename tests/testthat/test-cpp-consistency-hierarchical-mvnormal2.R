@@ -33,9 +33,7 @@ test_that("Hierarchical MVNormal2 distribution R/C++ consistency", {
   )
   
   results <- validate_r_cpp_consistency("hierarchical_mvnormal2", hierarchical_data, 
-                                        iterations = BASE_ITERATIONS,
-                                        g0Priors = g0_priors,
-                                        gammaPriors = c(2, 0.01))
+                                        iterations = BASE_ITERATIONS)
 
   expect_lt(results$alpha_mean_diff, ALPHA_TOLERANCE)
   expect_lt(results$cluster_count_diff, CLUSTER_TOLERANCE)
@@ -82,9 +80,9 @@ test_that("Hierarchical MVNormal2 manual MCMC interface", {
   }
   
   # Verify results
-  expect_s3_class(dp, c("list", "dirichletprocess", "hierarchical"))
-  expect_true(length(dp) >= 2)  # Multiple groups
-  expect_true(all(sapply(dp, function(x) x$numberClusters >= 1)))
+  expect_s3_class(dp, c("hierarchical", "dirichletprocess", "list"))
+  expect_true(length(dp$indDP) >= 2)  # Multiple groups in indDP
+  expect_true(all(sapply(dp$indDP, function(x) x$numberClusters >= 1)))
 })
 
 test_that("Hierarchical MVNormal2 different covariance models", {
@@ -125,7 +123,7 @@ test_that("Hierarchical MVNormal2 different covariance models", {
       }
       
       dp_model <- Fit(dp_model, its = if (DEV_MODE) 20 else 40)
-    }, info = paste("Covariance model:", model))
+    })
   }
 })
 
@@ -162,14 +160,14 @@ test_that("Hierarchical MVNormal2 global parameter sharing", {
   dp <- Fit(dp, its = if (DEV_MODE) 30 else 100)
   
   # Verify hierarchical structure
-  expect_s3_class(dp, c("list", "dirichletprocess", "hierarchical"))
-  expect_true(length(dp) == 2)
+  expect_s3_class(dp, c("hierarchical", "dirichletprocess", "list"))
+  expect_true(length(dp$indDP) == 2)
   
   # Check that global parameters exist and are shared
-  expect_true(exists("globalParameters", where = environment(dp)))
+  expect_true("globalParameters" %in% names(dp))
   
   # Verify that individual groups maintain their own cluster structure
-  expect_true(all(sapply(dp, function(x) {
+  expect_true(all(sapply(dp$indDP, function(x) {
     "clusterLabels" %in% names(x) && "clusterParameters" %in% names(x)
   })))
 })
