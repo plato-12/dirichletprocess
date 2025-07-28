@@ -39,20 +39,9 @@ weighted_function_generator <- function(func, weights, params) {
         
         for (j in seq_along(params)) {
           param_val <- params[[j]][, , i, drop = FALSE]
-          # Convert array format to scalar/vector for likelihood functions
-          if (length(dim(param_val)) > 0) {
-            # Remove array dimensions for scalar parameters
-            if (all(dim(param_val) == c(1, 1, 1))) {
-              cl_params[[j]] <- as.numeric(param_val)
-            } else if (prod(dim(param_val)) == length(param_val)) {
-              # For other cases, convert to vector
-              cl_params[[j]] <- as.numeric(param_val)
-            } else {
-              cl_params[[j]] <- param_val
-            }
-          } else {
-            cl_params[[j]] <- param_val
-          }
+          
+          # Keep original parameter structure to preserve expected format for likelihood functions
+          cl_params[[j]] <- param_val
         }
         
         # Preserve parameter names from original structure
