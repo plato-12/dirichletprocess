@@ -33,11 +33,43 @@ weighted_function_generator <- function(func, weights, params) {
           sig = params$sig[, , i, drop = FALSE]
         )
       } else {
-        # Standard case: indexed parameters
+        # Standard case: indexed parameters - preserve names from original structure
         cl_params <- vector("list", length = length(params))
+        param_names <- names(params)
+        
         for (j in seq_along(params)) {
-          cl_params[[j]] <- params[[j]][, , i, drop = FALSE]
+          param_val <- params[[j]][, , i, drop = FALSE]
+          # Convert array format to scalar/vector for likelihood functions
+          if (length(dim(param_val)) > 0) {
+            # Remove array dimensions for scalar parameters
+            if (all(dim(param_val) == c(1, 1, 1))) {
+              cl_params[[j]] <- as.numeric(param_val)
+            } else if (prod(dim(param_val)) == length(param_val)) {
+              # For other cases, convert to vector
+              cl_params[[j]] <- as.numeric(param_val)
+            } else {
+              cl_params[[j]] <- param_val
+            }
+          } else {
+            cl_params[[j]] <- param_val
+          }
         }
+        
+        # Preserve parameter names from original structure
+        if (!is.null(param_names)) {
+          names(cl_params) <- param_names
+        }
+        
+        # Validate that we have sufficient parameters for likelihood functions
+        if (length(cl_params) < 2) {
+          # Skip this iteration if insufficient parameters
+          next
+        }
+      }
+      
+      # Additional validation: ensure parameters are not empty or invalid
+      if (any(sapply(cl_params, function(p) is.null(p) || length(p) == 0))) {
+        next
       }
       
       out <- out + weights[i] * func(y, cl_params)

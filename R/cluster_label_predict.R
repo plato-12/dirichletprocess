@@ -173,9 +173,11 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
 
   pointsPerCluster <- dpobj$pointsPerCluster
 
-  componentIndexes <- numeric(length(newData))
+  # Use nrow for matrices, length for vectors
+  n_obs <- if (is.matrix(newData)) nrow(newData) else length(newData)
+  componentIndexes <- numeric(n_obs)
 
-  for (i in seq_along(newData)) {
+  for (i in seq_len(n_obs)) {
 
     aux <- PriorDraw(mdobj, m)
 
@@ -208,8 +210,16 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
       # clusterParams = rbind(clusterParams, aux[component-numLabels,])
 
       for (j in seq_along(clusterParams)) {
-        clusterParams[[j]] <- array(c(clusterParams[[j]], aux[[j]][, , component - numLabels]), dim = c(dim(clusterParams[[j]])[1:2], dim(clusterParams[[j]])[3] +
-                                                                                                          1))
+        # Check if clusterParams[[j]] has valid dimensions
+        current_dims <- dim(clusterParams[[j]])
+        if (is.null(current_dims) || length(current_dims) == 0) {
+          # If no dimensions, treat as empty and initialize from aux
+          clusterParams[[j]] <- aux[[j]][, , component - numLabels, drop = FALSE]
+        } else {
+          # Normal case: append to existing array
+          clusterParams[[j]] <- array(c(clusterParams[[j]], aux[[j]][, , component - numLabels]), 
+                                    dim = c(current_dims[1:2], current_dims[3] + 1))
+        }
       }
 
       numLabels <- numLabels + 1
