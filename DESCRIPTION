@@ -30,12 +30,17 @@ Suggests: testthat,
     knitr,
     rmarkdown,
     tidyr,
-    dplyr
+    dplyr,
+    grid
 Imports: gtools,
          ggplot2,
          mvtnorm,
          Rcpp (>= 1.0.11),
-         RcppArmadillo
+         RcppArmadillo,
+         abind,
+         methods,
+         stats,
+         utils
 LinkingTo: Rcpp, RcppArmadillo
 SystemRequirements: C++11
 URL: https://github.com/dm13450/dirichletprocess, https://dm13450.github.io/dirichletprocess/
