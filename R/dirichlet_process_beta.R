@@ -1,11 +1,8 @@
 #' Create a Dirichlet Process object with Beta mixing distribution
 #'
 #' @param y Data for which to be fitted
-#' @param maxY Upper bound for the Beta distribution
-#' @param g0Priors Prior parameters for the base measure (alpha, beta for the prior)
 #' @param alphaPriors Alpha prior parameters for the DP concentration parameter
 #' @param mhStepSize Metropolis-Hastings step size for parameter updates
-#' @param hyperPriorParameters Hyper prior parameters
 #' @param verbose Logical indicating whether to print messages
 #' @return Dirichlet process object with Beta mixing distribution
 #' @export
@@ -31,7 +28,7 @@ DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
 
 #' @export
 #' @rdname Initialise
-Initialise.beta <- function(dpObj, m = 3, verbose = TRUE, ...) {
+Initialise.beta <- function(dpObj, posterior = TRUE, m = 3, verbose = TRUE, numInitialClusters = 1, ...) {
 
   dpObj$m <- m
   dpObj$numberClusters <- 1

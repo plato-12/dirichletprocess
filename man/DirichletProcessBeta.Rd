@@ -19,12 +19,6 @@ DirichletProcessBeta(
 \item{mhStepSize}{Metropolis-Hastings step size for parameter updates}
 
 \item{verbose}{Logical indicating whether to print messages}
-
-\item{maxY}{Upper bound for the Beta distribution}
-
-\item{g0Priors}{Prior parameters for the base measure (alpha, beta for the prior)}
-
-\item{hyperPriorParameters}{Hyper prior parameters}
 }
 \value{
 Dirichlet process object with Beta mixing distribution

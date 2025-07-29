@@ -2,13 +2,14 @@
 #'
 #' @param mdObj Mixing Distribution
 #' @param n Number of draws.
+#' @param ... Additional arguments (ignored)
 #' @return A sample from the prior distribution
 
 #' @export
-PriorDraw <- function(mdObj, n) UseMethod("PriorDraw", mdObj)
+PriorDraw <- function(mdObj, n, ...) UseMethod("PriorDraw", mdObj)
 
 #' @export
-PriorDraw.hierarchical <- function(mdObj, n = 1) {
+PriorDraw.hierarchical <- function(mdObj, n = 1, ...) {
 
   probs <- mdObj$pi_k
 

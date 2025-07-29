@@ -1,3 +1,6 @@
+# Declare global variables for R CMD check
+utils::globalVariables(c("Alpha", "..density..", "Index", "nclust", "Lik"))
+
 #' Diagnostic plots for dirichletprocess objects
 #'
 #' Plot several diagnostic plots for dirichletprocess objects. Because the

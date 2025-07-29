@@ -24,15 +24,15 @@
 \alias{PriorDraw.weibull}
 \title{Draw from the prior distribution}
 \usage{
-\method{PriorDraw}{beta}(mdObj, n = 1)
+\method{PriorDraw}{beta}(mdObj, n = 1, ...)
 
-\method{PriorDraw}{beta2}(mdObj, n = 1)
+\method{PriorDraw}{beta2}(mdObj, n = 1, ...)
 
-\method{PriorDraw}{exponential}(mdObj, n)
+\method{PriorDraw}{exponential}(mdObj, n, ...)
 
-PriorDraw(mdObj, n)
+PriorDraw(mdObj, n, ...)
 
-\method{PriorDraw}{mvnormal}(mdObj, n = 1)
+\method{PriorDraw}{mvnormal}(mdObj, n = 1, ...)
 
 \method{PriorDraw}{mvnormal.E}(mdObj, n = 1, ...)
 
@@ -50,18 +50,20 @@ PriorDraw(mdObj, n)
 
 \method{PriorDraw}{mvnormal.VVI}(mdObj, n = 1, ...)
 
-\method{PriorDraw}{mvnormal2}(mdObj, n = 1)
+\method{PriorDraw}{mvnormal2}(mdObj, n = 1, ...)
 
-\method{PriorDraw}{normalFixedVariance}(mdObj, n = 1)
+\method{PriorDraw}{normalFixedVariance}(mdObj, n = 1, ...)
 
-\method{PriorDraw}{normal}(mdObj, n = 1)
+\method{PriorDraw}{normal}(mdObj, n = 1, ...)
 
-\method{PriorDraw}{weibull}(mdObj, n = 1)
+\method{PriorDraw}{weibull}(mdObj, n = 1, ...)
 }
 \arguments{
 \item{mdObj}{Mixing Distribution}
 
 \item{n}{Number of draws.}
+
+\item{...}{Additional arguments (ignored)}
 }
 \value{
 A sample from the prior distribution

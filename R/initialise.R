@@ -7,6 +7,7 @@
 #' @param m Number of auxiliary variables to use for a non-conjugate mixing distribution. Defaults to m=3. See \code{\link{ClusterComponentUpdate}} for more details on m.
 #' @param verbose Logical flag indicating whether to output the acceptance ratio for non-conjugate mixtures.
 #' @param numInitialClusters Number of clusters to initialise with.
+#' @param ... Additional arguments passed to specific methods.
 #' @return A Dirichlet process object that has initial cluster allocations.
 #' @export
 Initialise <- function(dpObj, posterior = TRUE, m=3, verbose=TRUE, numInitialClusters = 1){

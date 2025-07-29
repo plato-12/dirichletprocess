@@ -6,7 +6,7 @@
 #' @param progressBar Logical flag indicating whether to display a progress bar.
 #' @return A Dirichlet Process object with the fitted cluster parameters and states.
 #' @export
-Fit.markov <- function(dpObj, its, updatePrior=FALSE, progressBar = FALSE){
+Fit.markov <- function(dpObj, its, updatePrior=FALSE, progressBar = FALSE, ...){
   # Use C++ implementation if enabled
   if (using_cpp_markov_samplers()) {
     return(Fit.markov.cpp(dpObj, its, updatePrior, progressBar))

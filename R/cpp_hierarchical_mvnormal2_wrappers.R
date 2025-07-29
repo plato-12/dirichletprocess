@@ -15,7 +15,7 @@ NULL
 #' @param updatePrior Whether to update prior parameters
 #' @param progressBar Whether to show progress bar
 #' @export
-Fit.hierarchical.mvnormal2.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE) {
+Fit.hierarchical.mvnormal2.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
   if (!inherits(dpObj, "hierarchical")) {
     stop("This C++ implementation is only for hierarchical Dirichlet processes")
   }
@@ -117,7 +117,7 @@ ClusterParameterUpdate.mvnormal2.cpp <- function(dpObj) {
 
 #' @rdname cpp_hierarchical_mvnormal2_wrappers
 #' @export
-PriorDraw.mvnormal2.cpp <- function(mdObj, n = 1) {
+PriorDraw.mvnormal2.cpp <- function(mdObj, n = 1, ...) {
   mvnormal2_prior_draw_cpp(mdObj$priorParameters, n)
 }
 

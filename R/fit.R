@@ -123,8 +123,8 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
       }
 
       # Prepare parameters for C++
-      mixing_params <- dirichletprocess:::prepare_mixing_dist_params(dpObj)
-      mcmc_params <- dirichletprocess:::prepare_mcmc_params(dpObj, its, updatePrior, n_burn, thin)
+      mixing_params <- prepare_mixing_dist_params(dpObj)
+      mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, n_burn, thin)
 
       # Initialize cluster labels if not present
       if (is.null(dpObj$clusterLabels)) {
@@ -132,7 +132,7 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
       }
 
       # Run C++ MCMC
-      results <- dirichletprocess:::run_mcmc_cpp(
+      results <- run_mcmc_cpp(
         data = as.matrix(dpObj$data),
         mixing_dist_params = mixing_params,
         mcmc_params = mcmc_params
@@ -347,7 +347,7 @@ Fit.hierarchical <- function(dpObj, its, updatePrior = FALSE, progressBar = inte
 }
 
 #' @export
-Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive()) {
+Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
   if (!can_use_hierarchical_cpp(dpObj)) {
     stop("C++ implementation not available for this hierarchical DP type")
   }
@@ -391,7 +391,7 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 }
 
 #' @export
-Fit.markov <- function(dpObj, its = 1000, updatePrior = FALSE, progressBar = interactive(), ...) {
+Fit.markov <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
   # Similar pattern - check for C++ then fall back to R
   if (using_cpp() && exists("_dirichletprocess_markov_dp_fit_cpp")) {
     return(Fit.markov.cpp(dpObj, its, updatePrior, progressBar))

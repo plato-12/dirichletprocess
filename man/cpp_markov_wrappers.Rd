@@ -8,7 +8,7 @@
 \alias{param_update.cpp}
 \title{C++ Implementation Wrappers for Markov DP (HMM)}
 \usage{
-\method{Fit}{markov.cpp}(dp, its, updatePrior = FALSE, progressBar = TRUE)
+\method{Fit}{markov.cpp}(dp, its, updatePrior = FALSE, progressBar = TRUE, ...)
 
 UpdateStates.cpp(dp)
 

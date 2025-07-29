@@ -107,7 +107,7 @@ Likelihood.mvnormal2 <- function(mdObj, x, theta) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.mvnormal2 <- function(mdObj, n = 1) {
+PriorDraw.mvnormal2 <- function(mdObj, n = 1, ...) {
 
   priorParameters <- mdObj$priorParameters
 

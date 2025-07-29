@@ -4,7 +4,7 @@
 \alias{Fit.markov}
 \title{Fit a Hidden Markov Dirichlet Process Model}
 \usage{
-\method{Fit}{markov}(dpObj, its, updatePrior = FALSE, progressBar = FALSE)
+\method{Fit}{markov}(dpObj, its, updatePrior = FALSE, progressBar = FALSE, ...)
 }
 \arguments{
 \item{dpObj}{Initialised Dirichlet Process object}

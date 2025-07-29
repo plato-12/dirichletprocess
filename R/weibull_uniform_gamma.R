@@ -35,7 +35,7 @@ Likelihood.weibull <- function(mdObj, x, theta) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.weibull <- function(mdObj, n = 1) {
+PriorDraw.weibull <- function(mdObj, n = 1, ...) {
 
   priorParameters <- mdObj$priorParameters
 

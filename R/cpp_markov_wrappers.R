@@ -12,7 +12,7 @@ NULL
 #' @param its Number of iterations
 #' @param progressBar Whether to show progress bar
 #' @export
-Fit.markov.cpp <- function(dp, its, updatePrior = FALSE, progressBar = TRUE) {
+Fit.markov.cpp <- function(dp, its, updatePrior = FALSE, progressBar = TRUE, ...) {
   if (!inherits(dp, "markov")) {
     stop("This C++ implementation is only for Markov Dirichlet processes")
   }

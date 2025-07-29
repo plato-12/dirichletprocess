@@ -35,7 +35,7 @@ Likelihood.beta2 <- function(mdObj, x, theta){
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.beta2 <- function(mdObj, n=1){
+PriorDraw.beta2 <- function(mdObj, n=1, ...){
 
   # Use C++ if enabled
   if (can_use_cpp()) {
@@ -90,7 +90,7 @@ PriorDensity.beta2 <- function(mdObj, theta){
 
 #' @export
 #' @rdname Initialise
-Initialise.beta2 <- function(dpObj, m = 3, verbose = TRUE, ...) {
+Initialise.beta2 <- function(dpObj, posterior = TRUE, m = 3, verbose = TRUE, numInitialClusters = 1, ...) {
 
   dpObj$m <- m
   dpObj$numberClusters <- 1

@@ -1,3 +1,6 @@
+# Declare global variables for R CMD check  
+utils::globalVariables(c("x1", "x2", "Cluster", "..density..", "y"))
+
 plot_dirichletprocess <- function(x, ...) {
   mdobj <- x$mixingDistribution
   UseMethod("plot_dirichletprocess", mdobj)

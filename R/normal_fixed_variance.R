@@ -22,7 +22,7 @@ Likelihood.normalFixedVariance <- function(mdObj, x, theta) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.normalFixedVariance <- function(mdObj, n = 1) {
+PriorDraw.normalFixedVariance <- function(mdObj, n = 1, ...) {
 
   # Use C++ if enabled
   if (can_use_cpp()) {

@@ -16,9 +16,23 @@
 \alias{Initialise.mvnormal.VVI}
 \title{Initialise a Dirichlet process object}
 \usage{
-\method{Initialise}{beta2}(dpObj, m = 3, verbose = TRUE, ...)
+\method{Initialise}{beta2}(
+  dpObj,
+  posterior = TRUE,
+  m = 3,
+  verbose = TRUE,
+  numInitialClusters = 1,
+  ...
+)
 
-\method{Initialise}{beta}(dpObj, m = 3, verbose = TRUE, ...)
+\method{Initialise}{beta}(
+  dpObj,
+  posterior = TRUE,
+  m = 3,
+  verbose = TRUE,
+  numInitialClusters = 1,
+  ...
+)
 
 Initialise(
   dpObj,
@@ -103,13 +117,15 @@ Initialise(
 \arguments{
 \item{dpObj}{A Dirichlet process object.}
 
+\item{posterior}{TRUE/FALSE value for whether the cluster parameters should be from the posterior. If false then the values are from the prior.}
+
 \item{m}{Number of auxiliary variables to use for a non-conjugate mixing distribution. Defaults to m=3. See \code{\link{ClusterComponentUpdate}} for more details on m.}
 
 \item{verbose}{Logical flag indicating whether to output the acceptance ratio for non-conjugate mixtures.}
 
-\item{posterior}{TRUE/FALSE value for whether the cluster parameters should be from the posterior. If false then the values are from the prior.}
-
 \item{numInitialClusters}{Number of clusters to initialise with.}
+
+\item{...}{Additional arguments passed to specific methods.}
 }
 \value{
 A Dirichlet process object that has initial cluster allocations.

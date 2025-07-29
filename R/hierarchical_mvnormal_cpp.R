@@ -70,15 +70,17 @@ HierarchicalDirichletProcessMVNormal <- function(data_list,
 #' Fit method for Hierarchical MVNormal DP
 #'
 #' @param hdp_obj Hierarchical DP object
-#' @param iterations Number of MCMC iterations
+#' @param its Number of MCMC iterations
+#' @param updatePrior Whether to update prior parameters
+#' @param progressBar Whether to show progress bar
 #' @param ... Additional MCMC parameters
 #' @return Updated HDP object with samples
 #' @export
-Fit.hdp_mvnormal <- function(hdp_obj, iterations = 1000, ...) {
+Fit.hdp_mvnormal <- function(hdp_obj, its = 1000, updatePrior = FALSE, progressBar = TRUE, ...) {
 
   # Prepare MCMC parameters
   mcmc_params <- list(
-    n_iter = iterations,
+    n_iter = its,
     ...
   )
 

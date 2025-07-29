@@ -1,3 +1,27 @@
+#' Metropolis-Hastings MCMC Sampler
+#'
+#' Performs Metropolis-Hastings sampling for non-conjugate Dirichlet process mixtures.
+#' This function is used internally for parameter updates in non-conjugate models
+#' where analytical posterior updates are not available.
+#'
+#' @param mixingDistribution A mixing distribution object
+#' @param x Data for which to sample parameters
+#' @param start_pos Starting position for the MCMC chain - a list of parameter arrays
+#' @param no_draws Number of MCMC draws to perform (default: 100)
+#'
+#' @return A list containing:
+#' \itemize{
+#'   \item parameter_samples: List of parameter sample arrays
+#'   \item accept_ratio: Acceptance ratio of the MCMC chain
+#' }
+#'
+#' @details This function implements the Metropolis-Hastings algorithm for sampling
+#' from posterior distributions in non-conjugate Dirichlet process mixtures.
+#' Different mixing distributions may have specialized implementations.
+#'
+#' @references Metropolis, N., et al. (1953). Equation of state calculations by fast computing machines.
+#'             Journal of Chemical Physics, 21(6), 1087-1092.
+#'
 #' @export
 MetropolisHastings <- function(mixingDistribution, x, start_pos, no_draws=100){
   UseMethod("MetropolisHastings", mixingDistribution)

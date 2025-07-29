@@ -405,7 +405,7 @@ PosteriorParameters.mvnormal <- function(mdObj, x) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.mvnormal <- function(mdObj, n = 1) {
+PriorDraw.mvnormal <- function(mdObj, n = 1, ...) {
   if (using_cpp_samplers()) {
     return(mvnormal_prior_draw_cpp(mdObj$priorParameters, n))
   }
@@ -540,7 +540,7 @@ Predictive.mvnormal <- function(mdObj, x) {
 #' Get number of covariance parameters for a model
 #' @keywords internal
 getNumCovParams <- function(d, covModel) {
-  switch(covModel,
+  switch(EXPR = covModel,
          "E" = 1,
          "V" = 1,
          "EII" = 1,

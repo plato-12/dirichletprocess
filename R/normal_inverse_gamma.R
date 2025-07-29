@@ -22,7 +22,7 @@ Likelihood.normal <- function(mdObj, x, theta) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.normal <- function(mdObj, n = 1) {
+PriorDraw.normal <- function(mdObj, n = 1, ...) {
 
   priorParameters <- mdObj$priorParameters
 
