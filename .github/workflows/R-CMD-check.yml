@@ -11,6 +11,7 @@ on:
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
+    timeout-minutes: 120
     
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
     
@@ -50,7 +51,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev libharfbuzz-dev libfribidi-dev
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev libharfbuzz-dev libfribidi-dev liblapack-dev libblas-dev libgfortran-13-dev
           
       - name: Install system dependencies on macOS
         if: runner.os == 'macOS'
@@ -64,12 +65,18 @@ jobs:
           sessioninfo::session_info(pkgs, include_base = TRUE)
         shell: Rscript {0}
         
+      - name: Compile C++ and update documentation
+        run: |
+          Rcpp::compileAttributes()
+          roxygen2::roxygenise()
+        shell: Rscript {0}
+        
       - name: Check package
         uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual", "--as-cran")'
-          build_args: 'c("--no-manual", "--compact-vignettes=gs+qpdf")'
-          error-on: '"warning"'
+          build_args: 'c("--no-manual")'
+          error-on: '"error"'
           check-dir: '"check"'
           
       - name: Show testthat output

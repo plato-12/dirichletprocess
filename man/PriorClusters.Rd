@@ -10,7 +10,7 @@ PriorClusters(dpobj)
 \item{dpobj}{A Dirichlet process object}
 }
 \value{
-A list of weights and parameters of the prior distribution of the Dirichlet process
+A list of weights and parameters of the prior distribution of the Dirichcet process
 }
 \description{
 Draw prior clusters and weights from the Dirichlet process

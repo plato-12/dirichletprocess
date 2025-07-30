@@ -11,7 +11,7 @@
 }
 }
 \source{
-Gelman, A., Carlin, J. B., Stern, H. S., Dunson, D. B., Vehtari, A., & Rubin, D. B. (2013). Bayesian data analysis. CRC press.
+\url{http://www.stat.columbia.edu/~gelman/book/data/rats.asc}
 }
 \usage{
 rats

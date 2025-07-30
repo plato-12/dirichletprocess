@@ -18,11 +18,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Dean Markwick \email{dean.markwick@talk21.com}
+\strong{Maintainer}: Priyanshu Tiwari \email{tiwari.priyanshu.iitk@gmail.com} [contributor]
 
 Authors:
 \itemize{
   \item Gordon J. Ross \email{gordon@gordonjross.co.uk}
+  \item Dean Markwick \email{dean.markwick@talk21.com}
 }
 
 Other contributors:

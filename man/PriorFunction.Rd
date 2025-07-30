@@ -10,7 +10,7 @@ PriorFunction(dpobj)
 \item{dpobj}{A Dirichlet process object}
 }
 \value{
-A function f(x) that represents a draw from the prior distribution of the Dirichlet process.
+A function f(x) that represents a draw from the prior distrubtion of the Dirichlet process.
 
  @export
 }
