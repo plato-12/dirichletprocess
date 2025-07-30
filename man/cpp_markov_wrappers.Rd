@@ -8,16 +8,16 @@
 \alias{param_update.cpp}
 \title{C++ Implementation Wrappers for Markov DP (HMM)}
 \usage{
-\method{Fit}{markov.cpp}(dp, its, updatePrior = FALSE, progressBar = TRUE, ...)
+\method{Fit}{markov.cpp}(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...)
 
-UpdateStates.cpp(dp)
+UpdateStates.cpp(dpObj)
 
-UpdateAlphaBeta.cpp(dp)
+UpdateAlphaBeta.cpp(dpObj)
 
-param_update.cpp(dp)
+param_update.cpp(dpObj)
 }
 \arguments{
-\item{dp}{Markov Dirichlet process object}
+\item{dpObj}{Markov Dirichlet process object}
 
 \item{its}{Number of iterations}
 

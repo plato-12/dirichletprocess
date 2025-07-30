@@ -80,8 +80,6 @@ I’ve written a number of tutorials:
 -   [Calculating cluster
     probabilities](https://dm13450.github.io/2018/11/21/Cluster-Probabilities.html)
 -   [Clustering](https://dm13450.github.io/2018/05/30/Clustering.html)
--   [Point
-    processes](https://dm13450.github.io/2018/03/08/dirichletprocess-pointprocess.html)
 -   [Custom
     mixtures](https://dm13450.github.io/2018/02/21/Custom-Distributions-Conjugate.html)
 -   [Density

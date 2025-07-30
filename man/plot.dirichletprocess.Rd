@@ -40,7 +40,7 @@ Defaults to "black".}
 \item{data_method}{A string containing either "density" (default),
 "hist"/"histogram", or "none". Data is plotted according to this method.}
 
-\item{data_bw}{Bandwith to be passed either as the binwidth of
+\item{data_bw}{Bandwidth to be passed either as the binwidth of
 \code{geom_histogram}, or as the bw of \code{geom_density}.}
 
 \item{ci_size}{Numeric, the interval size to use. Defaults to .05.}

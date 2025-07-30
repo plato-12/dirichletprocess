@@ -8,7 +8,7 @@
 NULL
 
 #' @rdname cpp_hierarchical_beta_wrappers
-#' @param dpObj Hierarchical Dirichlet process object
+#' @param dpobjlist Hierarchical Dirichlet process object
 #' @param its Number of iterations
 #' @param updatePrior Whether to update prior parameters
 #' @param progressBar Whether to show progress bar
@@ -122,13 +122,13 @@ ClusterComponentUpdate.hierarchical.cpp <- function(dpObj) {
 
 #' @rdname cpp_hierarchical_beta_wrappers
 #' @export
-GlobalParameterUpdate.hierarchical.cpp <- function(dpObj) {
-  if (!inherits(dpObj, "hierarchical")) {
+GlobalParameterUpdate.hierarchical.cpp <- function(dpobjlist) {
+  if (!inherits(dpobjlist, "hierarchical")) {
     stop("This C++ implementation is only for hierarchical Dirichlet processes")
   }
 
   # Deep copy
-  dpObj_copy <- dpObj
+  dpObj_copy <- dpobjlist
 
   # Convert labels
   for (i in seq_along(dpObj_copy$indDP)) {

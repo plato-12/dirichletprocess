@@ -8,20 +8,20 @@
 NULL
 
 #' @rdname cpp_markov_wrappers
-#' @param dp Markov Dirichlet process object
+#' @param dpObj Markov Dirichlet process object
 #' @param its Number of iterations
 #' @param progressBar Whether to show progress bar
 #' @export
-Fit.markov.cpp <- function(dp, its, updatePrior = FALSE, progressBar = TRUE, ...) {
-  if (!inherits(dp, "markov")) {
+Fit.markov.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
+  if (!inherits(dpObj, "markov")) {
     stop("This C++ implementation is only for Markov Dirichlet processes")
   }
 
   # Convert 1-indexed R states to 0-indexed C++ states
-  dp$states <- dp$states - 1
+  dpObj$states <- dpObj$states - 1
 
   # Call C++ implementation
-  result <- markov_dp_fit_cpp(dp, its, updatePrior, progressBar)
+  result <- markov_dp_fit_cpp(dpObj, its, updatePrior, progressBar)
 
   # Convert back to 1-indexed
   result$states <- result$states + 1
@@ -34,16 +34,16 @@ Fit.markov.cpp <- function(dp, its, updatePrior = FALSE, progressBar = TRUE, ...
 
 #' @rdname cpp_markov_wrappers
 #' @export
-UpdateStates.cpp <- function(dp) {
-  if (!inherits(dp, "markov")) {
+UpdateStates.cpp <- function(dpObj) {
+  if (!inherits(dpObj, "markov")) {
     stop("This C++ implementation is only for Markov Dirichlet processes")
   }
 
   # Convert states
-  dp$states <- dp$states - 1
+  dpObj$states <- dpObj$states - 1
 
   # Call C++ implementation
-  result <- markov_dp_update_states_cpp(dp)
+  result <- markov_dp_update_states_cpp(dpObj)
 
   # Convert back
   result$states <- result$states + 1
@@ -56,48 +56,48 @@ UpdateStates.cpp <- function(dp) {
 
 #' @rdname cpp_markov_wrappers
 #' @export
-UpdateAlphaBeta.cpp <- function(dp) {
-  if (!inherits(dp, "markov")) {
+UpdateAlphaBeta.cpp <- function(dpObj) {
+  if (!inherits(dpObj, "markov")) {
     stop("This C++ implementation is only for Markov Dirichlet processes")
   }
 
   # Convert states
-  dp$states <- dp$states - 1
+  dpObj$states <- dpObj$states - 1
 
   # Call C++ implementation
-  result <- markov_dp_update_alpha_beta_cpp(dp)
+  result <- markov_dp_update_alpha_beta_cpp(dpObj)
 
   # Convert back
   result$states <- result$states + 1
 
   # Extract alpha and beta
-  dp$alpha <- result$alpha
-  dp$beta <- result$beta
+  dpObj$alpha <- result$alpha
+  dpObj$beta <- result$beta
 
-  return(dp)
+  return(dpObj)
 }
 
 #' @rdname cpp_markov_wrappers
 #' @export
-param_update.cpp <- function(dp) {
-  if (!inherits(dp, "markov")) {
+param_update.cpp <- function(dpObj) {
+  if (!inherits(dpObj, "markov")) {
     stop("This C++ implementation is only for Markov Dirichlet processes")
   }
 
   # Convert states
-  dp$states <- dp$states - 1
+  dpObj$states <- dpObj$states - 1
 
   # Call C++ implementation
-  result <- markov_dp_param_update_cpp(dp)
+  result <- markov_dp_param_update_cpp(dpObj)
 
   # Convert back
   result$states <- result$states + 1
 
   # Update dp with new parameters
-  dp$uniqueParams <- result$uniqueParams
-  dp$params <- result$params
+  dpObj$uniqueParams <- result$uniqueParams
+  dpObj$params <- result$params
 
-  return(dp)
+  return(dpObj)
 }
 
 #' Enable C++ implementations for Markov DP samplers

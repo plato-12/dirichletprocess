@@ -14,7 +14,7 @@
 
 \method{ClusterComponentUpdate}{hierarchical.cpp}(dpObj)
 
-\method{GlobalParameterUpdate}{hierarchical.cpp}(dpObj)
+\method{GlobalParameterUpdate}{hierarchical.cpp}(dpobjlist)
 
 UpdateG0.cpp(dpObj)
 
@@ -32,13 +32,13 @@ HierarchicalBetaCreate.cpp(
 )
 }
 \arguments{
-\item{dpObj}{Hierarchical Dirichlet process object}
-
 \item{its}{Number of iterations}
 
 \item{updatePrior}{Whether to update prior parameters}
 
 \item{progressBar}{Whether to show progress bar}
+
+\item{dpobjlist}{Hierarchical Dirichlet process object}
 }
 \description{
 These functions provide access to the C++ implementations of the
