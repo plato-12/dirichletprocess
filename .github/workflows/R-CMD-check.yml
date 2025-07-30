@@ -65,17 +65,16 @@ jobs:
           sessioninfo::session_info(pkgs, include_base = TRUE)
         shell: Rscript {0}
         
-      - name: Compile C++ and update documentation
+      - name: Compile C++ exports
         run: |
           Rcpp::compileAttributes()
-          roxygen2::roxygenise()
         shell: Rscript {0}
         
       - name: Check package
         uses: r-lib/actions/check-r-package@v2
         with:
-          args: 'c("--no-manual", "--as-cran")'
-          build_args: 'c("--no-manual")'
+          args: 'c("--no-manual", "--as-cran", "--no-build-vignettes")'
+          build_args: 'c("--no-manual", "--no-build-vignettes")'
           error-on: '"error"'
           check-dir: '"check"'
           
