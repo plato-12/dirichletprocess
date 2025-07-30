@@ -406,6 +406,24 @@ nonconjugate_mvnormal2_update_alpha_cpp <- function(dpObj) {
     .Call(`_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp`, dpObj)
 }
 
+#' @title Conjugate MVNormal Cluster Component Update (C++)
+#' @description Update cluster components for conjugate multivariate normal Dirichlet process
+#' @param dpObj Dirichlet process object as list
+#' @return Updated Dirichlet process object
+#' @export
+conjugate_mvnormal_cluster_component_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp`, dpObj)
+}
+
+#' @title Conjugate MVNormal Cluster Parameter Update (C++)
+#' @description Update cluster parameters for conjugate multivariate normal Dirichlet process
+#' @param dpObj Dirichlet process object as list
+#' @return Updated cluster parameters
+#' @export
+conjugate_mvnormal_cluster_parameter_update_cpp <- function(dpObj) {
+    .Call(`_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp`, dpObj)
+}
+
 mvnormal_log_likelihood_cpp <- function(x, mu, Sigma) {
     .Call(`_dirichletprocess_mvnormal_log_likelihood_cpp`, x, mu, Sigma)
 }

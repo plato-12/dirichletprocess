@@ -1059,18 +1059,29 @@ Rcpp::List ConjugateMVNormalDP::updateClusterParameters() {
   return clusterParameters;
 }
 
-// Export functions
+} // namespace dp
+
+// Export functions (must be outside namespace for Rcpp)
+//' @title Conjugate MVNormal Cluster Component Update (C++)
+//' @description Update cluster components for conjugate multivariate normal Dirichlet process
+//' @param dpObj Dirichlet process object as list
+//' @return Updated Dirichlet process object
+//' @export
+// [[Rcpp::export]]
 Rcpp::List conjugate_mvnormal_cluster_component_update_cpp(const Rcpp::List& dpObj) {
-  ConjugateMVNormalDP dp;
+  dp::ConjugateMVNormalDP dp;
   dp.initialize(dpObj);
   return dp.updateClusterComponents();
 }
 
+//' @title Conjugate MVNormal Cluster Parameter Update (C++)
+//' @description Update cluster parameters for conjugate multivariate normal Dirichlet process
+//' @param dpObj Dirichlet process object as list
+//' @return Updated cluster parameters
+//' @export
+// [[Rcpp::export]]
 Rcpp::List conjugate_mvnormal_cluster_parameter_update_cpp(const Rcpp::List& dpObj) {
-  ConjugateMVNormalDP dp;
+  dp::ConjugateMVNormalDP dp;
   dp.initialize(dpObj);
   return dp.updateClusterParameters();
 }
-
-
-} // namespace dp

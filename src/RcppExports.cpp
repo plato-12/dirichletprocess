@@ -578,6 +578,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// conjugate_mvnormal_cluster_component_update_cpp
+Rcpp::List conjugate_mvnormal_cluster_component_update_cpp(const Rcpp::List& dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_cluster_component_update_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
+// conjugate_mvnormal_cluster_parameter_update_cpp
+Rcpp::List conjugate_mvnormal_cluster_parameter_update_cpp(const Rcpp::List& dpObj);
+RcppExport SEXP _dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp(SEXP dpObjSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type dpObj(dpObjSEXP);
+    rcpp_result_gen = Rcpp::wrap(conjugate_mvnormal_cluster_parameter_update_cpp(dpObj));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mvnormal_log_likelihood_cpp
 arma::vec mvnormal_log_likelihood_cpp(arma::mat x, arma::vec mu, arma::mat Sigma);
 RcppExport SEXP _dirichletprocess_mvnormal_log_likelihood_cpp(SEXP xSEXP, SEXP muSEXP, SEXP SigmaSEXP) {
@@ -1304,6 +1326,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dirichletprocess_hierarchical_mvnormal2_fit_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_fit_cpp, 4},
     {"_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp", (DL_FUNC) &_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp, 5},
     {"_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp", (DL_FUNC) &_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp, 1},
+    {"_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp, 1},
+    {"_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp", (DL_FUNC) &_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp, 1},
     {"_dirichletprocess_mvnormal_log_likelihood_cpp", (DL_FUNC) &_dirichletprocess_mvnormal_log_likelihood_cpp, 3},
     {"_dirichletprocess_markov_dp_create_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_create_cpp, 1},
     {"_dirichletprocess_markov_dp_fit_cpp", (DL_FUNC) &_dirichletprocess_markov_dp_fit_cpp, 4},

@@ -68,7 +68,7 @@ can_use_cpp <- function(dp_obj = NULL) {
   }
 
   # Supported types for unified MCMCRunner
-  supported_types <- c("normal_inverse_gamma", "normal", "beta",
+  supported_types <- c("normal_inverse_gamma", "normal", "normalFixedVariance", "beta", "beta2",
                        "weibull", "exponential", "mvnormal", "mvnormal2")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
