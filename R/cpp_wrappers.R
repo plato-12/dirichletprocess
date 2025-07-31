@@ -104,10 +104,5 @@ enable_cpp_normal_samplers <- function(use_cpp = TRUE) {
   invisible(use_cpp)
 }
 
-#' Check if C++ samplers are enabled
-#'
-#' @return Logical indicating if C++ samplers are enabled
-#' @export
-using_cpp_samplers <- function() {
-  getOption("dirichletprocess.use_cpp_samplers", FALSE)
-}
+# Note: using_cpp_samplers() function is now defined in cpp_interface.R
+# to properly handle the unified MCMC runner detection

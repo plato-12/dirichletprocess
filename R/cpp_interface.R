@@ -144,13 +144,20 @@ prepare_mixing_dist_params <- function(dp_obj) {
     # Extract MVNormal parameters
     if (!is.null(md$priorParameters)) {
       pp <- md$priorParameters
-      list(
+      params <- list(
         type = "mvnormal",
         mu0 = as.numeric(pp$mu0),
         kappa0 = as.numeric(pp$kappa0),
         Lambda = as.matrix(pp$Lambda),
         nu = as.numeric(pp$nu)
       )
+      
+      # Add covariance model if specified
+      if (!is.null(pp$covModel)) {
+        params$covModel = as.character(pp$covModel)
+      }
+      
+      return(params)
     } else {
       stop("MVNormal mixing distribution missing prior parameters")
     }
@@ -290,11 +297,11 @@ using_cpp_samplers <- function() {
   # Check if forced via options
   force_cpp <- getOption("dirichletprocess.force_cpp_samplers", FALSE)
   if (force_cpp) {
-    return(using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns, mode = "function"))
+    return(using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns))
   }
   
-  # Default behavior
-  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns, mode = "function")
+  # Default behavior - check for existence of the compiled C++ function
+  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns)
 }
 
 #' Check if using hierarchical C++ samplers

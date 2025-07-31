@@ -3,6 +3,7 @@
 #include "gaussian_mixing.h"
 #include "beta_mixing.h"
 #include "mvnormal_mixing.h"
+#include "mvnormal_covariance_mixing.h"
 #include "weibull_mixing.h"
 #include "exponential_mixing.h"
 #include "hierarchical_beta_mixing.h"
@@ -65,9 +66,22 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
     double kappa0 = Rcpp::as<double>(params["kappa0"]);
     arma::mat Lambda = Rcpp::as<arma::mat>(params["Lambda"]);
     double nu = Rcpp::as<double>(params["nu"]);
-
-    return std::unique_ptr<MixingDistribution>(
-      new MVNormalMixing(mu0, kappa0, Lambda, nu));
+    
+    // Check if covariance model is specified
+    std::string covModel = "FULL"; // Default
+    if (params.containsElementNamed("covModel")) {
+      covModel = Rcpp::as<std::string>(params["covModel"]);
+    }
+    
+    // Use enhanced covariance mixing distribution if covariance model is specified
+    if (covModel != "FULL" || params.containsElementNamed("covModel")) {
+      return std::unique_ptr<MixingDistribution>(
+        new MVNormalCovarianceMixing(mu0, kappa0, Lambda, nu, covModel));
+    } else {
+      // Use original for backward compatibility
+      return std::unique_ptr<MixingDistribution>(
+        new MVNormalMixing(mu0, kappa0, Lambda, nu));
+    }
   } else if (type == "weibull") {
     double phi = Rcpp::as<double>(params["phi"]);
     double alpha0 = Rcpp::as<double>(params["alpha0"]);
