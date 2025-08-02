@@ -81,16 +81,22 @@ arma::vec MVNormalCovarianceMixing::prior_draw() const {
   arma::vec sig(nCovParams);
   
   if (covModel == "FULL") {
-    // Full precision matrix
+    // Full precision matrix with bounds checking
     for (int i = 0; i < d; i++) {
       for (int j = 0; j < d; j++) {
-        sig(i * d + j) = sig_array[i + j * d]; // Column-major order
+        int array_idx = i + j * d;
+        int sig_idx = i * d + j;
+        if (array_idx < sig_array.size() && sig_idx < sig.n_elem) {
+          sig(sig_idx) = sig_array[array_idx]; // Column-major order
+        }
       }
     }
   } else {
-    // Covariance model parameters
-    for (int i = 0; i < nCovParams; i++) {
-      sig(i) = sig_array[i];
+    // Covariance model parameters with bounds checking
+    for (int i = 0; i < nCovParams && i < sig_array.size(); i++) {
+      if (i < static_cast<int>(sig.n_elem)) {
+        sig(i) = sig_array[i];
+      }
     }
   }
   
@@ -116,52 +122,74 @@ arma::vec MVNormalCovarianceMixing::flattenParams(const arma::vec& mu, const arm
   arma::vec params(param_dim());
   
   // First d elements are the mean
-  params.subvec(0, d-1) = mu;
+  if (d > 0) {
+    params.subvec(0, d-1) = mu;
+  }
   
   // Remaining elements are the covariance parameters
   int nCovParams = sig.n_elem;
-  params.subvec(d, d + nCovParams - 1) = sig;
+  if (nCovParams > 0) {
+    params.subvec(d, d + nCovParams - 1) = sig;
+  }
   
   return params;
 }
 
 void MVNormalCovarianceMixing::unflattenParams(const arma::vec& params, 
                                                arma::vec& mu, arma::vec& sig) const {
-  // Extract mean
-  mu = params.subvec(0, d-1);
+  // Extract mean with bounds checking
+  if (d > 0 && params.n_elem >= d) {
+    mu = params.subvec(0, d-1);
+  } else {
+    mu.set_size(d);
+    mu.zeros();
+  }
   
-  // Extract covariance parameters
+  // Extract covariance parameters with bounds checking
   int nCovParams = mvn_dist->getNumCovParams(d);
-  sig = params.subvec(d, d + nCovParams - 1);
+  if (nCovParams > 0 && params.n_elem >= d + nCovParams) {
+    sig = params.subvec(d, d + nCovParams - 1);
+  } else {
+    sig.set_size(nCovParams);
+    sig.zeros();
+  }
 }
 
 Rcpp::List MVNormalCovarianceMixing::createClusterParameters(const arma::vec& mu, 
                                                              const arma::vec& sig) const {
   // Create arrays in the format expected by MVNormalMixingDistribution
   
-  // Create mu array (1 x d x 1)
+  // Create mu array (1 x d x 1) with bounds checking
   Rcpp::NumericVector mu_array = Rcpp::NumericVector(Rcpp::Dimension(1, d, 1));
-  for (int i = 0; i < d; i++) {
-    mu_array[i] = mu(i);
+  for (int i = 0; i < d && i < mu_array.size(); i++) {
+    if (i < static_cast<int>(mu.n_elem)) {
+      mu_array[i] = mu(i);
+    }
   }
   
   // Create sig array based on covariance model
   Rcpp::NumericVector sig_array;
   
   if (covModel == "FULL") {
-    // Full precision matrix (d x d x 1)
+    // Full precision matrix (d x d x 1) with bounds checking
     sig_array = Rcpp::NumericVector(Rcpp::Dimension(d, d, 1));
     for (int i = 0; i < d; i++) {
       for (int j = 0; j < d; j++) {
-        sig_array[i + j * d] = sig(i * d + j);
+        int array_idx = i + j * d;
+        int sig_idx = i * d + j;
+        if (array_idx < sig_array.size() && sig_idx < static_cast<int>(sig.n_elem)) {
+          sig_array[array_idx] = sig(sig_idx);
+        }
       }
     }
   } else {
-    // Covariance model parameters (nParams x 1)
+    // Covariance model parameters (nParams x 1) with bounds checking
     int nCovParams = sig.n_elem;
     sig_array = Rcpp::NumericVector(Rcpp::Dimension(nCovParams, 1));
-    for (int i = 0; i < nCovParams; i++) {
-      sig_array[i] = sig(i);
+    for (int i = 0; i < nCovParams && i < sig_array.size(); i++) {
+      if (i < static_cast<int>(sig.n_elem)) {
+        sig_array[i] = sig(i);
+      }
     }
   }
   

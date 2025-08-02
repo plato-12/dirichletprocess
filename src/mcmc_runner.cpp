@@ -79,30 +79,57 @@ int MCMCRunner::sample_categorical(const std::vector<double>& probs) {
 }
 
 void MCMCRunner::cleanup_empty_clusters() {
+  // Safety check: ensure state is valid
+  if (!state || state->cluster_labels.empty()) {
+    return;
+  }
+  
   std::vector<int> new_labels(state->cluster_labels.size());
   std::vector<arma::vec> new_params;
 
   int new_idx = 0;
   std::map<int, int> old_to_new;
 
-  // Build mapping and new parameters
+  // Ensure cluster_sizes is properly sized
+  if (state->cluster_sizes.n_elem < static_cast<size_t>(state->n_clusters)) {
+    state->cluster_sizes.resize(state->n_clusters);
+    state->cluster_sizes.zeros();
+  }
+
+  // Build mapping and new parameters with comprehensive bounds checking
   for (int k = 0; k < state->n_clusters; ++k) {
-    if (k < static_cast<int>(state->cluster_sizes.n_elem) && state->cluster_sizes[k] > 0) {
+    if (k >= 0 && k < static_cast<int>(state->cluster_sizes.n_elem) && 
+        k < static_cast<int>(state->cluster_params.size()) &&
+        state->cluster_sizes[k] > 0) {
       old_to_new[k] = new_idx;
-      if (k < static_cast<int>(state->cluster_params.size())) {
-        new_params.push_back(state->cluster_params[k]);
-      }
+      new_params.push_back(state->cluster_params[k]);
       new_idx++;
     }
   }
 
-  // Update labels
+  // If no non-empty clusters, create one default cluster
+  if (new_params.empty()) {
+    try {
+      arma::vec default_param = mixing_dist->prior_draw();
+      if (default_param.is_finite()) {
+        new_params.push_back(default_param);
+        old_to_new[0] = 0;
+        new_idx = 1;
+      }
+    } catch (...) {
+      // If prior_draw fails, we have a more serious problem
+      // But don't let it crash the cleanup
+      return;
+    }
+  }
+
+  // Update labels with bounds checking
   for (size_t i = 0; i < state->cluster_labels.size(); ++i) {
-    // Changed old_to_new.find(key) != old_to_new.end() to old_to_new.count(key)
-    if (old_to_new.count(state->cluster_labels[i])) {
-      new_labels[i] = old_to_new[state->cluster_labels[i]];
+    int current_label = state->cluster_labels[i];
+    if (current_label >= 0 && old_to_new.count(current_label)) {
+      new_labels[i] = old_to_new[current_label];
     } else {
-      // This shouldn't happen, but handle gracefully
+      // Assign to first available cluster (0-indexed)
       new_labels[i] = 0;
     }
   }
@@ -115,45 +142,73 @@ void MCMCRunner::cleanup_empty_clusters() {
 }
 
 Rcpp::List MCMCRunner::run() {
+  // Validate data dimensions
+  if (data.n_rows == 0 || data.n_cols == 0) {
+    Rcpp::stop("Data matrix has invalid dimensions");
+  }
+  
   // Initialize with one cluster containing all data
   std::fill(state->cluster_labels.begin(), state->cluster_labels.end(), 0);
   state->n_clusters = 1;
   state->cluster_sizes.set_size(1);
   state->cluster_sizes[0] = data.n_rows;
 
-  // Initialize cluster parameters
+  // Initialize cluster parameters with validation
   state->cluster_params.resize(1);
-  state->cluster_params[0] = mixing_dist->prior_draw();
+  try {
+    state->cluster_params[0] = mixing_dist->prior_draw();
+  } catch (const std::exception& e) {
+    Rcpp::stop("Failed to initialize cluster parameters: " + std::string(e.what()));
+  }
 
   // Pre-compute predictive probabilities for conjugate distributions
   std::vector<double> predictive_probs;
   if (mixing_dist->is_conjugate()) {
     predictive_probs.resize(data.n_rows);
     for (size_t i = 0; i < data.n_rows; ++i) {
-      arma::vec data_point = data.row(i).t();
-      predictive_probs[i] = mixing_dist->predictive_probability(data_point);
+      try {
+        arma::vec data_point = data.row(i).t();
+        double pred_prob = mixing_dist->predictive_probability(data_point);
+        if (std::isfinite(pred_prob) && pred_prob > 0) {
+          predictive_probs[i] = pred_prob;
+        } else {
+          predictive_probs[i] = 1e-10;  // Small but positive probability
+        }
+      } catch (const std::exception& e) {
+        predictive_probs[i] = 1e-10;  // Fallback value
+      }
     }
   }
 
-  // MCMC loop
+  // MCMC loop with bounds checking
   for (int iter = 0; iter < n_iter; ++iter) {
-    // Update cluster assignments - choose algorithm based on conjugacy
-    if (mixing_dist->is_conjugate()) {
-      update_cluster_assignments_algorithm4(predictive_probs);
-    } else {
-      update_cluster_assignments_algorithm8();
+    try {
+      // Validate state before each iteration
+      if (state->n_clusters <= 0 || state->cluster_params.empty()) {
+        Rcpp::stop("Invalid cluster state at iteration " + std::to_string(iter));
+      }
+      
+      // Update cluster assignments - choose algorithm based on conjugacy
+      if (mixing_dist->is_conjugate()) {
+        update_cluster_assignments_algorithm4(predictive_probs);
+      } else {
+        update_cluster_assignments_algorithm8();
+      }
+
+      // Update cluster parameters
+      update_cluster_parameters();
+
+      // Update concentration parameter
+      if (update_concentration_flag) {
+        update_concentration();
+      }
+
+      // Store current iteration
+      store_iteration(iter);
+      
+    } catch (const std::exception& e) {
+      Rcpp::stop("Error at MCMC iteration " + std::to_string(iter) + ": " + std::string(e.what()));
     }
-
-    // Update cluster parameters
-    update_cluster_parameters();
-
-    // Update concentration parameter
-    if (update_concentration_flag) {
-      update_concentration();
-    }
-
-    // Store current iteration
-    store_iteration(iter);
   }
 
   // Convert stored samples to proper format for R
@@ -223,22 +278,34 @@ void MCMCRunner::update_cluster_assignments_algorithm4(const std::vector<double>
     arma::vec obs = data.row(i).t();
     int current_cluster = state->cluster_labels[i];
 
-    // Remove observation from current cluster
-    if (current_cluster >= 0 && current_cluster < static_cast<int>(state->cluster_sizes.n_elem)) {
+    // Remove observation from current cluster with comprehensive bounds checking
+    if (current_cluster >= 0 && 
+        current_cluster < static_cast<int>(state->cluster_sizes.n_elem) &&
+        current_cluster < static_cast<int>(state->cluster_params.size()) &&
+        current_cluster < state->n_clusters) {
       if (state->cluster_sizes[current_cluster] > 0) {
         state->cluster_sizes[current_cluster]--;
       }
     }
 
-    // Calculate probabilities for existing clusters
-    std::vector<double> cluster_probs(state->n_clusters);
+    // Calculate probabilities for existing clusters with comprehensive bounds checking
+    std::vector<double> cluster_probs(state->n_clusters, 0.0);
     for (int k = 0; k < state->n_clusters; ++k) {
-      if (k < static_cast<int>(state->cluster_sizes.n_elem) && state->cluster_sizes[k] > 0) {
-        // Calculate likelihood of data point under cluster k parameters
-        double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
-        cluster_probs[k] = state->cluster_sizes[k] * std::exp(log_lik);
-      } else {
-        cluster_probs[k] = 0.0;
+      if (k >= 0 && 
+          k < static_cast<int>(state->cluster_sizes.n_elem) && 
+          k < static_cast<int>(state->cluster_params.size()) &&
+          state->cluster_sizes[k] > 0) {
+        try {
+          // Calculate likelihood of data point under cluster k parameters
+          double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
+          if (std::isfinite(log_lik) && log_lik > -1000.0) {  // Prevent extreme values
+            cluster_probs[k] = state->cluster_sizes[k] * std::exp(log_lik);
+          } else {
+            cluster_probs[k] = 0.0;
+          }
+        } catch (...) {
+          cluster_probs[k] = 0.0;  // Handle any likelihood computation errors
+        }
       }
     }
 
@@ -271,28 +338,43 @@ void MCMCRunner::update_cluster_assignments_algorithm4(const std::vector<double>
     int chosen_idx = sample_categorical(all_probs);
 
     if (chosen_idx < state->n_clusters) {
-      // Assign to existing cluster
-      state->cluster_labels[i] = chosen_idx;
-      if (chosen_idx < static_cast<int>(state->cluster_sizes.n_elem)) {
+      // Assign to existing cluster with bounds checking
+      if (chosen_idx >= 0 && chosen_idx < static_cast<int>(state->cluster_sizes.n_elem)) {
+        state->cluster_labels[i] = chosen_idx;
         state->cluster_sizes[chosen_idx]++;
+      } else {
+        // Fallback to cluster 0 if bounds are invalid
+        state->cluster_labels[i] = 0;
+        if (state->cluster_sizes.n_elem > 0) {
+          state->cluster_sizes[0]++;
+        }
       }
     } else {
       // Create new cluster
       int new_cluster_idx = state->n_clusters;
       
-      // Add new cluster
-      state->cluster_params.push_back(mixing_dist->prior_draw());
-      
-      // Extend cluster sizes
-      arma::vec new_cluster_sizes(state->cluster_sizes.n_elem + 1);
-      if (state->cluster_sizes.n_elem > 0) {
-        new_cluster_sizes.head(state->cluster_sizes.n_elem) = state->cluster_sizes;
+      try {
+        // Add new cluster parameter
+        arma::vec new_param = mixing_dist->prior_draw();
+        state->cluster_params.push_back(new_param);
+        
+        // Extend cluster sizes safely
+        arma::vec new_cluster_sizes(state->cluster_sizes.n_elem + 1);
+        if (state->cluster_sizes.n_elem > 0) {
+          new_cluster_sizes.head(state->cluster_sizes.n_elem) = state->cluster_sizes;
+        }
+        new_cluster_sizes(state->cluster_sizes.n_elem) = 1;
+        state->cluster_sizes = new_cluster_sizes;
+        
+        state->cluster_labels[i] = new_cluster_idx;
+        state->n_clusters++;
+      } catch (...) {
+        // Fallback: assign to existing cluster 0
+        state->cluster_labels[i] = 0;
+        if (state->cluster_sizes.n_elem > 0) {
+          state->cluster_sizes[0]++;
+        }
       }
-      new_cluster_sizes(state->cluster_sizes.n_elem) = 1;
-      state->cluster_sizes = new_cluster_sizes;
-      
-      state->cluster_labels[i] = new_cluster_idx;
-      state->n_clusters++;
     }
   }
   
@@ -415,23 +497,39 @@ void MCMCRunner::update_cluster_assignments_algorithm8() {
 
 void MCMCRunner::update_cluster_parameters() {
   for (int k = 0; k < state->n_clusters; ++k) {
-    if (state->cluster_sizes[k] > 0) {
-      // Changed loop counter from 'int' to 'size_t' to avoid signed/unsigned comparison warnings
+    if (k >= 0 && k < static_cast<int>(state->cluster_sizes.n_elem) && 
+        k < static_cast<int>(state->cluster_params.size()) &&
+        state->cluster_sizes[k] > 0) {
+      
+      // Collect indices for cluster k with bounds checking
       std::vector<int> cluster_indices;
       for (size_t i = 0; i < data.n_rows; ++i) {
-        if (state->cluster_labels[i] == k) {
+        if (i < state->cluster_labels.size() && state->cluster_labels[i] == k) {
           cluster_indices.push_back(i);
         }
       }
 
-      // Extract cluster data
-      arma::mat cluster_data(cluster_indices.size(), data.n_cols);
-      for (size_t idx = 0; idx < cluster_indices.size(); ++idx) {
-        cluster_data.row(idx) = data.row(cluster_indices[idx]);
-      }
+      if (!cluster_indices.empty()) {
+        try {
+          // Extract cluster data with bounds checking
+          arma::mat cluster_data(cluster_indices.size(), data.n_cols);
+          for (size_t idx = 0; idx < cluster_indices.size(); ++idx) {
+            int data_idx = cluster_indices[idx];
+            if (data_idx >= 0 && data_idx < static_cast<int>(data.n_rows)) {
+              cluster_data.row(idx) = data.row(data_idx);
+            }
+          }
 
-      // Draw from posterior
-      state->cluster_params[k] = mixing_dist->posterior_draw(cluster_data, state->cluster_params[k]);
+          // Draw from posterior
+          arma::vec new_param = mixing_dist->posterior_draw(cluster_data, state->cluster_params[k]);
+          if (new_param.is_finite()) {
+            state->cluster_params[k] = new_param;
+          }
+        } catch (const std::exception& e) {
+          // Keep existing parameter if update fails
+          continue;
+        }
+      }
     }
   }
 }

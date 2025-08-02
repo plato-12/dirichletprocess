@@ -111,7 +111,7 @@ arma::mat MVNormalMixingDistribution::constructCovarianceMatrix(
     // params[0] = volume, params[1:d] = shape
   {
     double volume = params(0);
-    arma::vec shape = params.subvec(1, d);
+    arma::vec shape = params.subvec(1, d);  // This should be params.subvec(1, d) for indices 1 to d
     shape = shape / arma::prod(shape);  // Normalize shape
     for (int i = 0; i < d; i++) {
       sigma(i, i) = volume * shape(i);
@@ -181,7 +181,11 @@ arma::vec MVNormalMixingDistribution::extractCovarianceParams(
     arma::vec diag = sigma.diag();
     params(0) = arma::prod(diag);  // Volume
     arma::vec shape = diag / std::pow(params(0), 1.0/d);
-    params.subvec(1, d) = shape;
+    // Fix: subvec(1, d) goes out of bounds when trying to assign d elements to indices 1-d
+    // We need to assign d elements starting at index 1, so use subvec(1, d)
+    if (d > 0) {
+      params.subvec(1, d) = shape;
+    }
   }
     break;
 

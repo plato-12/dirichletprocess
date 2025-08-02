@@ -23,9 +23,58 @@ enum class CovarianceModel {
   VVI      // Diagonal, varying volume and shape
 };
 
-// Helper function to ensure matrix symmetry
+// Helper function to ensure matrix symmetry with numerical stability
 inline arma::mat ensureSymmetric(const arma::mat& M) {
-  return 0.5 * (M + M.t());
+  if (M.n_rows != M.n_cols) {
+    Rcpp::stop("Matrix must be square to ensure symmetry");
+  }
+  
+  // Check if already symmetric within tolerance to avoid unnecessary operations
+  double max_asymmetry = arma::abs(M - M.t()).max();
+  if (max_asymmetry < 1e-10) {  // Stricter tolerance to prevent warnings
+    return M;  // Already symmetric enough
+  }
+  
+  arma::mat symmetric = 0.5 * (M + M.t());
+  
+  // Check for NaN or infinite values
+  if (!symmetric.is_finite()) {
+    symmetric = arma::eye<arma::mat>(M.n_rows, M.n_cols);
+    return symmetric;
+  }
+  
+  // Ensure positive definiteness by regularization if needed
+  // Use less expensive method: check diagonal elements first
+  bool needs_regularization = false;
+  for (arma::uword i = 0; i < symmetric.n_rows; ++i) {
+    if (symmetric(i, i) <= 1e-10) {  // Stricter threshold
+      needs_regularization = true;
+      break;
+    }
+  }
+  
+  if (needs_regularization) {
+    // Try Cholesky decomposition first (faster than eigendecomposition)
+    arma::mat L;
+    bool is_pd = arma::chol(L, symmetric);
+    if (!is_pd) {
+      // Fall back to eigenvalue regularization
+      arma::vec eigenvals;
+      arma::mat eigenvecs;
+      if (arma::eig_sym(eigenvals, eigenvecs, symmetric)) {
+        double min_eigenval = eigenvals.min();
+        if (min_eigenval <= 1e-10) {  // Stricter eigenvalue threshold
+          double regularization = std::max(1e-8, -min_eigenval + 1e-8);  // Larger regularization
+          symmetric += regularization * arma::eye<arma::mat>(M.n_rows, M.n_cols);
+        }
+      } else {
+        // Eigendecomposition failed, use simple regularization
+        symmetric += 1e-8 * arma::eye<arma::mat>(M.n_rows, M.n_cols);
+      }
+    }
+  }
+  
+  return symmetric;
 }
 
 class MVNormalMixingDistribution : public MixingDistribution {

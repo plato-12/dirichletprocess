@@ -73,12 +73,12 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
       covModel = Rcpp::as<std::string>(params["covModel"]);
     }
     
-    // Use enhanced covariance mixing distribution if covariance model is specified
-    if (covModel != "FULL" || params.containsElementNamed("covModel")) {
+    // Use enhanced covariance mixing distribution only for non-FULL models
+    if (covModel != "FULL") {
       return std::unique_ptr<MixingDistribution>(
         new MVNormalCovarianceMixing(mu0, kappa0, Lambda, nu, covModel));
     } else {
-      // Use original for backward compatibility
+      // Use original MVNormalMixing for FULL model (more stable)
       return std::unique_ptr<MixingDistribution>(
         new MVNormalMixing(mu0, kappa0, Lambda, nu));
     }

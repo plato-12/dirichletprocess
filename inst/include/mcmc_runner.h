@@ -49,6 +49,9 @@ public:
   MCMCRunner(const arma::mat& data,
              const Rcpp::List& mixing_dist_params,
              const Rcpp::List& mcmc_params);
+  
+  // Virtual destructor to ensure proper cleanup
+  virtual ~MCMCRunner() = default;
 
   // Main MCMC loop
   Rcpp::List run();
