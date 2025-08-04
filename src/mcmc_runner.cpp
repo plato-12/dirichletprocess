@@ -262,6 +262,7 @@ Rcpp::List MCMCRunner::run() {
     Rcpp::Named("labels_chain") = labels_matrix,
     Rcpp::Named("alpha_chain") = alpha_vector,
     Rcpp::Named("theta_chain") = theta_list,
+    Rcpp::Named("cluster_params") = theta_list,  // Add this for R compatibility
     Rcpp::Named("n_clusters") = n_clusters_vector,
     Rcpp::Named("likelihood_chain") = likelihood_vector,
     Rcpp::Named("cluster_labels") = labels_chain,
