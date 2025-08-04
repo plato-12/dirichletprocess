@@ -72,7 +72,7 @@ ClusterParameterUpdate.hierarchical <- function(dpObj) {
 #' @rdname ClusterParameterUpdate
 ClusterParameterUpdate.nonconjugate <- function(dpObj) {
 
-  if ((inherits(dpObj, "beta") || inherits(dpObj, "beta2")) && using_cpp_samplers()) {
+  if (inherits(dpObj, "beta") && using_cpp_samplers()) {
     cpp_result <- nonconjugate_beta_cluster_parameter_update_cpp(dpObj)
     if (!is.null(cpp_result)) {
       dpObj$clusterParameters <- cpp_result

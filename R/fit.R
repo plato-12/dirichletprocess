@@ -163,9 +163,27 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
       dpObj$likelihoodChain <- results$likelihoodChain
 
       # Extract final cluster parameters
-      if (!is.null(results$cluster_params)) {
-        final_params <- results$cluster_params[[length(results$cluster_params)]]
-        dpObj$clusterParameters <- final_params
+      if (!is.null(results$theta_chain)) {
+        final_params <- results$theta_chain[[length(results$theta_chain)]]
+        
+        # Convert parameter format for beta and beta2 distributions
+        if (inherits(dpObj, "beta") || inherits(dpObj, "beta2")) {
+          # C++ returns list(cluster1=c(mu1,nu1), cluster2=c(mu2,nu2), ...)
+          # R expects list(mu=array(mu1,mu2,...), nu=array(nu1,nu2,...))
+          n_clusters <- length(final_params)
+          if (n_clusters > 0) {
+            mu_vals <- sapply(final_params, function(x) x[1])
+            nu_vals <- sapply(final_params, function(x) x[2])
+            
+            # Create arrays with proper dimensions for beta/beta2
+            mu_array <- array(mu_vals, dim = c(1, 1, n_clusters))
+            nu_array <- array(nu_vals, dim = c(1, 1, n_clusters))
+            
+            dpObj$clusterParameters <- list(mu = mu_array, nu = nu_array)
+          }
+        } else {
+          dpObj$clusterParameters <- final_params
+        }
       }
 
       # Update cluster counts
@@ -176,7 +194,26 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
       dpObj$weights <- dpObj$pointsPerCluster / dpObj$n
 
       # Store parameter chains
-      dpObj$clusterParametersChain <- results$cluster_params
+      if (inherits(dpObj, "beta") || inherits(dpObj, "beta2")) {
+        # Convert parameter chain format for beta and beta2
+        dpObj$clusterParametersChain <- lapply(results$theta_chain, function(iter_params) {
+          n_clusters <- length(iter_params)
+          if (n_clusters > 0) {
+            mu_vals <- sapply(iter_params, function(x) x[1])
+            nu_vals <- sapply(iter_params, function(x) x[2])
+            
+            # Create arrays with proper dimensions for beta/beta2
+            mu_array <- array(mu_vals, dim = c(1, 1, n_clusters))
+            nu_array <- array(nu_vals, dim = c(1, 1, n_clusters))
+            
+            list(mu = mu_array, nu = nu_array)
+          } else {
+            list(mu = array(dim = c(1, 1, 0)), nu = array(dim = c(1, 1, 0)))
+          }
+        })
+      } else {
+        dpObj$clusterParametersChain <- results$theta_chain
+      }
       if (!is.null(results$cluster_labels)) {
         dpObj$weightsChain <- lapply(results$cluster_labels, function(labels) {
           # Convert 0-indexed to 1-indexed labels for weight calculation
