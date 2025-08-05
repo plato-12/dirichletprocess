@@ -136,6 +136,7 @@ Likelihood <- function(mdObj, x, theta) {
           
           # Get dimensions
           mu_dim <- dim(mu_array)
+          sig_dim <- dim(sig_array)
           
           # Extract number of clusters
           if (is.null(mu_dim) || length(mu_dim) < 3) {
@@ -156,16 +157,109 @@ Likelihood <- function(mdObj, x, theta) {
             for (k in 1:num_clusters) {
               # Extract parameters for cluster k
               if (length(mu_dim) == 2) {
-                cluster_mu <- mu_array[, k]
+                # Check if mu_array has the expected dimensions
+                d <- length(x)
+                if (ncol(mu_array) >= k && nrow(mu_array) == d) {
+                  cluster_mu <- mu_array[, k]
+                } else if (nrow(mu_array) >= k && ncol(mu_array) == d) {
+                  cluster_mu <- mu_array[k, ]
+                } else {
+                  # Try flat storage
+                  total_mu_params <- length(mu_array)
+                  if (total_mu_params %% d == 0) {
+                    start_idx <- (k - 1) * d + 1
+                    end_idx <- k * d
+                    if (end_idx <= total_mu_params) {
+                      cluster_mu <- as.vector(mu_array)[start_idx:end_idx]
+                    } else {
+                      cluster_mu <- mu_array
+                    }
+                  } else {
+                    cluster_mu <- mu_array
+                  }
+                }
                 if (mdObj$priorParameters$covModel == "FULL") {
-                  cluster_sig <- sig_array[, , k]
+                  # Check if sig_array has 3 dimensions
+                  if (!is.null(sig_dim) && length(sig_dim) >= 3) {
+                    cluster_sig <- sig_array[, , k]
+                  } else if (!is.null(sig_dim) && length(sig_dim) == 2) {
+                    # For 2D sig_array, extract parameters for cluster k
+                    d <- length(x)
+                    nCovParams <- getNumCovParams(d, mdObj$priorParameters$covModel)
+                    
+                    # Check various possible storage patterns
+                    if (ncol(sig_array) >= k && nrow(sig_array) == nCovParams) {
+                      # nCovParams x nClusters format
+                      cluster_sig <- sig_array[, k]
+                    } else if (nrow(sig_array) >= k && ncol(sig_array) == nCovParams) {
+                      # nClusters x nCovParams format
+                      cluster_sig <- sig_array[k, ]
+                    } else {
+                      # Try flat storage: assume sigma contains nCovParams per cluster
+                      total_params <- length(sig_array)
+                      if (total_params %% nCovParams == 0) {
+                        # Flat storage: extract the right chunk
+                        start_idx <- (k - 1) * nCovParams + 1
+                        end_idx <- k * nCovParams
+                        if (end_idx <= total_params) {
+                          cluster_sig <- as.vector(sig_array)[start_idx:end_idx]
+                        } else {
+                          # Single cluster case
+                          cluster_sig <- sig_array
+                        }
+                      } else {
+                        # Single cluster case
+                        cluster_sig <- sig_array
+                      }
+                    }
+                  } else {
+                    # Single cluster case - sig_array should be the covariance matrix
+                    cluster_sig <- sig_array
+                  }
                 } else {
                   cluster_sig <- sig_array[, k]
                 }
               } else {
+                # For 3D mu_array case, similar logic might be needed
                 cluster_mu <- mu_array[, , k]
                 if (mdObj$priorParameters$covModel == "FULL") {
-                  cluster_sig <- sig_array[, , k]
+                  # Check if sig_array has 3 dimensions
+                  if (!is.null(sig_dim) && length(sig_dim) >= 3) {
+                    cluster_sig <- sig_array[, , k]
+                  } else if (!is.null(sig_dim) && length(sig_dim) == 2) {
+                    # For 2D sig_array, extract parameters for cluster k
+                    d <- length(x)
+                    nCovParams <- getNumCovParams(d, mdObj$priorParameters$covModel)
+                    
+                    # Check various possible storage patterns
+                    if (ncol(sig_array) >= k && nrow(sig_array) == nCovParams) {
+                      # nCovParams x nClusters format
+                      cluster_sig <- sig_array[, k]
+                    } else if (nrow(sig_array) >= k && ncol(sig_array) == nCovParams) {
+                      # nClusters x nCovParams format
+                      cluster_sig <- sig_array[k, ]
+                    } else {
+                      # Try flat storage: assume sigma contains nCovParams per cluster
+                      total_params <- length(sig_array)
+                      if (total_params %% nCovParams == 0) {
+                        # Flat storage: extract the right chunk
+                        start_idx <- (k - 1) * nCovParams + 1
+                        end_idx <- k * nCovParams
+                        if (end_idx <= total_params) {
+                          cluster_sig <- as.vector(sig_array)[start_idx:end_idx]
+                        } else {
+                          # Single cluster case
+                          cluster_sig <- sig_array
+                        }
+                      } else {
+                        # Single cluster case
+                        cluster_sig <- sig_array
+                      }
+                    }
+                  } else {
+                    # Single cluster case - sig_array should be the covariance matrix
+                    cluster_sig <- sig_array
+                  }
                 } else {
                   cluster_sig <- sig_array[, k]
                 }
@@ -187,6 +281,50 @@ Likelihood <- function(mdObj, x, theta) {
     })
   }
 
+  # Handle multi-cluster case for specific distributions before falling back
+  dist_type <- class(mdObj)[class(mdObj) != "list" & class(mdObj) != "MixingDistribution"][1]
+  
+  if (dist_type == "normal" || dist_type == "gaussian") {
+    # Handle normal distribution with multiple clusters
+    if (is.list(theta) && length(theta) >= 2) {
+      mu_params <- theta[[1]]
+      sigma_params <- theta[[2]]
+      
+      # Determine number of clusters from parameter structure
+      if (is.array(mu_params) && length(dim(mu_params)) == 3) {
+        num_clusters <- dim(mu_params)[3]
+      } else if (is.matrix(mu_params)) {
+        num_clusters <- ncol(mu_params)
+      } else if (is.vector(mu_params) && length(mu_params) > 1) {
+        num_clusters <- length(mu_params)
+      } else {
+        num_clusters <- 1
+      }
+      
+      if (num_clusters > 1) {
+        result <- numeric(num_clusters)
+        for (k in 1:num_clusters) {
+          # Extract parameters for cluster k
+          if (is.array(mu_params) && length(dim(mu_params)) == 3) {
+            cluster_mu <- mu_params[1, 1, k]
+            cluster_sigma <- sigma_params[1, 1, k]
+          } else if (is.matrix(mu_params)) {
+            cluster_mu <- mu_params[1, k]
+            cluster_sigma <- sigma_params[1, k]
+          } else {
+            cluster_mu <- mu_params[k]
+            cluster_sigma <- sigma_params[k]
+          }
+          
+          # Call Likelihood.normal with proper format
+          cluster_theta <- list(cluster_mu, cluster_sigma)
+          result[k] <- Likelihood.normal(mdObj, x, cluster_theta)
+        }
+        return(result)
+      }
+    }
+  }
+  
   # Original implementation (falls back to this if C++ is not enabled or fails)
   UseMethod("Likelihood", mdObj)
 }

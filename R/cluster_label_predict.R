@@ -135,9 +135,40 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
       } else {
         # Original expansion logic for other distributions
         for (j in seq_along(clusterParams)) {
-          clusterParams[[j]] <- array(c(clusterParams[[j]], post_draw[[j]]),
-                                      dim = c(dim(post_draw[[j]])[1:2],
-                                              dim(clusterParams[[j]])[3] + 1))
+          # Check if corresponding post_draw element exists
+          if (j <= length(post_draw) && !is.null(post_draw[[j]])) {
+            cluster_dim <- dim(clusterParams[[j]])
+            post_dim <- dim(post_draw[[j]])
+            
+            # Check dimensions exist and are valid
+            if (!is.null(cluster_dim) && !is.null(post_dim) && 
+                length(cluster_dim) >= 3 && length(post_dim) >= 2 &&
+                cluster_dim[3] > 0) {
+              clusterParams[[j]] <- array(c(clusterParams[[j]], post_draw[[j]]),
+                                          dim = c(post_dim[1:2], cluster_dim[3] + 1))
+            } else {
+              # Fallback: try to append the new draw with dimension adjustment
+              tryCatch({
+                clusterParams[[j]] <- abind::abind(clusterParams[[j]], post_draw[[j]], along = 3)
+              }, error = function(e) {
+                # If abind fails due to dimension mismatch, try to reshape post_draw
+                target_dims <- dim(clusterParams[[j]])
+                if (!is.null(target_dims) && length(target_dims) >= 2) {
+                  # Try to reshape post_draw to match the first two dimensions
+                  tryCatch({
+                    reshaped_post <- array(post_draw[[j]], dim = c(target_dims[1:2], 1))
+                    clusterParams[[j]] <- abind::abind(clusterParams[[j]], reshaped_post, along = 3)
+                  }, error = function(e2) {
+                    # If all else fails, skip the expansion
+                    warning("Could not expand cluster parameters due to dimension mismatch")
+                  })
+                }
+              })
+            }
+          } else {
+            # No corresponding post_draw element, skip expansion for this parameter
+            warning(paste("No post_draw element for parameter", j, "- skipping expansion"))
+          }
         }
       }
     }

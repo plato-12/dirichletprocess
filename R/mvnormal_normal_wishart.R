@@ -200,9 +200,65 @@ Likelihood.mvnormal <- function(mdObj, x, theta) {
         cluster_sig <- sig_array
       } else if (length(mu_dim) == 2) {
         # 2D array, clusters in second dimension
-        cluster_mu <- mu_array[, k]
+        # Check if mu_array has the expected dimensions
+        d <- length(x)
+        if (ncol(mu_array) >= k && nrow(mu_array) == d) {
+          cluster_mu <- mu_array[, k]
+        } else if (nrow(mu_array) >= k && ncol(mu_array) == d) {
+          cluster_mu <- mu_array[k, ]
+        } else {
+          # Try flat storage
+          total_mu_params <- length(mu_array)
+          if (total_mu_params %% d == 0) {
+            start_idx <- (k - 1) * d + 1
+            end_idx <- k * d
+            if (end_idx <= total_mu_params) {
+              cluster_mu <- as.vector(mu_array)[start_idx:end_idx]
+            } else {
+              cluster_mu <- mu_array
+            }
+          } else {
+            cluster_mu <- mu_array
+          }
+        }
         if (mdObj$priorParameters$covModel == "FULL") {
-          cluster_sig <- sig_array[, , k]
+          # Check if sig_array has 3 dimensions
+          if (!is.null(sig_dim) && length(sig_dim) >= 3) {
+            cluster_sig <- sig_array[, , k]
+          } else if (!is.null(sig_dim) && length(sig_dim) == 2) {
+            # For 2D sig_array, extract parameters for cluster k
+            d <- length(x)
+            nCovParams <- getNumCovParams(d, mdObj$priorParameters$covModel)
+            
+            # Check various possible storage patterns
+            if (ncol(sig_array) >= k && nrow(sig_array) == nCovParams) {
+              # nCovParams x nClusters format
+              cluster_sig <- sig_array[, k]
+            } else if (nrow(sig_array) >= k && ncol(sig_array) == nCovParams) {
+              # nClusters x nCovParams format
+              cluster_sig <- sig_array[k, ]
+            } else {
+              # Try flat storage: assume sigma contains nCovParams per cluster
+              total_params <- length(sig_array)
+              if (total_params %% nCovParams == 0) {
+                # Flat storage: extract the right chunk
+                start_idx <- (k - 1) * nCovParams + 1
+                end_idx <- k * nCovParams
+                if (end_idx <= total_params) {
+                  cluster_sig <- as.vector(sig_array)[start_idx:end_idx]
+                } else {
+                  # Single cluster case
+                  cluster_sig <- sig_array
+                }
+              } else {
+                # Single cluster case
+                cluster_sig <- sig_array
+              }
+            }
+          } else {
+            # Single cluster case - sig_array should be the covariance matrix
+            cluster_sig <- sig_array
+          }
         } else {
           cluster_sig <- sig_array[, k]
         }
@@ -210,7 +266,43 @@ Likelihood.mvnormal <- function(mdObj, x, theta) {
         # 3D array, clusters in third dimension
         cluster_mu <- mu_array[, , k]
         if (mdObj$priorParameters$covModel == "FULL") {
-          cluster_sig <- sig_array[, , k]
+          # Check if sig_array has 3 dimensions
+          if (!is.null(sig_dim) && length(sig_dim) >= 3) {
+            cluster_sig <- sig_array[, , k]
+          } else if (!is.null(sig_dim) && length(sig_dim) == 2) {
+            # For 2D sig_array, extract parameters for cluster k
+            d <- length(x)
+            nCovParams <- getNumCovParams(d, mdObj$priorParameters$covModel)
+            
+            # Check various possible storage patterns
+            if (ncol(sig_array) >= k && nrow(sig_array) == nCovParams) {
+              # nCovParams x nClusters format
+              cluster_sig <- sig_array[, k]
+            } else if (nrow(sig_array) >= k && ncol(sig_array) == nCovParams) {
+              # nClusters x nCovParams format
+              cluster_sig <- sig_array[k, ]
+            } else {
+              # Try flat storage: assume sigma contains nCovParams per cluster
+              total_params <- length(sig_array)
+              if (total_params %% nCovParams == 0) {
+                # Flat storage: extract the right chunk
+                start_idx <- (k - 1) * nCovParams + 1
+                end_idx <- k * nCovParams
+                if (end_idx <= total_params) {
+                  cluster_sig <- as.vector(sig_array)[start_idx:end_idx]
+                } else {
+                  # Single cluster case
+                  cluster_sig <- sig_array
+                }
+              } else {
+                # Single cluster case
+                cluster_sig <- sig_array
+              }
+            }
+          } else {
+            # Single cluster case - sig_array should be the covariance matrix
+            cluster_sig <- sig_array
+          }
         } else {
           cluster_sig <- sig_array[, k]
         }
@@ -664,15 +756,43 @@ mvnormal_likelihood_wrapper_cpp <- function(x, theta, priorParams) {
   
   # Handle covariance based on model
   if (priorParams$covModel == "FULL") {
-    # For FULL model, sig is already a precision matrix that needs to be inverted
+    # For FULL model, sig parameters need to be converted to a covariance matrix
     if (is.matrix(theta$sig)) {
-      sig_matrix <- solve(theta$sig)  # Convert precision to covariance
+      # Check if matrix is square
+      if (nrow(theta$sig) == ncol(theta$sig) && nrow(theta$sig) == d) {
+        sig_matrix <- solve(theta$sig)  # Convert precision to covariance
+      } else {
+        # For FULL model, we have packed parameters, not a full matrix
+        nCovParams <- getNumCovParams(d, priorParams$covModel)
+        if (length(theta$sig) == nCovParams) {
+          # Reconstruct the covariance matrix from packed parameters
+          sig_matrix <- reconstructCovarianceMatrix(as.vector(theta$sig), d, priorParams$covModel)
+        } else {
+          stop(paste("Invalid sigma parameters: expected", nCovParams, "parameters for FULL model with", d, "dimensions, got", length(theta$sig)))
+        }
+      }
     } else {
-      sig_matrix <- solve(matrix(theta$sig, nrow = d, ncol = d))
+      # Vector of parameters - reconstruct covariance matrix
+      nCovParams <- getNumCovParams(d, priorParams$covModel)
+      if (length(theta$sig) == nCovParams) {
+        sig_matrix <- reconstructCovarianceMatrix(theta$sig, d, priorParams$covModel)
+      } else {
+        stop(paste("Invalid sigma parameters: expected", nCovParams, "parameters for FULL model with", d, "dimensions, got", length(theta$sig), 
+                   "sig_dims:", paste(dim(theta$sig), collapse="x"),
+                   "sig_values:", paste(head(as.vector(theta$sig), 10), collapse=",")))
+      }
     }
   } else {
     # For constrained models, reconstruct the covariance matrix from parameters
     sig_matrix <- reconstructCovarianceMatrix(theta$sig, d, priorParams$covModel)
+  }
+  
+  # Ensure sig_matrix is properly formatted for C++
+  if (!is.matrix(sig_matrix) || nrow(sig_matrix) != d || ncol(sig_matrix) != d) {
+    stop(paste("sig_matrix is not a proper", d, "x", d, "matrix. Got dimensions:", 
+               paste(dim(sig_matrix), collapse="x"), 
+               "class:", class(sig_matrix),
+               "length:", length(sig_matrix)))
   }
   
   # Call C++ function with proper covariance matrix
