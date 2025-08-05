@@ -31,7 +31,7 @@ ClusterComponentUpdate.mvnormal.cpp <- function(dpObj) {
 
   # The C++ implementation expects 0-indexed cluster labels
   dpObj_cpp <- dpObj
-  dpObj_cpp$clusterLabels <- dpObj$clusterLabels - 1
+  dpObj_cpp$clusterLabels <- as.integer(dpObj$clusterLabels - 1)
 
   # Call C++ implementation
   result <- conjugate_mvnormal_cluster_component_update_cpp(dpObj_cpp)
@@ -63,7 +63,7 @@ ClusterParameterUpdate.mvnormal.cpp <- function(dpObj) {
 
   # The C++ implementation expects 0-indexed cluster labels
   dpObj_cpp <- dpObj
-  dpObj_cpp$clusterLabels <- dpObj$clusterLabels - 1
+  dpObj_cpp$clusterLabels <- as.integer(dpObj$clusterLabels - 1)
 
   # Call C++ implementation
   dpObj$clusterParameters <- conjugate_mvnormal_cluster_parameter_update_cpp(dpObj_cpp)

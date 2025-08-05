@@ -74,7 +74,7 @@ test_that("Multivariate Normal Posterior Draw", {
   expect_equal(dim(post_draws_single$mu), c(1,2,1))
   expect_equal(dim(post_draws_single$sig), c(2,2,1))
 
-  post_draws_multi <- PosteriorDraw(mdobj, test_data[1,], 10)
+  post_draws_multi <- PosteriorDraw(mdobj, test_data[1,,drop=FALSE], 10)
 
   expect_equal(length(post_draws_multi), 2)
   expect_equal(dim(post_draws_multi$mu), c(1,2,10))

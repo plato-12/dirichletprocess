@@ -137,6 +137,18 @@ arma::vec MVNormalMixing::posterior_draw(const arma::mat& cluster_data,
   }
 
   // Sample precision matrix from Wishart distribution
+  // Additional validation before Wishart sampling to prevent segfaults
+  if (!Lambda_n_inv.is_finite() || Lambda_n_inv.n_rows != d || Lambda_n_inv.n_cols != d) {
+    return prior_draw(); // Fall back to prior if matrix is invalid
+  }
+  
+  // Check condition number to avoid numerical issues
+  double rcond = arma::rcond(Lambda_n_inv);
+  if (rcond < 1e-12) {
+    // Matrix is too ill-conditioned, use regularized version
+    Lambda_n_inv += arma::eye<arma::mat>(d, d) * 1e-6;
+  }
+  
   arma::mat prec_draw = arma::wishrnd(Lambda_n_inv, nu_n);
   prec_draw = ensureSymmetric(prec_draw);
 
@@ -201,6 +213,18 @@ arma::vec MVNormalMixing::prior_draw() const {
 
   arma::mat prec_draw;
   try {
+    // Additional validation before Wishart sampling to prevent segfaults
+    if (!Lambda_inv.is_finite() || Lambda_inv.n_rows != d || Lambda_inv.n_cols != d) {
+      Rcpp::stop("Invalid Lambda_inv matrix for Wishart sampling");
+    }
+    
+    // Check condition number to avoid numerical issues
+    double rcond = arma::rcond(Lambda_inv);
+    if (rcond < 1e-12) {
+      // Matrix is too ill-conditioned, use regularized version
+      Lambda_inv += arma::eye<arma::mat>(d, d) * 1e-6;
+    }
+    
     prec_draw = arma::wishrnd(Lambda_inv, nu);
     if (prec_draw.n_rows != d || prec_draw.n_cols != d) {
       Rcpp::stop("prec_draw has wrong dimensions after Wishart draw");

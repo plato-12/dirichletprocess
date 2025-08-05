@@ -422,8 +422,16 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
   arma::mat Lambda_sym = ensureSymmetric(Lambda);
 
   for (int i = 0; i < n; i++) {
-    // Draw precision from Wishart
-    arma::mat prec_draw = arma::wishrnd(Lambda_sym, nu);
+    // Draw precision from Wishart with additional validation
+    // Check condition number to avoid numerical issues
+    double rcond = arma::rcond(Lambda_sym);
+    arma::mat Lambda_safe = Lambda_sym;
+    if (rcond < 1e-12) {
+      // Matrix is too ill-conditioned, use regularized version
+      Lambda_safe += arma::eye<arma::mat>(d, d) * 1e-6;
+    }
+    
+    arma::mat prec_draw = arma::wishrnd(Lambda_safe, nu);
 
     // Ensure the drawn precision matrix is symmetric
     prec_draw = ensureSymmetric(prec_draw);
@@ -473,10 +481,27 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   // Get posterior parameters
   Rcpp::List post_params = posteriorParameters(x);
 
+  // Extract with error checking
+  if (!post_params.containsElementNamed("mu_n") || !post_params.containsElementNamed("t_n") ||
+      !post_params.containsElementNamed("kappa_n") || !post_params.containsElementNamed("nu_n")) {
+    Rcpp::stop("posteriorParameters missing required elements");
+  }
+
+  SEXP kappa_n_sexp = post_params["kappa_n"];
+  SEXP nu_n_sexp = post_params["nu_n"];
+  
+  if (TYPEOF(kappa_n_sexp) != REALSXP && TYPEOF(kappa_n_sexp) != INTSXP) {
+    Rcpp::stop("kappa_n is not numeric, got type %d", TYPEOF(kappa_n_sexp));
+  }
+  
+  if (TYPEOF(nu_n_sexp) != REALSXP && TYPEOF(nu_n_sexp) != INTSXP) {
+    Rcpp::stop("nu_n is not numeric, got type %d", TYPEOF(nu_n_sexp));
+  }
+
   arma::vec mu_n = Rcpp::as<arma::vec>(post_params["mu_n"]);
   arma::mat t_n = Rcpp::as<arma::mat>(post_params["t_n"]);
-  double kappa_n = Rcpp::as<double>(post_params["kappa_n"]);
-  double nu_n = Rcpp::as<double>(post_params["nu_n"]);
+  double kappa_n = Rcpp::as<double>(kappa_n_sexp);
+  double nu_n = Rcpp::as<double>(nu_n_sexp);
 
   int d = mu_n.n_elem;
   
@@ -503,8 +528,16 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
   arma::mat t_n_sym = ensureSymmetric(t_n);
 
   for (int i = 0; i < n; i++) {
-    // Draw precision from Wishart
-    arma::mat prec_draw = arma::wishrnd(t_n_sym, nu_n);
+    // Draw precision from Wishart with additional validation
+    // Check condition number to avoid numerical issues
+    double rcond = arma::rcond(t_n_sym);
+    arma::mat t_n_safe = t_n_sym;
+    if (rcond < 1e-12) {
+      // Matrix is too ill-conditioned, use regularized version
+      t_n_safe += arma::eye<arma::mat>(d, d) * 1e-6;
+    }
+    
+    arma::mat prec_draw = arma::wishrnd(t_n_safe, nu_n);
 
     // Ensure the drawn precision matrix is symmetric
     prec_draw = ensureSymmetric(prec_draw);
@@ -629,9 +662,13 @@ void ConjugateMVNormalDP::initialize(const Rcpp::List& dpObj) {
     clusterParameters = dpObj["clusterParameters"];
   }
 
-  // Extract other parameters
+  // Extract other parameters with error checking
   if (dpObj.containsElementNamed("alpha")) {
-    alpha = Rcpp::as<double>(dpObj["alpha"]);
+    SEXP alpha_sexp = dpObj["alpha"];
+    if (TYPEOF(alpha_sexp) != REALSXP && TYPEOF(alpha_sexp) != INTSXP) {
+      Rcpp::stop("alpha is not numeric, got type %d", TYPEOF(alpha_sexp));
+    }
+    alpha = Rcpp::as<double>(alpha_sexp);
   } else {
     alpha = 1.0; // Default
   }
@@ -982,18 +1019,52 @@ void ConjugateMVNormalDP::clusterParameterUpdate() {
     if (clusterIndices.n_elem > 0) {
       arma::mat clusterData = data.rows(clusterIndices);
 
-      // Draw from posterior
-      Rcpp::List postDraw = mixingDistribution->posteriorDraw(clusterData, 1);
+      // Draw from posterior with error handling
+      Rcpp::List postDraw;
+      try {
+        postDraw = mixingDistribution->posteriorDraw(clusterData, 1);
+      } catch (const std::exception& e) {
+        Rcpp::stop("Error in posteriorDraw for cluster %d: %s", k, e.what());
+      }
 
-      // Update cluster parameters
+      // Update cluster parameters with error checking
+      if (!clusterParameters.containsElementNamed("mu") || !clusterParameters.containsElementNamed("sig")) {
+        Rcpp::stop("clusterParameters missing mu or sig in clusterParameterUpdate");
+      }
+      
       Rcpp::NumericVector mu_array = clusterParameters["mu"];
       Rcpp::NumericVector sig_array = clusterParameters["sig"];
 
-      Rcpp::NumericVector new_mu = postDraw["mu"];
-      Rcpp::NumericVector new_sig = postDraw["sig"];
+      if (!postDraw.containsElementNamed("mu") || !postDraw.containsElementNamed("sig")) {
+        Rcpp::stop("postDraw missing mu or sig in clusterParameterUpdate");
+      }
+      
+      // Extract with type checking
+      SEXP mu_sexp = postDraw["mu"];
+      SEXP sig_sexp = postDraw["sig"];
+      
+      if (TYPEOF(mu_sexp) != REALSXP) {
+        Rcpp::stop("postDraw mu is not numeric, got type %d", TYPEOF(mu_sexp));  
+      }
+      
+      if (TYPEOF(sig_sexp) != REALSXP) {
+        Rcpp::stop("postDraw sig is not numeric, got type %d", TYPEOF(sig_sexp));
+      }
+      
+      Rcpp::NumericVector new_mu = Rcpp::as<Rcpp::NumericVector>(mu_sexp);
+      Rcpp::NumericVector new_sig = Rcpp::as<Rcpp::NumericVector>(sig_sexp);
 
-      // Get dimensions
-      Rcpp::IntegerVector mu_dim = mu_array.attr("dim");
+      // Get dimensions with error checking
+      SEXP dim_attr = mu_array.attr("dim");
+      if (Rf_isNull(dim_attr)) {
+        Rcpp::stop("mu array missing dim attribute in clusterParameterUpdate");
+      }
+      
+      Rcpp::IntegerVector mu_dim = Rcpp::as<Rcpp::IntegerVector>(dim_attr);
+      if (mu_dim.length() < 3) {
+        Rcpp::stop("mu array must have 3 dimensions, got %d", mu_dim.length());
+      }
+      
       int d = mu_dim[1];
       int max_clusters = mu_dim[2];
 
