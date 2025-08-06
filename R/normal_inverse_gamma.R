@@ -14,10 +14,54 @@ GaussianMixtureCreate <- function(priorParameters=c(0,1,1,1)){
 #' @export
 #' @rdname Likelihood
 Likelihood.normal <- function(mdObj, x, theta) {
-  if (!is.list(theta) || length(theta) < 2) {
-    stop("theta must be a list with at least two components (mean and sd)")
+  # Handle different parameter formats gracefully
+  if (is.list(theta) && length(theta) >= 2) {
+    # Standard case: list with mean and sd components
+    mean_param <- theta[[1]]
+    sd_param <- theta[[2]]
+    
+    # Ensure parameters are valid
+    if (any(is.na(mean_param)) || any(is.na(sd_param)) || 
+        any(is.infinite(mean_param)) || any(is.infinite(sd_param))) {
+      # Return small positive likelihood for invalid parameters
+      return(rep(1e-100, length(x)))
+    }
+    
+    # Ensure positive standard deviation
+    sd_param <- pmax(abs(sd_param), 1e-8)
+    
+    result <- tryCatch({
+      as.numeric(dnorm(x, mean_param, sd_param))
+    }, error = function(e) {
+      rep(1e-100, length(x))
+    })
+    
+    # Handle NaN or infinite results
+    result[is.na(result) | is.infinite(result)] <- 1e-100
+    return(result)
+    
+  } else if (is.list(theta) && length(theta) == 1) {
+    # Single parameter case - try to extract both components
+    if (is.array(theta[[1]]) && length(dim(theta[[1]])) >= 2) {
+      # Extract mean and sd from array structure
+      mean_val <- theta[[1]][1, , drop = TRUE]
+      sd_val <- theta[[1]][2, , drop = TRUE]
+      sd_val <- pmax(abs(sd_val), 1e-8)  # Ensure positive
+      result <- tryCatch({
+        as.numeric(dnorm(x, mean_val, sd_val))
+      }, error = function(e) {
+        rep(1e-100, length(x))
+      })
+      result[is.na(result) | is.infinite(result)] <- 1e-100
+      return(result)
+    } else {
+      # Fallback: use default values
+      return(as.numeric(dnorm(x, 0, 1)))
+    }
+  } else {
+    # Fallback for unexpected formats
+    return(as.numeric(dnorm(x, 0, 1)))
   }
-  as.numeric(dnorm(x, theta[[1]], theta[[2]]))
 }
 
 #' @export

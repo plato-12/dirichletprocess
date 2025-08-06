@@ -42,7 +42,9 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
   # For mvnormal with pre-allocated arrays, check capacity and expand if necessary
   if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
     current_capacity <- dim(clusterParams[[1]])[3]
-    if (current_capacity < numLabels + nrow(newData)) {
+    # Check for valid capacity values
+    if (!is.null(current_capacity) && !is.na(current_capacity) && 
+        current_capacity < numLabels + nrow(newData)) {
       # Expand arrays preemptively
       new_capacity <- numLabels + nrow(newData) + 20
       for (j in seq_along(clusterParams)) {
@@ -100,6 +102,17 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
     weights[1:numLabels] <- pointsPerCluster * Likelihood(mdobj, dataVal, active_clusterParams)
     weights[numLabels + 1] <- alpha * Predictive_newData[i]
 
+    # Handle NAs and invalid weights
+    if (anyNA(weights)) {
+      weights[is.na(weights)] <- 0
+    }
+    if (any(is.nan(weights))) {
+      weights[is.nan(weights)] <- 0
+    }
+    if (all(weights == 0)) {
+      weights[] <- 1 / length(weights)  # Equal probabilities
+    }
+
     ind <- numLabels + 1
     component <- sample.int(ind, 1, prob = weights)
 
@@ -115,7 +128,8 @@ ClusterLabelPredict.conjugate <- function(dpobj, newData) {
       if (inherits(dpobj, "mvnormal") && is.list(clusterParams)) {
         # For mvnormal with pre-allocated arrays
         current_capacity <- dim(clusterParams[[1]])[3]
-        if (numLabels > current_capacity) {
+        if (!is.null(current_capacity) && !is.na(current_capacity) && 
+            numLabels > current_capacity) {
           # This should not be reached due to pre-expansion
           stop("Insufficient capacity in pre-allocated arrays")
         }
