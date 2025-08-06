@@ -26,16 +26,33 @@ utils::globalVariables(c("Alpha", "..density..", "Index", "nclust", "Lik"))
 #' DiagnosticPlots(dp)
 #'
 DiagnosticPlots <- function(dpobj, gg = FALSE) {
-  oldpar <- graphics::par()
-  graphics::par(mfrow = c(2, 2))
+  # Try to set up graphics parameters safely
+  tryCatch({
+    # Get current device dimensions and check if they're adequate
+    dev_size <- grDevices::dev.size()
+    if (is.null(dev_size) || any(dev_size < 3)) {
+      # Force gg = TRUE if device is too small
+      gg <- TRUE
+    }
+    
+    if (!gg) {
+      oldpar <- graphics::par(no.readonly = TRUE)
+      on.exit(suppressWarnings(graphics::par(oldpar)), add = TRUE)
+      graphics::par(mfrow = c(2, 2), mar = c(4, 4, 2, 1))
+    }
 
-  if ("alphaChain"  %in% names(dpobj)) AlphaTraceplot(dpobj, gg = gg)
-  if ("alphaChain"  %in% names(dpobj)) AlphaPriorPosteriorPlot(dpobj, gg = gg)
-  if ("labelsChain" %in% names(dpobj)) ClusterTraceplot(dpobj, gg = gg)
-  if ("likelihoodChain" %in% names(dpobj)) LikelihoodTraceplot(dpobj, gg = gg)
+    if ("alphaChain"  %in% names(dpobj)) AlphaTraceplot(dpobj, gg = gg)
+    if ("alphaChain"  %in% names(dpobj)) AlphaPriorPosteriorPlot(dpobj, gg = gg)
+    if ("labelsChain" %in% names(dpobj)) ClusterTraceplot(dpobj, gg = gg)
+    if ("likelihoodChain" %in% names(dpobj)) LikelihoodTraceplot(dpobj, gg = gg)
 
-  suppressWarnings(graphics::par(mfrow = oldpar$mfrow))
-
+  }, error = function(e) {
+    # If graphics setup fails, fall back to gg plots
+    if ("alphaChain"  %in% names(dpobj)) AlphaTraceplot(dpobj, gg = TRUE)
+    if ("alphaChain"  %in% names(dpobj)) AlphaPriorPosteriorPlot(dpobj, gg = TRUE)
+    if ("labelsChain" %in% names(dpobj)) ClusterTraceplot(dpobj, gg = TRUE)
+    if ("likelihoodChain" %in% names(dpobj)) LikelihoodTraceplot(dpobj, gg = TRUE)
+  })
 }
 
 

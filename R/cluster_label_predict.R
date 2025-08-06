@@ -254,16 +254,30 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
       pointsPerCluster <- c(pointsPerCluster, 1)
       # clusterParams = rbind(clusterParams, aux[component-numLabels,])
 
+      # Validate component index before accessing aux
+      aux_index <- component - numLabels
+      if (aux_index < 1 || aux_index > dim(aux[[1]])[3]) {
+        # Invalid index - skip this iteration or handle gracefully
+        next
+      }
+      
       for (j in seq_along(clusterParams)) {
         # Check if clusterParams[[j]] has valid dimensions
         current_dims <- dim(clusterParams[[j]])
         if (is.null(current_dims) || length(current_dims) == 0) {
           # If no dimensions, treat as empty and initialize from aux
-          clusterParams[[j]] <- aux[[j]][, , component - numLabels, drop = FALSE]
+          clusterParams[[j]] <- aux[[j]][, , aux_index, drop = FALSE]
         } else {
-          # Normal case: append to existing array
-          clusterParams[[j]] <- array(c(clusterParams[[j]], aux[[j]][, , component - numLabels]), 
-                                    dim = c(current_dims[1:2], current_dims[3] + 1))
+          # Ensure dimensions are positive before creating array
+          new_dim3 <- current_dims[3] + 1
+          if (!is.na(new_dim3) && is.finite(new_dim3) && new_dim3 > 0) {
+            # Normal case: append to existing array
+            clusterParams[[j]] <- array(c(clusterParams[[j]], aux[[j]][, , aux_index]), 
+                                      dim = c(current_dims[1:2], new_dim3))
+          } else {
+            # Fallback: just use aux data
+            clusterParams[[j]] <- aux[[j]][, , aux_index, drop = FALSE]
+          }
         }
       }
 

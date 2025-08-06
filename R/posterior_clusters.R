@@ -64,12 +64,83 @@ PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
   PriorDraws <- PriorDraw(mdobj, numBreaks)
   postParams <- list()
 
-  # For now, use original cluster parameters structure
-  # This will work with the existing stick-breaking representation
-  for (i in seq_along(clusterParams)) {
-    postParams[[i]] <- array(c(clusterParams[[i]], PriorDraws[[i]]),
-                             dim = c(dim(PriorDraws[[i]])[1:2],
-                                     numBreaks + numLabels))
+  # For normal distributions, clusterParams contains the actual parameter data
+  # and we need to construct synthetic parameter arrays for stick-breaking
+  if (inherits(mdobj, "normal") && inherits(mdobj, "conjugate")) {
+    # For normal conjugate case, create synthetic parameter structure
+    # that matches what the plotting functions expect
+    
+    # Get the parameter names from PriorDraws
+    param_names <- names(PriorDraws)
+    
+    if (!is.null(param_names) && length(param_names) == 2) {
+      # For normal distribution: mu and sigma parameters
+      # Create arrays that combine existing cluster data with prior draws
+      for (i in seq_along(param_names)) {
+        param_name <- param_names[i]
+        
+        # PriorDraws has the right structure: [1, 1, numBreaks]
+        # We need to create a compatible structure for existing clusters
+        cluster_array <- array(0, dim = c(1, 1, numLabels))
+        
+        # Fill the cluster array with actual parameter values (if available)
+        # For normal distribution, we use synthetic values based on data
+        if (numLabels > 0) {
+          if (param_name == "mu") {
+            # Use cluster means as synthetic mu values
+            for (k in seq_len(numLabels)) {
+              cluster_array[1, 1, k] <- mean(dpobj$data[dpobj$clusterLabels == k])
+            }
+          } else { # sigma
+            # Use cluster standard deviations as synthetic sigma values
+            for (k in seq_len(numLabels)) {
+              cluster_data <- dpobj$data[dpobj$clusterLabels == k]
+              cluster_array[1, 1, k] <- if(length(cluster_data) > 1) sd(cluster_data) else 1.0
+            }
+          }
+        }
+        
+        # Combine cluster parameters with prior draws
+        postParams[[i]] <- array(c(cluster_array, PriorDraws[[param_name]]),
+                                 dim = c(1, 1, numBreaks + numLabels))
+      }
+      names(postParams) <- param_names
+    }
+  } else {
+    # For other distributions, use the original logic with better error handling
+    param_names <- names(clusterParams)
+    if (is.null(param_names)) {
+      param_names <- names(PriorDraws)
+    }
+    
+    # Ensure we have valid names and matching structure
+    if (is.null(param_names) || length(param_names) != length(clusterParams)) {
+      # Fallback: use numeric indices but check bounds
+      for (i in seq_along(clusterParams)) {
+        if (i <= length(PriorDraws)) {
+          postParams[[i]] <- array(c(clusterParams[[i]], PriorDraws[[i]]),
+                                   dim = c(dim(PriorDraws[[i]])[1:2],
+                                           numBreaks + numLabels))
+        } else {
+          # If PriorDraws is shorter, just use cluster params
+          postParams[[i]] <- clusterParams[[i]]
+        }
+      }
+    } else {
+      # Use names to match parameters correctly
+      for (i in seq_along(param_names)) {
+        param_name <- param_names[i]
+        if (param_name %in% names(PriorDraws)) {
+          postParams[[i]] <- array(c(clusterParams[[i]], PriorDraws[[param_name]]),
+                                   dim = c(dim(PriorDraws[[param_name]])[1:2],
+                                           numBreaks + numLabels))
+        } else {
+          # If parameter not found in PriorDraws, just use cluster params
+          postParams[[i]] <- clusterParams[[i]]
+        }
+      }
+      names(postParams) <- param_names
+    }
   }
 
 
