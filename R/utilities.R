@@ -38,7 +38,24 @@ weighted_function_generator <- function(func, weights, params) {
         param_names <- names(params)
         
         for (j in seq_along(params)) {
-          param_val <- params[[j]][, , i, drop = FALSE]
+          # Handle different parameter structures safely
+          param_dims <- length(dim(params[[j]]))
+          
+          if (param_dims == 3) {
+            # Standard 3D array structure
+            param_val <- params[[j]][, , i, drop = FALSE]
+          } else if (param_dims == 2) {
+            # 2D matrix structure - take ith column if available
+            if (ncol(params[[j]]) >= i) {
+              param_val <- params[[j]][, i, drop = FALSE]
+            } else {
+              # Skip if column doesn't exist
+              next
+            }
+          } else {
+            # Other structures - skip for safety
+            next
+          }
           
           # Keep original parameter structure to preserve expected format for likelihood functions
           cl_params[[j]] <- param_val

@@ -256,12 +256,27 @@ ClusterLabelPredict.nonconjugate <- function(dpobj, newData) {
 
       # Validate component index before accessing aux
       aux_index <- component - numLabels
-      if (aux_index < 1 || aux_index > dim(aux[[1]])[3]) {
-        # Invalid index - skip this iteration or handle gracefully
+      
+      # Check if aux has elements and validate aux_index bounds
+      if (length(aux) == 0 || aux_index < 1) {
+        # Invalid index or empty aux - skip this iteration
+        next
+      }
+      
+      # Additional validation for aux structure
+      if (length(aux) > 0 && !is.null(aux[[1]]) && length(dim(aux[[1]])) >= 3 && 
+          aux_index > dim(aux[[1]])[3]) {
+        # aux_index exceeds bounds - skip this iteration
         next
       }
       
       for (j in seq_along(clusterParams)) {
+        # Validate that aux has this parameter index
+        if (j > length(aux) || is.null(aux[[j]])) {
+          # aux doesn't have parameter j - skip this parameter
+          next
+        }
+        
         # Check if clusterParams[[j]] has valid dimensions
         current_dims <- dim(clusterParams[[j]])
         if (is.null(current_dims) || length(current_dims) == 0) {

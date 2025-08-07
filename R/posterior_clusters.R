@@ -118,9 +118,16 @@ PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
       # Fallback: use numeric indices but check bounds
       for (i in seq_along(clusterParams)) {
         if (i <= length(PriorDraws)) {
-          postParams[[i]] <- array(c(clusterParams[[i]], PriorDraws[[i]]),
-                                   dim = c(dim(PriorDraws[[i]])[1:2],
-                                           numBreaks + numLabels))
+          # Check if PriorDraws element has proper dimensions
+          prior_dims <- dim(PriorDraws[[i]])
+          if (!is.null(prior_dims) && length(prior_dims) >= 2) {
+            postParams[[i]] <- array(c(clusterParams[[i]], PriorDraws[[i]]),
+                                     dim = c(prior_dims[1:2],
+                                             numBreaks + numLabels))
+          } else {
+            # If PriorDraws element doesn't have proper dimensions, just use cluster params
+            postParams[[i]] <- clusterParams[[i]]
+          }
         } else {
           # If PriorDraws is shorter, just use cluster params
           postParams[[i]] <- clusterParams[[i]]
