@@ -6,6 +6,13 @@
 \usage{
 debug_mcmc_cpp(data, n_iter = 10, verbose = TRUE)
 }
+\arguments{
+\item{data}{Input data for MCMC debugging}
+
+\item{n_iter}{Number of MCMC iterations (default: 10)}
+
+\item{verbose}{Whether to output verbose debugging information (default: TRUE)}
+}
 \description{
 Debug MCMC C++ implementation
 }

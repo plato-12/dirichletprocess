@@ -19,7 +19,7 @@ Likelihood.exponential <- function(mdObj, x, theta){
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.exponential <- function(mdObj, n){
+PriorDraw.exponential <- function(mdObj, n, ...){
   # Draw gamma values and handle potential NAs
   draws <- rgamma(n, mdObj$priorParameters[1], mdObj$priorParameters[2])
   

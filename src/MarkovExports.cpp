@@ -1,6 +1,6 @@
 // src/MarkovExports.cpp
-#include "../inst/include/MarkovDP.h"
-#include "../inst/include/RcppConversions.h"
+#include "MarkovDP.h"
+#include "RcppConversions.h"
 
 //' @title Create a Markov DP from R object (C++)
 //' @description C++ implementation for creating a Markov DP from an R object.

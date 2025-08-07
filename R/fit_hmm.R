@@ -4,9 +4,10 @@
 #' @param its Number of iterations to use
 #' @param updatePrior Logical flag, defaults to \code{FALSE}. Set whether the parameters of the base measure are updated.
 #' @param progressBar Logical flag indicating whether to display a progress bar.
+#' @param ... Additional arguments
 #' @return A Dirichlet Process object with the fitted cluster parameters and states.
 #' @export
-Fit.markov <- function(dpObj, its, updatePrior=FALSE, progressBar = FALSE){
+Fit.markov <- function(dpObj, its, updatePrior=FALSE, progressBar = FALSE, ...){
   # Use C++ implementation if enabled
   if (using_cpp_markov_samplers()) {
     return(Fit.markov.cpp(dpObj, its, updatePrior, progressBar))

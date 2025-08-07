@@ -48,25 +48,27 @@ get_cpp_status <- function() {
 #' Check if C++ can be used for a given DP object
 #' @param dp_obj Dirichlet process object
 #' @return Logical indicating whether C++ implementation is available
-#' @keywords internal
+#' @export
 can_use_cpp <- function(dp_obj = NULL) {
+  ns <- getNamespace("dirichletprocess")
+  
   if (is.null(dp_obj)) {
     # If no dp_obj provided, just check if C++ is available
-    return(exists("_dirichletprocess_run_mcmc_cpp"))
+    return(exists("_dirichletprocess_run_mcmc_cpp", where = ns))
   }
 
-  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
+  if (!exists("_dirichletprocess_run_mcmc_cpp", where = ns)) {
     return(FALSE)
   }
 
   # Special case for mvnormal - needs specific functions
   if (inherits(dp_obj$mixingDistribution, "mvnormal")) {
-    return(exists("conjugate_mvnormal_cluster_component_update_cpp") &&
-             exists("conjugate_mvnormal_cluster_parameter_update_cpp"))
+    return(exists("conjugate_mvnormal_cluster_component_update_cpp", where = ns) &&
+             exists("conjugate_mvnormal_cluster_parameter_update_cpp", where = ns))
   }
 
   # Supported types for unified MCMCRunner
-  supported_types <- c("normal_inverse_gamma", "normal", "beta",
+  supported_types <- c("normal_inverse_gamma", "normal", "normalFixedVariance", "beta", "beta2",
                        "weibull", "exponential", "mvnormal", "mvnormal2")
   inherits(dp_obj$mixingDistribution, supported_types)
 }
@@ -142,15 +144,36 @@ prepare_mixing_dist_params <- function(dp_obj) {
     # Extract MVNormal parameters
     if (!is.null(md$priorParameters)) {
       pp <- md$priorParameters
-      list(
+      params <- list(
         type = "mvnormal",
         mu0 = as.numeric(pp$mu0),
         kappa0 = as.numeric(pp$kappa0),
         Lambda = as.matrix(pp$Lambda),
         nu = as.numeric(pp$nu)
       )
+      
+      # Add covariance model if specified
+      if (!is.null(pp$covModel)) {
+        params$covModel = as.character(pp$covModel)
+      }
+      
+      return(params)
     } else {
       stop("MVNormal mixing distribution missing prior parameters")
+    }
+  } else if (inherits(md, "mvnormal2")) {
+    # Extract MVNormal2 parameters
+    if (!is.null(md$priorParameters)) {
+      pp <- md$priorParameters
+      list(
+        type = "mvnormal2",
+        mu0 = as.matrix(pp$mu0),
+        sigma0 = as.matrix(pp$sigma0),
+        phi0 = as.matrix(pp$phi0),
+        nu0 = as.numeric(pp$nu0)
+      )
+    } else {
+      stop("MVNormal2 mixing distribution missing prior parameters")
     }
   } else if (inherits(md, "beta")) {
     # Beta distribution parameters
@@ -162,6 +185,14 @@ prepare_mixing_dist_params <- function(dp_obj) {
       mhStepSize = md$mhStepSize,
       hyperPriorParameters = md$hyperPriorParameters
     )
+  } else if (inherits(md, "beta2")) {
+    return(list(
+      type = "beta2",
+      gamma_prior = md$priorParameters[1],
+      maxT = md$maxT,
+      mh_step_size = md$mhStepSize,
+      mh_draws = if (!is.null(md$mhDraws)) md$mhDraws else 250
+    ))
   } else if (inherits(md, "normal_inverse_gamma") || inherits(md, "normal")) {
     # Gaussian parameters
     if (!is.null(md$priors)) {
@@ -181,6 +212,13 @@ prepare_mixing_dist_params <- function(dp_obj) {
         beta0 = md$priorParameters[4]
       )
     }
+  } else if (inherits(md, "normalFixedVariance")) {
+    return(list(
+      type = "normalFixedVariance",
+      mu0 = md$priorParameters[1],
+      sigma0 = md$priorParameters[2],
+      sigma = md$sigma
+    ))
   } else if (inherits(md, "exponential")) {
     list(
       type = "exponential",
@@ -224,13 +262,59 @@ prepare_mcmc_params <- function(dp_obj, its, updatePrior, n_burn = 0, thin = 1) 
 }
 
 #' Enable C++ implementations for specific samplers
+#' @param enable Logical indicating whether to enable C++ samplers
 #' @export
-enable_cpp_samplers <- function() {
-  invisible(exists("_dirichletprocess_run_mcmc_cpp", mode = "function"))
+enable_cpp_samplers <- function(enable = TRUE) {
+  if (missing(enable)) {
+    # If no argument provided, return status (backward compatibility)
+    return(invisible(exists("_dirichletprocess_run_mcmc_cpp", mode = "function")))
+  }
+  
+  # Set option to force C++ usage
+  options(dirichletprocess.force_cpp_samplers = enable)
+  invisible(enable)
+}
+
+#' Enable C++ implementations for hierarchical models
+#' @param enable Logical indicating whether to enable hierarchical C++ samplers
+#' @export
+enable_cpp_hierarchical_samplers <- function(enable = TRUE) {
+  if (missing(enable)) {
+    # If no argument provided, return status (backward compatibility)
+    return(invisible(exists("_dirichletprocess_hierarchical_beta_fit_cpp", mode = "function")))
+  }
+  
+  # Set option to force hierarchical C++ usage
+  options(dirichletprocess.force_cpp_hierarchical = enable)
+  invisible(enable)
 }
 
 #' Check if using C++ samplers
 #' @export
 using_cpp_samplers <- function() {
-  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", mode = "function")
+  ns <- getNamespace("dirichletprocess")
+  
+  # Check if forced via options
+  force_cpp <- getOption("dirichletprocess.force_cpp_samplers", FALSE)
+  if (force_cpp) {
+    return(using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns))
+  }
+  
+  # Default behavior - check for existence of the compiled C++ function
+  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns)
+}
+
+#' Check if using hierarchical C++ samplers
+#' @export
+using_cpp_hierarchical_samplers <- function() {
+  ns <- getNamespace("dirichletprocess")
+  
+  # Check if forced via options
+  force_hierarchical <- getOption("dirichletprocess.force_cpp_hierarchical", FALSE)
+  if (force_hierarchical) {
+    return(using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns, mode = "function"))
+  }
+  
+  # Default behavior
+  using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns, mode = "function")
 }

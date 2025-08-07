@@ -1,6 +1,6 @@
 // src/MVNExports.cpp
-#include "../inst/include/MVNormalDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "MVNormalDistribution.h"
+#include "RcppConversions.h"
 
 // The ensureSymmetric function is already defined as inline in the header, so we don't need to define it here
 

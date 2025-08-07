@@ -4,13 +4,14 @@ Title: Build Dirichlet Process Objects for Bayesian Modelling
 Version: 0.4.2
 Authors@R: c(
             person("Gordon", "J. Ross", email="gordon@gordonjross.co.uk", role=c("aut")),
-            person("Dean", "Markwick", email="dean.markwick@talk21.com", role=c("aut", "cre")),
+            person("Dean", "Markwick", email="dean.markwick@talk21.com", role=c("aut")),
+            person("Priyanshu", "Tiwari", email="tiwari.priyanshu.iitk@gmail.com", role=c("ctb", "cre")),
             person("Kees", "Mulder", email="keestimmulder@gmail.com", role=c("ctb"), 
             comment = c(ORCID = "0000-0002-5387-3812")),
             person("Giovanni", "Sighinolfi", email ="giovanni.sighinolfi2@studio.unibo.it", role=c("ctb")),
             person("Filippo Fiocchi", email="filippofiocchi1@gmail.com", role=c("ctb"))
           )
-Maintainer: Dean Markwick <dean.markwick@talk21.com>
+Maintainer: Priyanshu Tiwari <tiwari.priyanshu.iitk@gmail.com>
 Description: Perform nonparametric Bayesian analysis using Dirichlet 
     processes without the need to program the inference algorithms. 
     Utilise included pre-built models or specify custom 
@@ -30,14 +31,17 @@ Suggests: testthat,
     knitr,
     rmarkdown,
     tidyr,
-    dplyr
+    dplyr,
+    grid
 Imports: gtools,
          ggplot2,
          mvtnorm,
          Rcpp (>= 1.0.11),
-         RcppArmadillo
+         abind,
+         methods,
+         stats,
+         utils
 LinkingTo: Rcpp, RcppArmadillo
-SystemRequirements: C++11
 URL: https://github.com/dm13450/dirichletprocess, https://dm13450.github.io/dirichletprocess/
 BugReports: https://github.com/dm13450/dirichletprocess/issues
 RoxygenNote: 7.3.2

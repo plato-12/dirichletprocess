@@ -10,11 +10,21 @@ Status](https://ci.appveyor.com/api/projects/status/github/dm13450/dirichletproc
 [![Coverage
 Status](https://codecov.io/gh/dm13450/dirichletprocess/branch/master/graph/badge.svg)](https://app.codecov.io/gh/dm13450/dirichletprocess)
 
-The dirichletprocess package provides tools for you to build custom
-Dirichlet process mixture models. You can use the pre-built
-Normal/Weibull/Beta distributions or create your own following the
-instructions in the vignette. In as little as four lines of code you can
-be modelling your data nonparametrically.
+The dirichletprocess package provides tools for building custom
+Dirichlet process mixture models for nonparametric Bayesian analysis. 
+The package features high-performance C++ implementations alongside pure R 
+implementations, offering significant speed improvements while maintaining 
+full compatibility and automatic fallback mechanisms.
+
+**Key Features:**
+- Pre-built distributions: Normal, Beta, Exponential, Weibull, Multivariate Normal
+- Hierarchical Dirichlet Process models
+- High-performance C++ backend with automatic R fallback
+- Comprehensive covariance model support (EII, VII, EEI, VEI, EVI, VVI, FULL)
+- Advanced MCMC algorithms (Neal's Algorithm 4 & 8)
+- Extensive validation and testing framework
+
+Model your data nonparametrically in as little as four lines of code.
 
 ## Installation
 
@@ -71,17 +81,49 @@ plot(dpCluster)
 
 For more detailed explanations and examples see the vignette.
 
+## Performance
+
+The package automatically uses C++ implementations when available, providing significant performance improvements:
+
+```r
+# Check if C++ implementations are available
+library(dirichletprocess)
+using_cpp()  # Returns TRUE if C++ backend is active
+```
+
+C++ implementations are available for all major distributions and provide substantial speedups for large datasets while maintaining identical results to R implementations.
+
+## Supported Distributions
+
+**Conjugate Models:**
+- Normal (Gaussian) with Inverse-Gamma prior
+- Exponential with Gamma prior  
+- Multivariate Normal with Normal-Wishart prior (all covariance models)
+
+**Non-Conjugate Models:**
+- Beta with Uniform priors
+- Weibull with Uniform priors
+- Multivariate Normal with semi-conjugate priors
+
+**Hierarchical Models:**
+- Hierarchical Beta
+- Hierarchical Multivariate Normal (two variants)
+
+## Covariance Models
+
+For multivariate normal distributions, the package supports:
+- **FULL**: Unrestricted covariance matrices
+- **EII, VII, EEI, VEI, EVI, VVI**: Constrained covariance models
+
 ### Tutorials
 
-I’ve written a number of tutorials:
+I've written a number of tutorials:
 
 -   [Non parametric
     priors](https://dm13450.github.io/2019/02/22/Nonparametric-Prior.html)
 -   [Calculating cluster
     probabilities](https://dm13450.github.io/2018/11/21/Cluster-Probabilities.html)
 -   [Clustering](https://dm13450.github.io/2018/05/30/Clustering.html)
--   [Point
-    processes](https://dm13450.github.io/2018/03/08/dirichletprocess-pointprocess.html)
 -   [Custom
     mixtures](https://dm13450.github.io/2018/02/21/Custom-Distributions-Conjugate.html)
 -   [Density

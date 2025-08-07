@@ -1,4 +1,4 @@
-#include "../inst/include/weibull_mixing.h"
+#include "weibull_mixing.h"
 #include <Rcpp.h>
 #include <cmath>
 #include <algorithm>

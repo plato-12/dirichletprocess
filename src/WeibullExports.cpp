@@ -1,7 +1,7 @@
 // src/WeibullExports.cpp
 #include <RcppArmadillo.h>
-#include "../inst/include/WeibullDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "WeibullDistribution.h"
+#include "RcppConversions.h"
 #include <memory>
 
 // [[Rcpp::export]]

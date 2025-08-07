@@ -49,13 +49,17 @@ public:
   MCMCRunner(const arma::mat& data,
              const Rcpp::List& mixing_dist_params,
              const Rcpp::List& mcmc_params);
+  
+  // Virtual destructor to ensure proper cleanup
+  virtual ~MCMCRunner() = default;
 
   // Main MCMC loop
   Rcpp::List run();
 
   protected:  // CHANGED FROM private TO protected
     // MCMC steps
-    void update_cluster_assignments_algorithm8(); // Algorithm 8 implementation
+    void update_cluster_assignments_algorithm4(const std::vector<double>& predictive_probs); // Algorithm 4 (conjugate)
+    void update_cluster_assignments_algorithm8(); // Algorithm 8 (non-conjugate) implementation
     void update_cluster_parameters();
     void update_concentration();
     void store_iteration(int iter);

@@ -19,8 +19,37 @@ WeibullMixtureCreate <- function(priorParameters, mhStepSize,
 Likelihood.weibull <- function(mdObj, x, theta) {
   # as.numeric(dweibull(x, theta[[1]], theta[[2]]))
   x <- as.vector(x, "numeric")
-  alpha <- theta[[1]][, , , drop = TRUE]
-  lambda <- theta[[2]][, , , drop = TRUE]
+  
+  # Check if theta has the required components
+  if (!is.list(theta) || length(theta) < 2) {
+    # Fallback values if theta structure is unexpected
+    return(rep(0, length(x)))
+  }
+  
+  # Handle different array dimensions safely
+  alpha_dims <- dim(theta[[1]])
+  lambda_dims <- dim(theta[[2]])
+  
+  # Extract values with appropriate dropping based on dimensions
+  if (is.null(alpha_dims) || length(alpha_dims) <= 2) {
+    alpha <- as.numeric(theta[[1]])
+  } else if (length(alpha_dims) == 3) {
+    alpha <- theta[[1]][, , , drop = TRUE]
+  } else if (length(alpha_dims) == 4) {
+    alpha <- theta[[1]][, , , , drop = TRUE]
+  } else {
+    alpha <- as.numeric(theta[[1]])
+  }
+  
+  if (is.null(lambda_dims) || length(lambda_dims) <= 2) {
+    lambda <- as.numeric(theta[[2]])
+  } else if (length(lambda_dims) == 3) {
+    lambda <- theta[[2]][, , , drop = TRUE]
+  } else if (length(lambda_dims) == 4) {
+    lambda <- theta[[2]][, , , , drop = TRUE]
+  } else {
+    lambda <- as.numeric(theta[[2]])
+  }
 
   # a <- alpha
   # b <- lambda^(1/alpha)
@@ -35,7 +64,7 @@ Likelihood.weibull <- function(mdObj, x, theta) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.weibull <- function(mdObj, n = 1) {
+PriorDraw.weibull <- function(mdObj, n = 1, ...) {
 
   priorParameters <- mdObj$priorParameters
 

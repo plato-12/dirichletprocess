@@ -1,6 +1,6 @@
 // src/NormalExports.cpp
-#include "../inst/include/NormalDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "NormalDistribution.h"
+#include "RcppConversions.h"
 
 //' @title Draw from a Normal distribution prior (C++)
 //' @description C++ implementation for drawing from the prior distribution of a

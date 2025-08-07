@@ -1,3 +1,6 @@
+# Declare global variables for R CMD check
+utils::globalVariables(c("conjugate_mvnormal_cluster_component_update_cpp", "conjugate_mvnormal_cluster_parameter_update_cpp"))
+
 #' C++ Implementation Wrappers for MVNormal Distribution
 #'
 #' These functions provide access to the C++ implementations of the
@@ -28,7 +31,7 @@ ClusterComponentUpdate.mvnormal.cpp <- function(dpObj) {
 
   # The C++ implementation expects 0-indexed cluster labels
   dpObj_cpp <- dpObj
-  dpObj_cpp$clusterLabels <- dpObj$clusterLabels - 1
+  dpObj_cpp$clusterLabels <- as.integer(dpObj$clusterLabels - 1)
 
   # Call C++ implementation
   result <- conjugate_mvnormal_cluster_component_update_cpp(dpObj_cpp)
@@ -60,7 +63,7 @@ ClusterParameterUpdate.mvnormal.cpp <- function(dpObj) {
 
   # The C++ implementation expects 0-indexed cluster labels
   dpObj_cpp <- dpObj
-  dpObj_cpp$clusterLabels <- dpObj$clusterLabels - 1
+  dpObj_cpp$clusterLabels <- as.integer(dpObj$clusterLabels - 1)
 
   # Call C++ implementation
   dpObj$clusterParameters <- conjugate_mvnormal_cluster_parameter_update_cpp(dpObj_cpp)
@@ -69,10 +72,9 @@ ClusterParameterUpdate.mvnormal.cpp <- function(dpObj) {
 }
 
 #' @rdname cpp_mvnormal_wrappers
-#' @param priorParams Prior parameters list
 #' @param n Number of draws
 #' @export
-PriorDraw.mvnormal.cpp <- function(mdObj, n = 1) {
+PriorDraw.mvnormal.cpp <- function(mdObj, n = 1, ...) {
   if (!exists("mvnormal_prior_draw_cpp")) {
     stop("MVNormal C++ functions not available")
   }

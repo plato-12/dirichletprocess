@@ -1,4 +1,4 @@
-#include "../inst/include/hierarchical_mcmc_runner.h"
+#include "hierarchical_mcmc_runner.h"
 
 namespace dirichletprocess {
 

@@ -17,9 +17,49 @@ Mvnormal2Create <- function(priorParameters) {
 #' @export
 #' @rdname Likelihood
 Likelihood.mvnormal2 <- function(mdObj, x, theta) {
+  # Try C++ implementation first if available
+  if (using_cpp() && exists("mvnormal2_likelihood_cpp")) {
+    tryCatch({
+      if (!is.matrix(x)) {
+        x <- matrix(x, nrow = 1)
+      }
+      
+      # Check for NULL parameters
+      if (is.null(theta) || is.null(theta[[1]]) || is.null(theta[[2]])) {
+        return(rep(0, nrow(x)))
+      }
+      
+      # Convert theta to C++ format (indexed list, not named)
+      mu_array <- theta[[1]]
+      sig_array <- theta[[2]]
+      
+      # Validate arrays have dimension attributes
+      if (is.null(dim(mu_array)) || is.null(dim(sig_array))) {
+        stop("MVNormal2 theta parameters must be arrays with dimensions")
+      }
+      
+      # Create C++ compatible theta list
+      cpp_theta <- list(mu_array, sig_array)
+      
+      # Call C++ likelihood function - pass x as matrix, not flattened vector
+      return(mvnormal2_likelihood_cpp(x, cpp_theta))
+      
+    }, error = function(e) {
+      # Fall back to R implementation if C++ fails
+      warning("MVNormal2 C++ implementation failed, using R: ", e$message)
+    })
+  }
+  
+  # R implementation fallback
   if (!is.matrix(x)) {
     x <- matrix(x, nrow = 1)
   }
+  
+  # Check for NULL parameters
+  if (is.null(theta) || is.null(theta[[1]]) || is.null(theta[[2]])) {
+    return(rep(0, nrow(x)))
+  }
+  
   # Get dimensions and handle both 2D and 3D parameter arrays
   theta1_dim <- dim(theta[[1]])
   theta2_dim <- dim(theta[[2]])
@@ -29,11 +69,14 @@ Likelihood.mvnormal2 <- function(mdObj, x, theta) {
   
   y <- vapply(seq_len(num_clusters),
               function(i) {
-                # Extract mu for cluster i
+                # Extract mu for cluster i with proper dimension handling
                 if (length(theta1_dim) >= 3) {
-                  mu_i <- theta[[1]][, , i]
+                  mu_i <- as.vector(theta[[1]][, , i])
+                } else if (length(theta1_dim) == 2) {
+                  mu_i <- as.vector(theta[[1]][, i])
                 } else {
-                  mu_i <- theta[[1]][, i]
+                  # Handle 1D case
+                  mu_i <- as.vector(theta[[1]])
                 }
                 
                 # Extract sigma for cluster i - handle different dimensions
@@ -42,10 +85,17 @@ Likelihood.mvnormal2 <- function(mdObj, x, theta) {
                   sigma_i <- theta[[2]][, , i]
                 } else if (length(theta2_dim) == 2) {
                   # Constrained covariance models - 2D array
-                  sigma_i <- theta[[2]][, i]
+                  sigma_vec <- theta[[2]][, i]
+                  d <- length(mu_i)
+                  # Reconstruct covariance matrix from parameters
+                  sigma_i <- matrix(sigma_vec, nrow = d, ncol = d)
                 } else {
-                  # Single cluster case
-                  sigma_i <- theta[[2]]
+                  # Single cluster case - ensure it's a matrix
+                  d <- length(mu_i)
+                  sigma_i <- as.matrix(theta[[2]])
+                  if (ncol(sigma_i) != d || nrow(sigma_i) != d) {
+                    sigma_i <- diag(as.vector(theta[[2]]), nrow = d)
+                  }
                 }
                 
                 mvtnorm::dmvnorm(x, mu_i, sigma_i)
@@ -57,7 +107,7 @@ Likelihood.mvnormal2 <- function(mdObj, x, theta) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.mvnormal2 <- function(mdObj, n = 1) {
+PriorDraw.mvnormal2 <- function(mdObj, n = 1, ...) {
 
   priorParameters <- mdObj$priorParameters
 

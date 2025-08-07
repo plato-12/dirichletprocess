@@ -85,14 +85,14 @@ ClusterParameterUpdate.conjugate.cpp <- function(dpObj) {
   return(dpObj)
 }
 
-#' Enable C++ implementations for conjugate samplers
+#' Enable C++ implementations for Normal samplers
 #'
-#' This function enables the use of C++ implementations for the core
-#' sampling algorithms when available.
+#' This function enables the use of C++ implementations for the Normal
+#' distribution sampling algorithms when available.
 #'
 #' @param use_cpp Logical indicating whether to use C++ implementations
 #' @export
-enable_cpp_samplers <- function(use_cpp = TRUE) {
+enable_cpp_normal_samplers <- function(use_cpp = TRUE) {
   options(dirichletprocess.use_cpp_samplers = use_cpp)
 
   if (use_cpp) {
@@ -104,10 +104,5 @@ enable_cpp_samplers <- function(use_cpp = TRUE) {
   invisible(use_cpp)
 }
 
-#' Check if C++ samplers are enabled
-#'
-#' @return Logical indicating if C++ samplers are enabled
-#' @export
-using_cpp_samplers <- function() {
-  getOption("dirichletprocess.use_cpp_samplers", FALSE)
-}
+# Note: using_cpp_samplers() function is now defined in cpp_interface.R
+# to properly handle the unified MCMC runner detection

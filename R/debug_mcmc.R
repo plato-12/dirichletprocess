@@ -1,5 +1,20 @@
 # R/debug_mcmc.R
+
+#' Create Gaussian parameters for debugging
+#' @keywords internal
+create_gaussian_params <- function() {
+  list(
+    type = "gaussian",
+    mu = 0,
+    sigma2 = 1
+  )
+}
+
 #' Debug MCMC C++ implementation
+#'
+#' @param data Input data for MCMC debugging
+#' @param n_iter Number of MCMC iterations (default: 10)
+#' @param verbose Whether to output verbose debugging information (default: TRUE)
 #' @export
 debug_mcmc_cpp <- function(data, n_iter = 10, verbose = TRUE) {
   if (!exists("_dirichletprocess_run_mcmc_cpp")) {
@@ -38,6 +53,10 @@ debug_mcmc_cpp <- function(data, n_iter = 10, verbose = TRUE) {
 }
 
 #' Debug MCMC clustering behavior
+#'
+#' @param data Input data for clustering diagnosis
+#' @param n_iter Number of MCMC iterations (default: 100)
+#' @param alpha Concentration parameter (default: 1.0)
 #' @export
 diagnose_clustering <- function(data, n_iter = 100, alpha = 1.0) {
   data_matrix <- matrix(data, ncol = 1)

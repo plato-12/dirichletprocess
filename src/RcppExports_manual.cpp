@@ -1,5 +1,5 @@
 // src/RcppExports_manual.cpp
-#include "../inst/include/mcmc_runner_manual.h"
+#include "mcmc_runner_manual.h"
 #include <Rcpp.h>
 
 using namespace Rcpp;

@@ -13,7 +13,7 @@
 
 \method{ClusterParameterUpdate}{mvnormal.cpp}(dpObj)
 
-\method{PriorDraw}{mvnormal.cpp}(mdObj, n = 1)
+\method{PriorDraw}{mvnormal.cpp}(mdObj, n = 1, ...)
 
 \method{PosteriorDraw}{mvnormal.cpp}(mdObj, x, n = 1, ...)
 
@@ -25,8 +25,6 @@
 \item{n}{Number of draws}
 
 \item{x}{Data matrix}
-
-\item{priorParams}{Prior parameters list}
 }
 \description{
 These functions provide access to the C++ implementations of the

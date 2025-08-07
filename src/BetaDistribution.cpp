@@ -1,6 +1,6 @@
 // src/BetaDistribution.cpp
-#include "../inst/include/BetaDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "BetaDistribution.h"
+#include "RcppConversions.h"
 #include <cmath>
 #include <limits>
 

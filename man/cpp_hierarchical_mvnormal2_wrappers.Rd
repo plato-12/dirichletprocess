@@ -9,9 +9,10 @@
 \alias{PriorDraw.mvnormal2.cpp}
 \alias{PosteriorDraw.mvnormal2.cpp}
 \alias{Likelihood.mvnormal2.cpp}
+\alias{fit_mvnormal2_cpp}
 \title{C++ Implementation Wrappers for Hierarchical MVNormal2 Distribution}
 \usage{
-\method{Fit}{hierarchical.mvnormal2.cpp}(dpObj, its, updatePrior = FALSE, progressBar = TRUE)
+\method{Fit}{hierarchical.mvnormal2.cpp}(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...)
 
 HierarchicalMvnormal2Create.cpp(
   n,
@@ -25,14 +26,16 @@ HierarchicalMvnormal2Create.cpp(
 
 \method{ClusterParameterUpdate}{mvnormal2.cpp}(dpObj)
 
-\method{PriorDraw}{mvnormal2.cpp}(mdObj, n = 1)
+\method{PriorDraw}{mvnormal2.cpp}(mdObj, n = 1, ...)
 
 \method{PosteriorDraw}{mvnormal2.cpp}(mdObj, x, n = 1, ...)
 
 \method{Likelihood}{mvnormal2.cpp}(mdObj, x, theta)
+
+fit_mvnormal2_cpp(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...)
 }
 \arguments{
-\item{dpObj}{Hierarchical Dirichlet process object}
+\item{dpObj}{Dirichlet process object}
 
 \item{its}{Number of iterations}
 

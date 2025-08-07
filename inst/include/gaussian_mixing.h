@@ -26,6 +26,10 @@ public:
   arma::vec prior_draw() const override;
 
   int param_dim() const override { return 2; } // mean and variance
+  
+  bool is_conjugate() const override { return true; }
+  
+  double predictive_probability(const arma::vec& data_point) const override;
 };
 
 } // namespace dirichletprocess

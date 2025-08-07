@@ -1,6 +1,6 @@
 // src/ExponentialDistribution.cpp
-#include "../inst/include/ExponentialDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "ExponentialDistribution.h"
+#include "RcppConversions.h"
 #include <cmath>
 
 namespace dp {

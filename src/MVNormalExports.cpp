@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include "../inst/include/mcmc_runner.h"
+#include "mcmc_runner.h"
 
 // Additional export for testing MVNormal likelihood
 // [[Rcpp::export]]

@@ -6,6 +6,13 @@
 \usage{
 diagnose_clustering(data, n_iter = 100, alpha = 1)
 }
+\arguments{
+\item{data}{Input data for clustering diagnosis}
+
+\item{n_iter}{Number of MCMC iterations (default: 100)}
+
+\item{alpha}{Concentration parameter (default: 1.0)}
+}
 \description{
 Debug MCMC clustering behavior
 }

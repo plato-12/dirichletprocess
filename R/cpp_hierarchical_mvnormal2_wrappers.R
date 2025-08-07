@@ -15,7 +15,7 @@ NULL
 #' @param updatePrior Whether to update prior parameters
 #' @param progressBar Whether to show progress bar
 #' @export
-Fit.hierarchical.mvnormal2.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE) {
+Fit.hierarchical.mvnormal2.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
   if (!inherits(dpObj, "hierarchical")) {
     stop("This C++ implementation is only for hierarchical Dirichlet processes")
   }
@@ -66,6 +66,9 @@ ClusterComponentUpdate.mvnormal2.cpp <- function(dpObj) {
     stop("This C++ implementation is only for MVNormal2 distributions")
   }
 
+  # Store original class structure
+  original_class <- class(dpObj)
+  
   # Convert labels
   dpObj$clusterLabels <- dpObj$clusterLabels - 1
 
@@ -75,11 +78,14 @@ ClusterComponentUpdate.mvnormal2.cpp <- function(dpObj) {
   # Convert back
   result$clusterLabels <- result$clusterLabels + 1
 
-  # Update dpObj
+  # Update dpObj while preserving its structure
   dpObj$clusterLabels <- result$clusterLabels
   dpObj$pointsPerCluster <- result$pointsPerCluster
   dpObj$numberClusters <- result$numberClusters
   dpObj$clusterParameters <- result$clusterParameters
+
+  # Ensure class structure is preserved
+  class(dpObj) <- original_class
 
   return(dpObj)
 }
@@ -91,6 +97,9 @@ ClusterParameterUpdate.mvnormal2.cpp <- function(dpObj) {
     stop("This C++ implementation is only for MVNormal2 distributions")
   }
 
+  # Store original class structure
+  original_class <- class(dpObj)
+  
   # Convert labels
   dpObj$clusterLabels <- dpObj$clusterLabels - 1
 
@@ -100,12 +109,15 @@ ClusterParameterUpdate.mvnormal2.cpp <- function(dpObj) {
   # Convert back
   dpObj$clusterLabels <- dpObj$clusterLabels + 1
 
+  # Ensure class structure is preserved
+  class(dpObj) <- original_class
+
   return(dpObj)
 }
 
 #' @rdname cpp_hierarchical_mvnormal2_wrappers
 #' @export
-PriorDraw.mvnormal2.cpp <- function(mdObj, n = 1) {
+PriorDraw.mvnormal2.cpp <- function(mdObj, n = 1, ...) {
   mvnormal2_prior_draw_cpp(mdObj$priorParameters, n)
 }
 
@@ -125,10 +137,21 @@ Likelihood.mvnormal2.cpp <- function(mdObj, x, theta) {
     x <- matrix(x, nrow = 1)
   }
 
-  result <- numeric(nrow(x))
-  for (i in 1:nrow(x)) {
-    result[i] <- mvnormal2_likelihood_cpp(x[i,], theta)[1]
-  }
+  # The C++ function now handles the full matrix
+  return(mvnormal2_likelihood_cpp(x, theta))
+}
 
-  return(result)
+#' @rdname cpp_hierarchical_mvnormal2_wrappers
+#' @param dpObj Dirichlet process object
+#' @param its Number of iterations
+#' @param updatePrior Whether to update prior parameters
+#' @param progressBar Whether to show progress bar
+#' @export
+fit_mvnormal2_cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
+  # DEPRECATED: MVNormal2 now uses unified CppMCMCRunner interface
+  warning("fit_mvnormal2_cpp is deprecated. MVNormal2 now uses the unified interface through Fit(). ",
+          "Please use Fit() instead, which will automatically use the unified C++ implementation.")
+  
+  # Redirect to unified interface
+  return(Fit(dpObj, its, updatePrior, progressBar, ...))
 }

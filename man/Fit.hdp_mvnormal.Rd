@@ -4,12 +4,16 @@
 \alias{Fit.hdp_mvnormal}
 \title{Fit method for Hierarchical MVNormal DP}
 \usage{
-\method{Fit}{hdp_mvnormal}(hdp_obj, iterations = 1000, ...)
+\method{Fit}{hdp_mvnormal}(dpObj, its = 1000, updatePrior = FALSE, progressBar = TRUE, ...)
 }
 \arguments{
-\item{hdp_obj}{Hierarchical DP object}
+\item{dpObj}{Hierarchical DP object}
 
-\item{iterations}{Number of MCMC iterations}
+\item{its}{Number of MCMC iterations}
+
+\item{updatePrior}{Whether to update prior parameters}
+
+\item{progressBar}{Whether to show progress bar}
 
 \item{...}{Additional MCMC parameters}
 }

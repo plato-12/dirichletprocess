@@ -111,7 +111,7 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
       return(nonconjugate_beta_cluster_component_update_cpp(dpObj))
     }
     if (inherits(dpObj, "mvnormal2") && exists("nonconjugate_mvnormal2_cluster_component_update_cpp")) {
-      return(nonconjugate_mvnormal2_cluster_component_update_cpp(dpObj))
+      return(ClusterComponentUpdate.mvnormal2.cpp(dpObj))
     }
   }
 
@@ -139,6 +139,7 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
       if (pointsPerCluster[j] > 0 || (empty_cluster && j == currentLabel)) {
         # Extract parameters for cluster j
         single_cluster_params <- list()
+        param_names <- names(clusterParams)
         for (k in seq_along(clusterParams)) {
           param_dims <- dim(clusterParams[[k]])
           if (length(param_dims) == 3) {
@@ -149,6 +150,10 @@ ClusterComponentUpdate.nonconjugate <- function(dpObj) {
           } else {
             single_cluster_params[[k]] <- clusterParams[[k]][j]
           }
+        }
+        # Preserve parameter names if they exist
+        if (!is.null(param_names)) {
+          names(single_cluster_params) <- param_names
         }
 
         # Calculate likelihood

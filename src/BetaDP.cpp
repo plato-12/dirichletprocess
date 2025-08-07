@@ -1,6 +1,6 @@
 // src/BetaDP.cpp
-#include "../inst/include/BetaDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "BetaDistribution.h"
+#include "RcppConversions.h"
 
 namespace dp {
 

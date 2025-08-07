@@ -1,5 +1,5 @@
 // src/MemoryProfiling.cpp
-#include "../inst/include/MemoryProfiling.h"
+#include "MemoryProfiling.h"
 
 namespace dp {
 

@@ -16,3 +16,6 @@
 ^profiling$
 ^analysis$
 ^inst/benchmarks$
+^\.vscode$
+^CLAUDE\.md$
+^benchmark$

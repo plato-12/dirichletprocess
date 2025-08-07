@@ -6,8 +6,8 @@
 
 // Function declarations
 Rcpp::NumericVector likelihood_normal_cpp(
-    const Rcpp::List& mdObj,
-    const Rcpp::NumericVector& x,
-    const Rcpp::List& theta);
+    Rcpp::List mdObj,
+    Rcpp::NumericVector x,
+    Rcpp::List theta);
 
 #endif // LIKELIHOOD_FUNCTIONS_H

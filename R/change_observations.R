@@ -78,9 +78,17 @@ ChangeObservations.default <- function(dpobj, newData) {
 
       predicted_data$numLabels <- new_numLabels
     } else {
-      # Original logic for non-mvnormal distributions
+      # Original logic for non-mvnormal distributions - with dimension checking
       predicted_data$clusterParams <- lapply(predicted_data$clusterParams,
-                                             function(x) x[, , -emptyClusters, drop = FALSE])
+                                             function(x) {
+                                               if (length(dim(x)) >= 3) {
+                                                 x[, , -emptyClusters, drop = FALSE]
+                                               } else if (length(dim(x)) == 2) {
+                                                 x[, -emptyClusters, drop = FALSE]
+                                               } else {
+                                                 x[-emptyClusters]
+                                               }
+                                             })
       predicted_data$numLabels <- predicted_data$numLabels - length(emptyClusters)
 
       # Reindex component assignments

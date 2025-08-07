@@ -10,11 +10,17 @@ CppMCMCRunner <- setRefClass("CppMCMCRunner",
                              fields = list(
                                ptr = "externalptr",
                                dp_obj = "ANY",
-                               distribution_type = "character"
+                               distribution_type = "character",
+                               temp_value = "numeric",
+                               aux_params = "list"
                              ),
 
                              methods = list(
                                initialize = function(dp_object, n_iter = 1000, n_burn = 100, thin = 1) {
+                                 # Initialize fields
+                                 temp_value <<- 1.0
+                                 aux_params <<- list()
+                                 
                                  # Prepare data
                                  data <- as.matrix(dp_object$data)
 
@@ -92,7 +98,7 @@ CppMCMCRunner <- setRefClass("CppMCMCRunner",
                                  if (temp <= 0) {
                                    stop("Temperature must be positive")
                                  }
-                                 set_temperature_cpp(ptr, temp)
+                                 temp_value <<- temp
                                  invisible(.self)
                                },
 
@@ -103,6 +109,23 @@ CppMCMCRunner <- setRefClass("CppMCMCRunner",
                                  }
                                  set_auxiliary_count_cpp(ptr, m)
                                  invisible(.self)
+                               },
+
+                               get_temperature = function() {
+                                 "Get current temperature"
+                                 temp_value
+                               },
+
+                               set_auxiliary_params = function(params) {
+                                 "Set auxiliary parameters"
+                                 aux_params <<- params
+                                 invisible(.self)
+                               },
+
+                               get_n_clusters = function() {
+                                 "Get number of clusters"
+                                 state <- get_state()
+                                 length(unique(state$labels))
                                },
 
                                merge_clusters = function(cluster1, cluster2) {
@@ -119,7 +142,7 @@ CppMCMCRunner <- setRefClass("CppMCMCRunner",
 
                                get_auxiliary_params = function() {
                                  "Get auxiliary parameters"
-                                 get_auxiliary_params_cpp(ptr)
+                                 aux_params
                                },
 
                                get_cluster_likelihoods = function() {

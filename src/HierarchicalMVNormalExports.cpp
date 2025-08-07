@@ -1,5 +1,5 @@
 #include <RcppArmadillo.h>
-#include "../inst/include/hierarchical_mvnormal_mixing.h"
+#include "hierarchical_mvnormal_mixing.h"
 
 // [[Rcpp::depends(RcppArmadillo)]]
 

@@ -1,6 +1,6 @@
 // src/gaussian_mixing.cpp
 #include <RcppArmadillo.h>
-#include "../inst/include/gaussian_mixing.h"
+#include "gaussian_mixing.h"
 
 namespace dirichletprocess {
 
@@ -69,6 +69,31 @@ arma::vec GaussianMixing::prior_draw() const {
   params[1] = variance;
 
   return params;
+}
+
+double GaussianMixing::predictive_probability(const arma::vec& data_point) const {
+  // R implementation uses marginal likelihood ratio: p(x|prior) / p(prior)
+  // This matches the formula in R/normal_inverse_gamma.R, Predictive.normal
+  double x = data_point[0];
+  
+  // Calculate posterior parameters after observing this single data point
+  // Using the same logic as in posteriorParameters method
+  int n_x = 1;
+  double ybar = x;
+  
+  double mu_n = (kappa0 * mu0 + n_x * ybar) / (kappa0 + n_x);
+  double kappa_n = kappa0 + n_x;
+  double alpha_n = alpha0 + n_x / 2.0;
+  double beta_n = beta0 + 0.5 * n_x * std::pow(ybar - ybar, 2) +
+    kappa0 * n_x * std::pow(ybar - mu0, 2) / (2.0 * (kappa0 + n_x));
+  
+  // Calculate the predictive probability using R's formula:
+  // (Γ(α_n)/Γ(α_0)) * (β_0^α_0/β_n^α_n) * √(κ_0/κ_n)
+  double predictive = (R::gammafn(alpha_n) / R::gammafn(alpha0)) *
+                     (std::pow(beta0, alpha0) / std::pow(beta_n, alpha_n)) *
+                     std::sqrt(kappa0 / kappa_n);
+  
+  return predictive;
 }
 
 } // namespace dirichletprocess

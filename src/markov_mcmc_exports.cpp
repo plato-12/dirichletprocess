@@ -1,6 +1,6 @@
 // src/markov_mcmc_exports.cpp
 #include <RcppArmadillo.h>
-#include "../inst/include/markov_mcmc_runner.h"
+#include "markov_mcmc_runner.h"
 
 // [[Rcpp::export]]
 Rcpp::List run_markov_mcmc_cpp(arma::mat data,

@@ -117,7 +117,7 @@ Likelihood.beta <- function(mdObj, x, theta) {
 
 #' @export
 #' @rdname PriorDraw
-PriorDraw.beta <- function(mdObj, n = 1) {
+PriorDraw.beta <- function(mdObj, n = 1, ...) {
 
   priorParameters <- mdObj$priorParameters
   mu <- runif(n, 0, mdObj$maxT)

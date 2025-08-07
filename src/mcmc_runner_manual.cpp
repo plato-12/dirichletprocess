@@ -1,6 +1,6 @@
 // src/mcmc_runner_manual.cpp
-#include "../inst/include/mcmc_runner_manual.h"
-#include "../inst/include/utilities.h"
+#include "mcmc_runner_manual.h"
+#include "utilities.h"
 #include <cmath>
 #include <algorithm>
 

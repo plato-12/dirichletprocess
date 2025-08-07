@@ -3,7 +3,6 @@
 #define MCMC_RUNNER_MANUAL_H
 
 #include "mcmc_runner.h"
-#include <Rcpp.h>
 
 namespace dirichletprocess {
 

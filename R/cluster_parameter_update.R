@@ -38,23 +38,33 @@ ClusterParameterUpdate.conjugate <- function(dpObj) {
       pts <- y[which(clusterLabels == i), , drop = FALSE]
       post_draw <- PosteriorDraw(mdobj, pts)
 
-      for (j in seq_along(clusterParams)) {
-        param_dims <- dim(clusterParams[[j]])
+      for (param_name in names(clusterParams)) {
+        param_dims <- dim(clusterParams[[param_name]])
         if (length(param_dims) == 3) {
           # FULL covariance model - 3D array
-          clusterParams[[j]][, , i] <- post_draw[[j]]
+          clusterParams[[param_name]][, , i] <- post_draw[[param_name]]
         } else if (length(param_dims) == 2) {
           # Constrained covariance models - 2D array
-          clusterParams[[j]][, i] <- post_draw[[j]]
+          clusterParams[[param_name]][, i] <- post_draw[[param_name]]
         } else {
           # Single cluster case
-          clusterParams[[j]][i] <- post_draw[[j]]
+          clusterParams[[param_name]][i] <- post_draw[[param_name]]
         }
       }
     }
   }
 
   dpObj$clusterParameters <- clusterParams
+  return(dpObj)
+}
+
+#' @export
+#' @rdname ClusterParameterUpdate
+ClusterParameterUpdate.hierarchical <- function(dpObj) {
+  # For hierarchical objects, update each individual DP
+  for (i in seq_along(dpObj$indDP)) {
+    dpObj$indDP[[i]] <- ClusterParameterUpdate(dpObj$indDP[[i]])
+  }
   return(dpObj)
 }
 

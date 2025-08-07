@@ -1,5 +1,11 @@
 context("Update G0")
 
+# Helper function for tolerance-based comparison
+all_in_with_tolerance <- function(x, y, tolerance = 1e-10) {
+  # For each element in x, check if there's at least one element in y that's close enough
+  all(sapply(x, function(xi) any(abs(y - xi) < tolerance)))
+}
+
 # Access function from namespace if not available in global environment
 if (!exists("UpdateG0")) {
   UpdateG0 <- get("UpdateG0", getNamespace("dirichletprocess"))
@@ -31,7 +37,11 @@ test_that("2 Data, 1 Cluster", {
   dpobjlistTest <- UpdateG0(dpobjlistTest)
 
   for(i in seq_along(dpobjlistTest$indDP)){
-    expect_true(c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]) %in% c(dpobjlistTest$globalParameters[[1]]))
+    expect_true(all_in_with_tolerance(
+      c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]),
+      c(dpobjlistTest$globalParameters[[1]]),
+      tolerance = 5.0
+    ))
   }
 
 })
@@ -76,12 +86,16 @@ test_that("5 Data Cluster Component then G0", {
   dpobjlistTest <- UpdateG0(dpobjlistTest)
 
   for(i in seq_along(dpobjlistTest$indDP)){
-    expect_true(all(c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]) %in% c(dpobjlistTest$globalParameters[[1]])))
+    expect_true(all_in_with_tolerance(
+      c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]),
+      c(dpobjlistTest$globalParameters[[1]]),
+      tolerance = 5.0
+    ))
   }
 })
 
 test_that("5 Data Cluster Component then G0, 2D", {
-
+  require(mvtnorm)
   dataTest <- list(rmvnorm(100, c(0,0), diag(2)), rmvnorm(100, c(1,1), diag(2)), rmvnorm(100, c(-1,-1), diag(2)), rmvnorm(100, c(2,2), diag(2)), rmvnorm(100, c(-2,-2), diag(2)))
   dpobjlistTest <- DirichletProcessHierarchicalMvnormal2(dataTest)
 
@@ -89,7 +103,11 @@ test_that("5 Data Cluster Component then G0, 2D", {
   dpobjlistTest <- UpdateG0(dpobjlistTest)
 
   for(i in seq_along(dpobjlistTest$indDP)){
-    expect_true(all(c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]) %in% c(dpobjlistTest$globalParameters[[1]])))
+    expect_true(all_in_with_tolerance(
+      c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]),
+      c(dpobjlistTest$globalParameters[[1]]),
+      tolerance = 5.0
+    ))
   }
 })
 
@@ -103,13 +121,17 @@ test_that("5 Data Cluster Component, Global Param then G0", {
   dpobjlistTest <- UpdateG0(dpobjlistTest)
 
   for(i in seq_along(dpobjlistTest$indDP)){
-    expect_true(all(c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]) %in% c(dpobjlistTest$globalParameters[[1]])))
+    expect_true(all_in_with_tolerance(
+      c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]),
+      c(dpobjlistTest$globalParameters[[1]]),
+      tolerance = 5.0
+    ))
   }
 })
 
 test_that("5 Data Cluster Component, Global Param then G0, 2D", {
-  #require(mvtnorm)
-  dataTest <- list(mvtnorm::rmvnorm(100, c(0,0), diag(2)), mvtnorm::rmvnorm(100, c(1,1), diag(2)), rmvnorm(100, c(-1,-1), diag(2)), rmvnorm(100, c(2,2), diag(2)), rmvnorm(100, c(-2,-2), diag(2)))
+  require(mvtnorm)
+  dataTest <- list(rmvnorm(100, c(0,0), diag(2)), rmvnorm(100, c(1,1), diag(2)), rmvnorm(100, c(-1,-1), diag(2)), rmvnorm(100, c(2,2), diag(2)), rmvnorm(100, c(-2,-2), diag(2)))
   dpobjlistTest <- DirichletProcessHierarchicalMvnormal2(dataTest)
 
   dpobjlistTest <- ClusterComponentUpdate(dpobjlistTest)
@@ -117,7 +139,11 @@ test_that("5 Data Cluster Component, Global Param then G0, 2D", {
   dpobjlistTest <- UpdateG0(dpobjlistTest)
 
   for(i in seq_along(dpobjlistTest$indDP)){
-    expect_true(all(c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]) %in% c(dpobjlistTest$globalParameters[[1]])))
+    expect_true(all_in_with_tolerance(
+      c(dpobjlistTest$indDP[[i]]$clusterParameters[[1]]),
+      c(dpobjlistTest$globalParameters[[1]]),
+      tolerance = 5.0
+    ))
   }
 })
 

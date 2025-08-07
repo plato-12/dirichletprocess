@@ -1,6 +1,6 @@
 // src/ExponentialExports.cpp
-#include "../inst/include/ExponentialDistribution.h"
-#include "../inst/include/RcppConversions.h"
+#include "ExponentialDistribution.h"
+#include "RcppConversions.h"
 
 //' @title Draw from an Exponential distribution prior (C++)
 //' @description C++ implementation for drawing from the prior distribution of an

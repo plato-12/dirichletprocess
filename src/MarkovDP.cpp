@@ -1,6 +1,6 @@
 // src/MarkovDP.cpp - Fixed compilation errors
-#include "../inst/include/MarkovDP.h"
-#include "../inst/include/RcppConversions.h"
+#include "MarkovDP.h"
+#include "RcppConversions.h"
 #include <RcppArmadillo.h>
 #include <algorithm>
 #include <numeric>
