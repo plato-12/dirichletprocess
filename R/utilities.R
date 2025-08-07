@@ -42,19 +42,20 @@ weighted_function_generator <- function(func, weights, params) {
           param_dims <- length(dim(params[[j]]))
           
           if (param_dims == 3) {
-            # Standard 3D array structure
-            param_val <- params[[j]][, , i, drop = FALSE]
-          } else if (param_dims == 2) {
-            # 2D matrix structure - take ith column if available
-            if (ncol(params[[j]]) >= i) {
-              param_val <- params[[j]][, i, drop = FALSE]
+            # Standard 3D array structure - use i-th slice
+            if (dim(params[[j]])[3] >= i) {
+              param_val <- params[[j]][, , i, drop = FALSE]
             } else {
-              # Skip if column doesn't exist
+              # If i is out of bounds for this parameter, skip it
               next
             }
+          } else if (param_dims == 2) {
+            # 2D matrix structure - use the entire parameter (cluster-specific data)
+            # Don't index by i since 2D parameters are typically cluster-specific
+            param_val <- params[[j]]
           } else {
-            # Other structures - skip for safety
-            next
+            # Other structures - use as-is
+            param_val <- params[[j]]
           }
           
           # Keep original parameter structure to preserve expected format for likelihood functions
