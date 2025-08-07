@@ -5,30 +5,29 @@
 ### 1. Student-t Distribution Example
 **Code:**
 ```r
-dirichletprocess:::can_use_cpp()  # [1] TRUE
+using_cpp()  # [1] TRUE
+using_cpp_samplers()  # [1] TRUE
 y <- rt(200, 3) + 2
 dp <- DirichletProcessGaussian(y)
 dp <- Fit(dp, 1000)
 ```
 **Status:** ✅ SUCCESS - C++ implementation confirmed and used successfully
 
-## Failed Examples
-
 ### 2. Old Faithful Dataset Example with Plotting (Univariate)
 **Code:**
 ```r
-dirichletprocess:::can_use_cpp()  # [1] TRUE
 its <- 500
 faithfulTransformed <- scale(faithful$waiting)
 dp <- DirichletProcessGaussian(faithfulTransformed)
 dp <- Fit(dp, its)
-plot(dp)  # <- ERROR HERE
+plot(dp)
+plot(dp, data_method="hist")
 ```
-**Status:** ❌ FAILED - Plotting function error
-**Error:** `Error in PriorDraws[[i]] : subscript out of bounds`
-**Location:** `posterior_clusters.R#70`
-**Issue:** Bug in plotting functionality - the model fitting works but plotting fails due to array indexing issue in `PosteriorClusters.dirichletprocess()` function
-**Note:** The core C++ fitting functionality works correctly; this is a plotting bug
+**Status:** ✅ SUCCESS - Previously failing plotting function now works
+**Note:** Both `plot(dp)` and `plot(dp, data_method="hist")` execute successfully. Only minor ggplot2 deprecation warnings about `..density..` syntax.
+**Previous Issue Fixed:** The "subscript out of bounds" error in `posterior_clusters.R#70` has been resolved.
+
+## Failed Examples
 
 ### 3. Rats Dataset Example with Custom Parameters
 **Code:**

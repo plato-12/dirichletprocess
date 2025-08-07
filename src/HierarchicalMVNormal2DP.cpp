@@ -210,7 +210,8 @@ void HierarchicalMVNormal2DP::globalParameterUpdate() {
         indDP[0]->getMixingDistribution());
 
       if (mixDist) {
-        Rcpp::List new_params = mixDist->posteriorDraw(combined_data, 100);
+        // Use single sample for efficiency in hierarchical MCMC
+        Rcpp::List new_params = mixDist->posteriorDraw(combined_data, 1);
         Rcpp::NumericVector new_mu = new_params[0];
         Rcpp::NumericVector new_sig = new_params[1];
 
@@ -222,14 +223,14 @@ void HierarchicalMVNormal2DP::globalParameterUpdate() {
         Rcpp::NumericVector mu_global = globalParameters[0];
         Rcpp::NumericVector sig_global = globalParameters[1];
 
-        int last_idx = 99; // Last sample from 100 draws
+        int sample_idx = 0; // Single sample
         for (int dim = 0; dim < d; dim++) {
-          mu_global[dim + global_idx * d] = new_mu[dim + last_idx * d];
+          mu_global[dim + global_idx * d] = new_mu[dim + sample_idx * d];
         }
         for (int i = 0; i < d; i++) {
           for (int j = 0; j < d; j++) {
             sig_global[i + j * d + global_idx * d * d] =
-              new_sig[i + j * d + last_idx * d * d];
+              new_sig[i + j * d + sample_idx * d * d];
           }
         }
 
@@ -255,12 +256,12 @@ void HierarchicalMVNormal2DP::globalParameterUpdate() {
 
             if (match) {
               for (int dim = 0; dim < d; dim++) {
-                mu_params[dim + j * d] = new_mu[dim + last_idx * d];
+                mu_params[dim + j * d] = new_mu[dim + sample_idx * d];
               }
               for (int i = 0; i < d; i++) {
                 for (int jj = 0; jj < d; jj++) {
                   sig_params[i + jj * d + j * d * d] =
-                    new_sig[i + jj * d + last_idx * d * d];
+                    new_sig[i + jj * d + sample_idx * d * d];
                 }
               }
             }
