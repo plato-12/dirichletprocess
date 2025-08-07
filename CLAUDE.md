@@ -96,6 +96,13 @@ Claude Code now has a **complete R package development environment** in VS Code 
 - **Production Ready**: Comprehensive testing and validation
 - **Research Grade**: Advanced MCMC features and diagnostics
 
+### Implementation Control (Updated 2025-08-07)
+- **Universal cpp Parameter**: All 11 distribution constructors now accept `cpp = TRUE/FALSE` for explicit implementation control
+- **Default Changed**: Package default is now `cpp = FALSE` (R implementation) for predictable cross-platform behavior
+- **Per-Object Control**: Each constructor call sets implementation preference independently
+- **Backward Compatibility**: Legacy global control functions (`set_use_cpp()`, `using_cpp()`) remain functional
+- **Complete Coverage**: Normal, Beta, Exponential, Weibull, MVNormal, MVNormal2, Hierarchical, and Markov models
+
 ## Repository Structure
 - **R/**: Main package functions and C++ integration layer
 - **src/**: C++ implementation files and headers

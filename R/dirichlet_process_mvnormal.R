@@ -6,11 +6,13 @@
 #' @param g0Priors Prior parameters for the base distribution.
 #' @param alphaPriors Alpha prior parameters. See \code{\link{UpdateAlpha}}.
 #' @param numInitialClusters Number of clusters to initialise with.
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @export
 DirichletProcessMvnormal <- function(y,
                                      g0Priors,
                                      alphaPriors = c(2, 4),
-                                     numInitialClusters=1) {
+                                     numInitialClusters=1,
+                                     cpp = FALSE) {
 
   if(!is.matrix(y)){
     y <- matrix(y, ncol=length(y))
@@ -27,6 +29,13 @@ DirichletProcessMvnormal <- function(y,
   mdobj <- MvnormalCreate(g0Priors)
   dpobj <- DirichletProcessCreate(y, mdobj, alphaPriors)
   dpobj <- Initialise(dpobj, numInitialClusters=numInitialClusters)
+
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
 
   return(dpobj)
 }

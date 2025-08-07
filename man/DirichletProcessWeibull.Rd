@@ -11,7 +11,8 @@ DirichletProcessWeibull(
   mhStepSize = c(1, 1),
   hyperPriorParameters = c(6, 2, 1, 0.5),
   verbose = FALSE,
-  mhDraws = 100
+  mhDraws = 100,
+  cpp = FALSE
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ DirichletProcessWeibull(
 \item{verbose}{Set the level of screen output.}
 
 \item{mhDraws}{Number of Metropolis-Hastings samples to perform for each cluster update.}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \value{
 Dirichlet process object

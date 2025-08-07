@@ -8,7 +8,8 @@ DirichletProcessBeta(
   y,
   alphaPriors = c(2, 0.5),
   mhStepSize = c(0.1, 0.1),
-  verbose = TRUE
+  verbose = TRUE,
+  cpp = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ DirichletProcessBeta(
 \item{mhStepSize}{Metropolis-Hastings step size for parameter updates}
 
 \item{verbose}{Logical indicating whether to print messages}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \value{
 Dirichlet process object with Beta mixing distribution

@@ -5,10 +5,12 @@
 #' @param y Data
 #' @param g0Priors Prior parameters for the base distribution.
 #' @param alphaPriors Alpha prior parameters. See \code{\link{UpdateAlpha}}.
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @export
 DirichletProcessMvnormal2 <- function(y,
                                       g0Priors,
-                                      alphaPriors = c(2, 4)) {
+                                      alphaPriors = c(2, 4),
+                                      cpp = FALSE) {
 
   if (!is.matrix(y)){
     y <- matrix(y, ncol=length(y))
@@ -32,6 +34,13 @@ DirichletProcessMvnormal2 <- function(y,
   mdobj <- Mvnormal2Create(g0Priors)
   dpobj <- DirichletProcessCreate(y, mdobj, alphaPriors)
   dpobj <- Initialise(dpobj)
+
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
 
   return(dpobj)
 }

@@ -11,7 +11,8 @@ DirichletProcessBeta2(
   alphaPrior = c(2, 4),
   mhStep = c(1, 1),
   verbose = TRUE,
-  mhDraws = 250
+  mhDraws = 250,
+  cpp = FALSE
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ DirichletProcessBeta2(
 \item{verbose}{Logical, control the level of on screen output.}
 
 \item{mhDraws}{Number of Metropolis-Hastings samples to perform for each cluster update.}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \value{
 Dirichlet process object

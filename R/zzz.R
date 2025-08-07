@@ -3,7 +3,7 @@
 .onLoad <- function(libname, pkgname) {
   # Set default options
   options(
-    dirichletprocess.use_cpp = TRUE,  # Default to C++ if available
+    dirichletprocess.use_cpp = FALSE,  # Default to R implementation
     dirichletprocess.cpp_debug = FALSE  # For debugging
   )
 }

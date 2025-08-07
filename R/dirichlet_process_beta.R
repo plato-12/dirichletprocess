@@ -4,10 +4,12 @@
 #' @param alphaPriors Alpha prior parameters for the DP concentration parameter
 #' @param mhStepSize Metropolis-Hastings step size for parameter updates
 #' @param verbose Logical indicating whether to print messages
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @return Dirichlet process object with Beta mixing distribution
 #' @export
 DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
-                                 mhStepSize = c(0.1, 0.1), verbose = TRUE) {
+                                 mhStepSize = c(0.1, 0.1), verbose = TRUE,
+                                 cpp = FALSE) {
   # Handle case where alphaPriors is a single value
   if (length(alphaPriors) == 1) {
     alphaPriors <- c(alphaPriors, 0.5)
@@ -22,6 +24,13 @@ DirichletProcessBeta <- function(y, alphaPriors = c(2, 0.5),
   # Ensure cluster accounting is correct
   dpObj$pointsPerCluster <- as.numeric(table(factor(dpObj$clusterLabels,
                                                     levels = 1:dpObj$numberClusters)))
+
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
 
   return(dpObj)
 }

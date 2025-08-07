@@ -9,6 +9,7 @@
 #' @param numSticks Truncation level for the Stick Breaking formulation.
 #' @param numInitialClusters Number of clusters to initialise with.
 #' @param mhDraws Number of Metropolis-Hastings samples to perform for each cluster update.
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @return dpobjlist A Hierarchical Dirichlet Process object that can be fitted, plotted etc.
 #' @export
 DirichletProcessHierarchicalMvnormal2 <- function(dataList,
@@ -16,7 +17,7 @@ DirichletProcessHierarchicalMvnormal2 <- function(dataList,
                                                   gammaPriors = c(2,4), alphaPriors = c(2, 4),
                                                   numSticks = 50,
                                                   numInitialClusters = 1,
-                                                  mhDraws=250) {
+                                                  mhDraws=250, cpp = FALSE) {
 
   if(missing(g0Priors)){
     g0Priors <- list(nu0 = 2,
@@ -55,6 +56,13 @@ DirichletProcessHierarchicalMvnormal2 <- function(dataList,
 
   # CRITICAL: Set class with hierarchical FIRST to ensure proper method dispatch
   class(dpobjlist) <- c("hierarchical", "dirichletprocess", "list")
+
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
 
   return(dpobjlist)
 }

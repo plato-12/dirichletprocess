@@ -9,13 +9,15 @@
 #' @param mhStepSize Metropolis Hastings jump size.
 #' @param numSticks Truncation level for the Stick Breaking formulation.
 #' @param mhDraws Number of Metropolis-Hastings samples to perform for each cluster update.
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @return dpobjlist A Hierarchical Dirichlet Process object that can be fitted, plotted etc.
 #' @export
 DirichletProcessHierarchicalBeta <- function(dataList, maxY,
                                              priorParameters = c(2,8),
                                              hyperPriorParameters = c(1,0.125),
                                              gammaPriors = c(2,4), alphaPriors = c(2, 4),
-                                             mhStepSize = c(0.1,0.1), numSticks = 50, mhDraws=250) {
+                                             mhStepSize = c(0.1,0.1), numSticks = 50, mhDraws=250,
+                                             cpp = FALSE) {
 
   mdobj_list <- HierarchicalBetaCreate(n=length(dataList), priorParameters=priorParameters,
                                        hyperPriorParameters=hyperPriorParameters, gammaPrior=gammaPriors,
@@ -39,6 +41,13 @@ DirichletProcessHierarchicalBeta <- function(dataList, maxY,
 
   # CRITICAL FIX: Put "hierarchical" before "dirichletprocess" for proper S3 dispatch
   class(dpobjlist) <- c("hierarchical", "dirichletprocess", "list")
+
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
 
   return(dpobjlist)
 }
