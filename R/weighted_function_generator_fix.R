@@ -34,9 +34,21 @@ weighted_function_generator <- function(func, weights, params) {
         # Handle unnamed parameters
         cl_params <- vector("list", length = length(params))
         for (j in seq_along(params)) {
-          param_dim <- dim(params[[j]])[3]
-          cluster_idx <- min(i, param_dim)
-          cl_params[[j]] <- params[[j]][, , cluster_idx, drop = FALSE]
+          # Handle different parameter structures safely
+          param_dims <- length(dim(params[[j]]))
+          
+          if (param_dims == 3) {
+            # Standard 3D array structure - use cluster_idx
+            param_dim <- dim(params[[j]])[3]
+            cluster_idx <- min(i, param_dim)
+            cl_params[[j]] <- params[[j]][, , cluster_idx, drop = FALSE]
+          } else if (param_dims == 2) {
+            # 2D matrix structure - use the entire parameter (cluster-specific data)
+            cl_params[[j]] <- params[[j]]
+          } else {
+            # Other structures - use as-is
+            cl_params[[j]] <- params[[j]]
+          }
         }
       }
       
