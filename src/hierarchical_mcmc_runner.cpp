@@ -41,16 +41,16 @@ Rcpp::List HierarchicalMCMCRunner::run() {
   Rcpp::Rcout << "Starting Hierarchical Beta MCMC with "
               << datasets.size() << " datasets" << std::endl;
 
-  // Initialize all runners
+  // Initialize all runners (single initialization, not full run)
   for (auto& runner : runners) {
-    runner->run();  // Initial short run to establish clusters
+    runner->initialize_state();
   }
 
   // Main MCMC loop
   for (int iter = 0; iter < n_iter; iter++) {
     Rcpp::checkUserInterrupt();
 
-    // Step 1: Update local clusters using Algorithm 8
+    // Step 1: Update local clusters using single iteration updates
     update_local_clusters();
 
     // Step 2: Update global parameters
@@ -76,10 +76,21 @@ Rcpp::List HierarchicalMCMCRunner::run() {
   // Compile results
   Rcpp::List results;
 
-  // Individual DP results
+  // Individual DP results - extract final state, don't run again
   Rcpp::List individual_results;
   for (size_t i = 0; i < runners.size(); i++) {
-    individual_results.push_back(runners[i]->run());
+    // Extract current state instead of running full MCMC
+    Rcpp::List dp_result;
+    const auto& state = runners[i]->get_state();
+    const auto& mixing_dist = runners[i]->get_mixing_dist();
+    
+    // Convert state to R list format
+    dp_result["cluster_labels"] = Rcpp::wrap(state->cluster_labels);
+    dp_result["cluster_params"] = Rcpp::wrap(state->cluster_params);
+    dp_result["alpha"] = state->alpha;
+    dp_result["n_clusters"] = state->n_clusters;
+    
+    individual_results.push_back(dp_result);
   }
   results["individual_dps"] = individual_results;
 
@@ -96,8 +107,8 @@ void HierarchicalMCMCRunner::update_local_clusters() {
   // This uses Algorithm 8 from Neal (2000)
 
   for (auto& runner : runners) {
-    // Run one iteration of local MCMC
-    runner->run();  // This internally calls update_cluster_assignments_algorithm8()
+    // Run one iteration of local MCMC (not full run)
+    runner->single_iteration_update();
   }
 }
 
