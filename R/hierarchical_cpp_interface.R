@@ -122,8 +122,9 @@ can_use_hierarchical_cpp <- function(dp_list) {
 
   # Check if all individual DPs are supported
   all_beta <- all(sapply(dp_list$indDP, function(x) inherits(x, "beta")))
+  all_mvnormal2 <- all(sapply(dp_list$indDP, function(x) inherits(x, "mvnormal2")))
 
-  return(all_beta)
+  return(all_beta || all_mvnormal2)
 }
 
 #' Update DP object from MCMC results

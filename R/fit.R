@@ -389,15 +389,28 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
     stop("C++ implementation not available for this hierarchical DP type")
   }
 
-  # Use the C++ implementation via run_hierarchical_mcmc_cpp
-  result <- run_hierarchical_mcmc_cpp(
-    dpObj,
-    n_iter = its,
-    n_burn = 0,  # No burn-in for regular Fit
-    thin = 1,
-    update_prior = updatePrior,
-    progress_bar = progressBar
-  )
+  # Use the appropriate C++ implementation based on distribution type
+  if (all(sapply(dpObj$indDP, function(x) inherits(x, "beta")))) {
+    # Use hierarchical Beta C++ implementation
+    result <- run_hierarchical_mcmc_cpp(
+      dpObj,
+      n_iter = its,
+      n_burn = 0,  # No burn-in for regular Fit
+      thin = 1,
+      update_prior = updatePrior,
+      progress_bar = progressBar
+    )
+  } else if (all(sapply(dpObj$indDP, function(x) inherits(x, "mvnormal2")))) {
+    # Use hierarchical MVNormal2 C++ implementation (disable progress bar to avoid R implementation)
+    result <- hierarchical_mvnormal2_fit_cpp(
+      dpObj,
+      iterations = its,
+      updatePrior = updatePrior,
+      progressBar = FALSE  # Disable to ensure C++ is used
+    )
+  } else {
+    stop("Mixed distribution types not supported in hierarchical C++ implementation")
+  }
 
   # The result from run_hierarchical_mcmc_cpp should already have the updated dpObj
   # Ensure all fields are properly set
