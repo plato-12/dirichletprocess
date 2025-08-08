@@ -20,7 +20,7 @@ test_that("Beta Mixture Likelihood Numerical", {
   a <- (mu*tau)/maxT
   b <- (1-mu/maxT)*tau
 
-  thetaTest <- list(array(mu, dim=c(1,1,length(mu))), array(tau, dim=c(1,1,length(tau))))
+  thetaTest <- list(mu = array(mu, dim=c(1,1,length(mu))), nu = array(tau, dim=c(1,1,length(tau))))
 
   xTest <- seq(0, maxT, by=0.1)
 

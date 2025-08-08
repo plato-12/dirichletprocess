@@ -22,13 +22,8 @@ Likelihood.beta2 <- function(mdObj, x, theta){
   temp_mdObj <- mdObj
   class(temp_mdObj) <- c("list", "beta", "nonconjugate")
 
-  # Get result from beta likelihood
+  # Get result from beta likelihood and return as-is to preserve attributes/structure
   result <- Likelihood(temp_mdObj, x, theta)
-  
-  # If result is a matrix with single column, convert to vector to match C++ beta behavior
-  if (is.matrix(result) && ncol(result) == 1) {
-    result <- as.numeric(result[, 1])
-  }
   
   return(result)
 }
