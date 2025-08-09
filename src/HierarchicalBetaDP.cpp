@@ -229,15 +229,16 @@ void HierarchicalBetaDP::globalParameterUpdate() {
         data_mat(i, 0) = combined_data[i];
       }
 
-      Rcpp::List new_params = indDP[0]->getMixingDistribution()->posteriorDraw(data_mat, 100);
+      // Use single sample for efficiency in hierarchical MCMC
+      Rcpp::List new_params = indDP[0]->getMixingDistribution()->posteriorDraw(data_mat, 1);
       Rcpp::NumericVector new_mu = new_params[0];
       Rcpp::NumericVector new_nu = new_params[1];
 
       // Update global parameters
       Rcpp::NumericVector mu_global = globalParameters[0];
       Rcpp::NumericVector nu_global = globalParameters[1];
-      mu_global[global_idx] = new_mu[99]; // Last sample
-      nu_global[global_idx] = new_nu[99];
+      mu_global[global_idx] = new_mu[0]; // Single sample
+      nu_global[global_idx] = new_nu[0];
       globalParameters[0] = mu_global;
       globalParameters[1] = nu_global;
 
@@ -250,10 +251,10 @@ void HierarchicalBetaDP::globalParameterUpdate() {
         Rcpp::NumericVector nu_params = betaDP->clusterParameters[1];
 
         for (int j = 0; j < betaDP->numberClusters; j++) {
-          if (std::abs(mu_params[j] - new_mu[99]) < PARAM_TOLERANCE ||
+          if (std::abs(mu_params[j] - new_mu[0]) < PARAM_TOLERANCE ||
               std::abs(mu_params[j] - mu_global[global_idx]) < PARAM_TOLERANCE) {
-            mu_params[j] = new_mu[99];
-            nu_params[j] = new_nu[99];
+            mu_params[j] = new_mu[0];
+            nu_params[j] = new_nu[0];
           }
         }
 

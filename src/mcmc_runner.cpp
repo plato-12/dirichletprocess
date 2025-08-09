@@ -64,6 +64,63 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
   likelihood_samples.reserve(n_iter);
 }
 
+void MCMCRunner::initialize_state() {
+  // Initialize with one cluster containing all data
+  std::fill(state->cluster_labels.begin(), state->cluster_labels.end(), 0);
+  state->n_clusters = 1;
+  state->cluster_sizes.set_size(1);
+  state->cluster_sizes[0] = data.n_rows;
+
+  // Initialize cluster parameters with validation
+  state->cluster_params.resize(1);
+  try {
+    state->cluster_params[0] = mixing_dist->prior_draw();
+  } catch (const std::exception& e) {
+    Rcpp::stop("Failed to initialize cluster parameters: " + std::string(e.what()));
+  }
+}
+
+void MCMCRunner::single_iteration_update() {
+  // Validate state before iteration
+  if (state->n_clusters <= 0 || state->cluster_params.empty()) {
+    Rcpp::stop("Invalid cluster state in single_iteration_update");
+  }
+  
+  // Pre-compute predictive probabilities for conjugate distributions
+  std::vector<double> predictive_probs;
+  if (mixing_dist->is_conjugate()) {
+    predictive_probs.resize(data.n_rows);
+    for (size_t i = 0; i < data.n_rows; ++i) {
+      try {
+        arma::vec data_point = data.row(i).t();
+        double pred_prob = mixing_dist->predictive_probability(data_point);
+        if (std::isfinite(pred_prob) && pred_prob > 0) {
+          predictive_probs[i] = pred_prob;
+        } else {
+          predictive_probs[i] = 1e-10;  // Small but positive probability
+        }
+      } catch (const std::exception& e) {
+        predictive_probs[i] = 1e-10;  // Fallback value
+      }
+    }
+  }
+  
+  // Update cluster assignments - choose algorithm based on conjugacy
+  if (mixing_dist->is_conjugate()) {
+    update_cluster_assignments_algorithm4(predictive_probs);
+  } else {
+    update_cluster_assignments_algorithm8();
+  }
+
+  // Update cluster parameters
+  update_cluster_parameters();
+
+  // Update concentration parameter
+  if (update_concentration_flag) {
+    update_concentration();
+  }
+}
+
 int MCMCRunner::sample_categorical(const std::vector<double>& probs) {
   double u = R::runif(0, 1);
   double cumsum = 0.0;
@@ -147,61 +204,14 @@ Rcpp::List MCMCRunner::run() {
     Rcpp::stop("Data matrix has invalid dimensions");
   }
   
-  // Initialize with one cluster containing all data
-  std::fill(state->cluster_labels.begin(), state->cluster_labels.end(), 0);
-  state->n_clusters = 1;
-  state->cluster_sizes.set_size(1);
-  state->cluster_sizes[0] = data.n_rows;
-
-  // Initialize cluster parameters with validation
-  state->cluster_params.resize(1);
-  try {
-    state->cluster_params[0] = mixing_dist->prior_draw();
-  } catch (const std::exception& e) {
-    Rcpp::stop("Failed to initialize cluster parameters: " + std::string(e.what()));
-  }
-
-  // Pre-compute predictive probabilities for conjugate distributions
-  std::vector<double> predictive_probs;
-  if (mixing_dist->is_conjugate()) {
-    predictive_probs.resize(data.n_rows);
-    for (size_t i = 0; i < data.n_rows; ++i) {
-      try {
-        arma::vec data_point = data.row(i).t();
-        double pred_prob = mixing_dist->predictive_probability(data_point);
-        if (std::isfinite(pred_prob) && pred_prob > 0) {
-          predictive_probs[i] = pred_prob;
-        } else {
-          predictive_probs[i] = 1e-10;  // Small but positive probability
-        }
-      } catch (const std::exception& e) {
-        predictive_probs[i] = 1e-10;  // Fallback value
-      }
-    }
-  }
+  // Initialize state
+  initialize_state();
 
   // MCMC loop with bounds checking
   for (int iter = 0; iter < n_iter; ++iter) {
     try {
-      // Validate state before each iteration
-      if (state->n_clusters <= 0 || state->cluster_params.empty()) {
-        Rcpp::stop("Invalid cluster state at iteration " + std::to_string(iter));
-      }
-      
-      // Update cluster assignments - choose algorithm based on conjugacy
-      if (mixing_dist->is_conjugate()) {
-        update_cluster_assignments_algorithm4(predictive_probs);
-      } else {
-        update_cluster_assignments_algorithm8();
-      }
-
-      // Update cluster parameters
-      update_cluster_parameters();
-
-      // Update concentration parameter
-      if (update_concentration_flag) {
-        update_concentration();
-      }
+      // Single iteration update
+      single_iteration_update();
 
       // Store current iteration
       store_iteration(iter);

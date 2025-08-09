@@ -55,6 +55,14 @@ public:
 
   // Main MCMC loop
   Rcpp::List run();
+  
+  // Single iteration methods for hierarchical use
+  void single_iteration_update();
+  void initialize_state();
+  
+  // Getters for hierarchical access
+  const std::unique_ptr<DPState>& get_state() const { return state; }
+  const std::unique_ptr<MixingDistribution>& get_mixing_dist() const { return mixing_dist; }
 
   protected:  // CHANGED FROM private TO protected
     // MCMC steps

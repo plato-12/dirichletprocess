@@ -249,7 +249,8 @@ Rcpp::List BetaMixingDistribution::posteriorDraw(const arma::mat& x, int n) cons
   mdObj.attr("class") = Rcpp::CharacterVector::create("beta", "nonconjugate", "list");
 
   // Run Metropolis-Hastings
-  int mhDraws = std::max(250, n * 10); // Ensure enough draws for thinning
+  // For hierarchical models, use fewer draws to avoid nested MCMC performance issues
+  int mhDraws = std::max(10, n * 2); // Minimum 10 draws for convergence, but much less than 250
   Rcpp::List mhResult = metropolisHastings(x, startPos, mhDraws);
 
   // Extract samples

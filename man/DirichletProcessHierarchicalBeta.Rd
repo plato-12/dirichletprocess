@@ -13,7 +13,8 @@ DirichletProcessHierarchicalBeta(
   alphaPriors = c(2, 4),
   mhStepSize = c(0.1, 0.1),
   numSticks = 50,
-  mhDraws = 250
+  mhDraws = 250,
+  cpp = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ DirichletProcessHierarchicalBeta(
 \item{numSticks}{Truncation level for the Stick Breaking formulation.}
 
 \item{mhDraws}{Number of Metropolis-Hastings samples to perform for each cluster update.}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \value{
 dpobjlist A Hierarchical Dirichlet Process object that can be fitted, plotted etc.

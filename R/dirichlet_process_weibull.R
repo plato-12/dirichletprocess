@@ -14,6 +14,7 @@
 #' @param hyperPriorParameters Hyper prior parameters.
 #' @param verbose Set the level of screen output.
 #' @param mhDraws Number of Metropolis-Hastings samples to perform for each cluster update.
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @return Dirichlet process object
 #'
 #' @references Kottas, A. (2006). Nonparametric Bayesian survival analysis using mixtures of Weibull distributions. Journal of Statistical Planning and Inference, 136(3), 578-596.
@@ -23,10 +24,18 @@
 DirichletProcessWeibull <- function(y, g0Priors, alphaPriors = c(2, 4),
                                     mhStepSize = c(1, 1),
                                     hyperPriorParameters = c(6, 2, 1, 0.5),
-                                    verbose=FALSE, mhDraws=100) {
+                                    verbose=FALSE, mhDraws=100, cpp = FALSE) {
 
   mdobj <- WeibullMixtureCreate(g0Priors, mhStepSize, hyperPriorParameters)
   dpobj <- DirichletProcessCreate(y, mdobj, alphaPriors, mhDraws)
   dpobj <- Initialise(dpobj, verbose = verbose)
+  
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
+  
   return(dpobj)
 }

@@ -6,8 +6,9 @@
 #' @param mdobj Mixing distribution object
 #' @param alpha Alpha parameter
 #' @param beta Beta parameter
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @export
-DirichletHMMCreate <- function(x, mdobj, alpha, beta){
+DirichletHMMCreate <- function(x, mdobj, alpha, beta, cpp = FALSE){
 
   if(is.vector(x)){
     x <- matrix(x, ncol=1)
@@ -60,6 +61,13 @@ DirichletHMMCreate <- function(x, mdobj, alpha, beta){
   dp$beta <- beta
 
   class(dp) <- append(class(dp), c("markov", "dirichletprocess", class(mdobj)[-1]))
+
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
 
   return(dp)
 }

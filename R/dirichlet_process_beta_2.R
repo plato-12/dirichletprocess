@@ -11,13 +11,23 @@
 #' @param mhStep Step size for Metropolis Hastings sampling algorithm.
 #' @param verbose Logical, control the level of on screen output.
 #' @param mhDraws Number of Metropolis-Hastings samples to perform for each cluster update.
+#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
 #' @return Dirichlet process object
 #' @export
 DirichletProcessBeta2 <- function(y, maxY, g0Priors = 2, alphaPrior = c(2, 4),
-                                  mhStep = c(1, 1), verbose=TRUE, mhDraws=250) {
+                                  mhStep = c(1, 1), verbose=TRUE, mhDraws=250,
+                                  cpp = FALSE) {
 
   mdObj <- BetaMixture2Create(priorParameters = g0Priors, mhStepSize = mhStep, maxT = maxY)
   dpObj <- DirichletProcessCreate(y, mdObj, alphaPrior, mhDraws)
   dpObj <- Initialise(dpObj, verbose=verbose)
+  
+  # Set cpp preference for this object
+  if (cpp) {
+    options(dirichletprocess.use_cpp = TRUE)
+  } else {
+    options(dirichletprocess.use_cpp = FALSE)
+  }
+  
   return(dpObj)
 }

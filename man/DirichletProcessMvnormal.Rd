@@ -8,7 +8,8 @@ DirichletProcessMvnormal(
   y,
   g0Priors,
   alphaPriors = c(2, 4),
-  numInitialClusters = 1
+  numInitialClusters = 1,
+  cpp = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ DirichletProcessMvnormal(
 \item{alphaPriors}{Alpha prior parameters. See \code{\link{UpdateAlpha}}.}
 
 \item{numInitialClusters}{Number of clusters to initialise with.}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \description{
 \eqn{G_0 (\boldsymbol{\mu} , \Lambda |  \boldsymbol{\mu _0} , \kappa _0, \nu _0, T_0)  = N ( \boldsymbol{\mu} | \boldsymbol{\mu _0} , (\kappa _0 \Lambda )^{-1} ) \mathrm{Wi} _{\nu _0} (\Lambda | T_0)}

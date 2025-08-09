@@ -4,7 +4,12 @@
 \alias{DirichletProcessExponential}
 \title{Create a Dirichlet Mixture of Exponentials}
 \usage{
-DirichletProcessExponential(y, g0Priors = c(0.01, 0.01), alphaPriors = c(2, 4))
+DirichletProcessExponential(
+  y,
+  g0Priors = c(0.01, 0.01),
+  alphaPriors = c(2, 4),
+  cpp = FALSE
+)
 }
 \arguments{
 \item{y}{Data}
@@ -12,6 +17,8 @@ DirichletProcessExponential(y, g0Priors = c(0.01, 0.01), alphaPriors = c(2, 4))
 \item{g0Priors}{Base Distribution Priors \eqn{\alpha _0 , \beta _0)}}
 
 \item{alphaPriors}{Alpha prior parameters. See \code{\link{UpdateAlpha}}.}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \value{
 Dirichlet process object

@@ -98,20 +98,36 @@ Likelihood.beta <- function(mdObj, x, theta) {
     }
     return(if (n_clusters == 1) lik[1] else lik)
   } else {
-    # Multiple observations - return matrix
-    lik <- matrix(1e-300, nrow = length(x), ncol = n_clusters)
-    for (k in 1:n_clusters) {
-      if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
-        a <- (mu[k] * nu[k]) / maxT
-        b <- (1 - mu[k]/maxT) * nu[k]
+    # Multiple observations 
+    if (n_clusters == 1) {
+      # Single cluster - return vector
+      lik <- rep(1e-300, length(x))
+      if (mu[1] > 0 && mu[1] < maxT && nu[1] > 0) {
+        a <- (mu[1] * nu[1]) / maxT
+        b <- (1 - mu[1]/maxT) * nu[1]
 
         if (a > 0 && b > 0) {
           valid_idx <- x >= 0 & x <= maxT
-          lik[valid_idx, k] <- (1/maxT) * dbeta(x[valid_idx]/maxT, a, b)
+          lik[valid_idx] <- (1/maxT) * dbeta(x[valid_idx]/maxT, a, b)
         }
       }
+      return(lik)
+    } else {
+      # Multiple clusters - return matrix
+      lik <- matrix(1e-300, nrow = length(x), ncol = n_clusters)
+      for (k in 1:n_clusters) {
+        if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
+          a <- (mu[k] * nu[k]) / maxT
+          b <- (1 - mu[k]/maxT) * nu[k]
+
+          if (a > 0 && b > 0) {
+            valid_idx <- x >= 0 & x <= maxT
+            lik[valid_idx, k] <- (1/maxT) * dbeta(x[valid_idx]/maxT, a, b)
+          }
+        }
+      }
+      return(lik)
     }
-    return(lik)
   }
 }
 

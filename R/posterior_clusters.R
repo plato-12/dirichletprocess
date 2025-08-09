@@ -16,6 +16,7 @@
 #' @export
 PosteriorClusters <- function(dpobj, ind) UseMethod("PosteriorClusters", dpobj)
 
+#' @importFrom stats sd
 #' @export
 PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
 

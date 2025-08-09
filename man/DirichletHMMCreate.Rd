@@ -4,7 +4,7 @@
 \alias{DirichletHMMCreate}
 \title{Create a generic Dirichlet process hidden Markov Model}
 \usage{
-DirichletHMMCreate(x, mdobj, alpha, beta)
+DirichletHMMCreate(x, mdobj, alpha, beta, cpp = FALSE)
 }
 \arguments{
 \item{x}{Data to be modelled}
@@ -14,6 +14,8 @@ DirichletHMMCreate(x, mdobj, alpha, beta)
 \item{alpha}{Alpha parameter}
 
 \item{beta}{Beta parameter}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \description{
 Create a hidden Markov model where the data is believed to be generated from the mixing object distribution.

@@ -310,11 +310,15 @@ using_cpp_hierarchical_samplers <- function() {
   ns <- getNamespace("dirichletprocess")
   
   # Check if forced via options
-  force_hierarchical <- getOption("dirichletprocess.force_cpp_hierarchical", FALSE)
-  if (force_hierarchical) {
-    return(using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns, mode = "function"))
+  force_hierarchical <- getOption("dirichletprocess.force_cpp_hierarchical", NULL)
+  if (!is.null(force_hierarchical)) {
+    if (force_hierarchical) {
+      return(using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns))
+    } else {
+      return(FALSE)  # Force R implementation
+    }
   }
   
-  # Default behavior
-  using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns, mode = "function")
+  # Default behavior - C++ functions from Rcpp are stored as "list" mode, not "function"
+  using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns)
 }

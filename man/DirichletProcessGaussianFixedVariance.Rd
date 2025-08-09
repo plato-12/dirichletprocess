@@ -8,7 +8,8 @@ DirichletProcessGaussianFixedVariance(
   y,
   sigma,
   g0Priors = c(0, 1),
-  alphaPriors = c(2, 4)
+  alphaPriors = c(2, 4),
+  cpp = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ DirichletProcessGaussianFixedVariance(
 \item{g0Priors}{Base Distribution Priors.}
 
 \item{alphaPriors}{Prior parameter distributions for the alpha concentration parameter.}
+
+\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
 }
 \value{
 Dirichlet process object
