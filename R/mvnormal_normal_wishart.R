@@ -749,6 +749,7 @@ extractCovarianceParams <- function(sigma, covModel) {
 
 #' C++ wrapper for likelihood calculation
 #' @keywords internal
+#' @importFrom utils head
 #' @export
 mvnormal_likelihood_wrapper_cpp <- function(x, theta, priorParams) {
   # Prepare data and parameters
