@@ -301,7 +301,9 @@ test_that("Multivariate Normal constructor rejects non-FULL covariance models ea
 })
 
 test_that("Mvnormal documentation and README describe the FULL-only boundary", {
-  pkg_root <- pkgload::pkg_path()
+  skip_if_not_installed("pkgload")
+  pkg_root <- tryCatch(pkgload::pkg_path(), error = function(e) NULL)
+  if (is.null(pkg_root)) skip("Not in a package development environment")
   readme_path <- file.path(pkg_root, "README.md")
   mvnormal_rd_path <- file.path(pkg_root, "man", "MvnormalCreate.Rd")
   constructor_rd_path <- file.path(pkg_root, "man", "DirichletProcessMvnormal.Rd")

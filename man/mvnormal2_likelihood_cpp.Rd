@@ -7,12 +7,13 @@
 mvnormal2_likelihood_cpp(x, theta)
 }
 \arguments{
-\item{x}{A numeric vector of a single data point.}
+\item{x}{A numeric matrix of data points.}
 
 \item{theta}{A list containing mu and sig parameters.}
 }
 \value{
-A numeric vector of likelihood values.
+A numeric matrix of likelihood values with one row per observation
+  and one column per cluster.
 }
 \description{
 C++ implementation for calculating multivariate normal likelihood.

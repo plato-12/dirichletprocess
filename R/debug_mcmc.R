@@ -17,7 +17,7 @@ create_gaussian_params <- function() {
 #' @param verbose Whether to output verbose debugging information (default: TRUE)
 #' @export
 debug_mcmc_cpp <- function(data, n_iter = 10, verbose = TRUE) {
-  if (!exists("_dirichletprocesscpp_run_mcmc_cpp")) {
+  if (!exists("_dirichletprocess_run_mcmc_cpp")) {
     stop("C++ implementation not compiled")
   }
 

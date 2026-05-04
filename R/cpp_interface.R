@@ -58,17 +58,17 @@ using_cpp <- function() {
 #' @return List showing which C++ implementations are available
 #' @export
 get_cpp_status <- function() {
-  has_cpp <- exists("_dirichletprocesscpp_run_mcmc_cpp")
+  has_cpp <- exists("_dirichletprocess_run_mcmc_cpp")
 
   status <- list(
     mcmc_runner = has_cpp,
     gaussian_likelihood = has_cpp,
-    exponential_likelihood = exists("_dirichletprocesscpp_run_mcmc_cpp"),
+    exponential_likelihood = exists("_dirichletprocess_run_mcmc_cpp"),
     beta_likelihood = has_cpp,
     mvnormal_likelihood = exists("conjugate_mvnormal_cluster_component_update_cpp"),
     weibull_likelihood = has_cpp,
-    hierarchical_beta = exists("_dirichletprocesscpp_hierarchical_beta_fit_cpp"),
-    markov = exists("_dirichletprocesscpp_markov_dp_fit_cpp"),
+    hierarchical_beta = exists("_dirichletprocess_hierarchical_beta_fit_cpp"),
+    markov = exists("_dirichletprocess_markov_dp_fit_cpp"),
     available = has_cpp
   )
 
@@ -90,10 +90,10 @@ can_use_cpp <- function(dp_obj = NULL) {
 
   if (is.null(dp_obj)) {
     # If no dp_obj provided, just check if C++ is available
-    return(exists("_dirichletprocesscpp_run_mcmc_cpp", where = ns))
+    return(exists("_dirichletprocess_run_mcmc_cpp", where = ns))
   }
 
-  if (!exists("_dirichletprocesscpp_run_mcmc_cpp", where = ns)) {
+  if (!exists("_dirichletprocess_run_mcmc_cpp", where = ns)) {
     return(FALSE)
   }
 
@@ -135,7 +135,7 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
   }
 
   # Call C++ implementation
-  result <- .Call("_dirichletprocesscpp_run_mcmc_cpp",
+  result <- .Call("_dirichletprocess_run_mcmc_cpp",
                   data, mixing_dist_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 
@@ -158,7 +158,7 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 }
 
 run_gaussian_fit_cpp_batch <- function(data, mixing_dist_params, mcmc_params) {
-  result <- .Call("_dirichletprocesscpp_run_gaussian_fit_cpp",
+  result <- .Call("_dirichletprocess_run_gaussian_fit_cpp",
                   data, mixing_dist_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 
@@ -180,7 +180,7 @@ run_gaussian_fit_cpp_batch <- function(data, mixing_dist_params, mcmc_params) {
 }
 
 run_normal_fixed_variance_fit_cpp_batch <- function(data, mixing_dist_params, mcmc_params) {
-  result <- .Call("_dirichletprocesscpp_run_normal_fixed_variance_fit_cpp",
+  result <- .Call("_dirichletprocess_run_normal_fixed_variance_fit_cpp",
                   data, mixing_dist_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 
@@ -202,7 +202,7 @@ run_normal_fixed_variance_fit_cpp_batch <- function(data, mixing_dist_params, mc
 }
 
 run_exponential_fit_cpp_batch <- function(data, mixing_dist_params, mcmc_params) {
-  result <- .Call("_dirichletprocesscpp_run_exponential_fit_cpp",
+  result <- .Call("_dirichletprocess_run_exponential_fit_cpp",
                   data, mixing_dist_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 
@@ -224,7 +224,7 @@ run_exponential_fit_cpp_batch <- function(data, mixing_dist_params, mcmc_params)
 }
 
 run_mvnormal_fit_cpp_batch <- function(data, mixing_dist_params, mcmc_params) {
-  result <- .Call("_dirichletprocesscpp_run_mvnormal_fit_cpp",
+  result <- .Call("_dirichletprocess_run_mvnormal_fit_cpp",
                   data, mixing_dist_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 
@@ -676,7 +676,7 @@ prepare_mcmc_params <- function(dp_obj, its, updatePrior, n_burn = 0, thin = 1,
 enable_cpp_samplers <- function(enable = TRUE) {
   if (missing(enable)) {
     # If no argument provided, return status (backward compatibility)
-    return(invisible(exists("_dirichletprocesscpp_run_mcmc_cpp", mode = "function")))
+    return(invisible(exists("_dirichletprocess_run_mcmc_cpp", mode = "function")))
   }
   
   # Set option to force C++ usage
@@ -692,7 +692,7 @@ enable_cpp_samplers <- function(enable = TRUE) {
 enable_cpp_hierarchical_samplers <- function(enable = TRUE) {
   if (missing(enable)) {
     # If no argument provided, return status (backward compatibility)
-    return(invisible(exists("_dirichletprocesscpp_hierarchical_beta_fit_cpp", mode = "function")))
+    return(invisible(exists("_dirichletprocess_hierarchical_beta_fit_cpp", mode = "function")))
   }
   
   # Set option to force hierarchical C++ usage
@@ -708,11 +708,11 @@ using_cpp_samplers <- function() {
   # Check if forced via options
   force_cpp <- getOption("dirichletprocesscpp.force_cpp_samplers", FALSE)
   if (force_cpp) {
-    return(using_cpp() && exists("_dirichletprocesscpp_run_mcmc_cpp", where = ns))
+    return(using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns))
   }
   
   # Default behavior - check for existence of the compiled C++ function
-  using_cpp() && exists("_dirichletprocesscpp_run_mcmc_cpp", where = ns)
+  using_cpp() && exists("_dirichletprocess_run_mcmc_cpp", where = ns)
 }
 
 #' Check if using hierarchical C++ samplers
@@ -724,12 +724,12 @@ using_cpp_hierarchical_samplers <- function() {
   force_hierarchical <- getOption("dirichletprocesscpp.force_cpp_hierarchical", NULL)
   if (!is.null(force_hierarchical)) {
     if (force_hierarchical) {
-      return(using_cpp() && exists("_dirichletprocesscpp_hierarchical_beta_fit_cpp", where = ns))
+      return(using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns))
     } else {
       return(FALSE)  # Force R implementation
     }
   }
   
   # Default behavior - C++ functions from Rcpp are stored as "list" mode, not "function"
-  using_cpp() && exists("_dirichletprocesscpp_hierarchical_beta_fit_cpp", where = ns)
+  using_cpp() && exists("_dirichletprocess_hierarchical_beta_fit_cpp", where = ns)
 }

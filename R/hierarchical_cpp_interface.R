@@ -49,7 +49,7 @@ run_hierarchical_mcmc_cpp <- function(dp_list, n_iter = 1000, n_burn = 100,
   )
 
   # Call C++ implementation
-  result <- .Call("_dirichletprocesscpp_run_hierarchical_mcmc_cpp",
+  result <- .Call("_dirichletprocess_run_hierarchical_mcmc_cpp",
                   datasets, mixing_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 

@@ -2,6 +2,7 @@
 % Please edit documentation in R/dirichletprocess.R
 \docType{package}
 \name{dirichletprocess}
+\alias{dirichletprocess-package}
 \alias{dirichletprocess}
 \title{A flexible package for fitting Bayesian non-parametric models.}
 \description{
@@ -17,16 +18,16 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Priyanshu Tiwari \email{tiwari.priyanshu.iitk@gmail.com} [contributor]
+\strong{Maintainer}: Gordon J. Ross \email{gordon.ross@ed.ac.uk}
 
 Authors:
 \itemize{
-  \item Gordon J. Ross \email{gordon@gordonjross.co.uk}
   \item Dean Markwick \email{dean.markwick@talk21.com}
 }
 
 Other contributors:
 \itemize{
+  \item Priyanshu Tiwari \email{tiwari.priyanshu.iitk@gmail.com} (Implemented an earlier C++ version of the core ordinary mixture samplers.) [contributor]
   \item Kees Mulder \email{keestimmulder@gmail.com} (\href{https://orcid.org/0000-0002-5387-3812}{ORCID}) [contributor]
   \item Giovanni Sighinolfi \email{giovanni.sighinolfi2@studio.unibo.it} [contributor]
   \item Filippo Fiocchi \email{filippofiocchi1@gmail.com} [contributor]

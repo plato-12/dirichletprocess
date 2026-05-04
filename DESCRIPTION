@@ -45,7 +45,7 @@ Depends: R (>= 4.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, grid, coda
+Suggests: testthat, knitr, rmarkdown, tidyr, dplyr, grid, coda, pkgload
 Imports: gtools, ggplot2, mvtnorm, Rcpp (>= 1.0.11), abind, methods,
         stats, utils
 LinkingTo: Rcpp, RcppArmadillo

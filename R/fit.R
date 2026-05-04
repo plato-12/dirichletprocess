@@ -695,7 +695,7 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 #' @export
 Fit.markov <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
   # Similar pattern - check for C++ then fall back to R
-  if (using_cpp() && exists("_dirichletprocesscpp_markov_dp_fit_cpp")) {
+  if (using_cpp() && exists("_dirichletprocess_markov_dp_fit_cpp")) {
     return(Fit.markov.cpp(dpObj, its, updatePrior, progressBar))
   }
 

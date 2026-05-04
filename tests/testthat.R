@@ -1,4 +1,4 @@
 library(testthat)
-library(dirichletprocesscpp)
+library(dirichletprocess)
 
-test_check("dirichletprocesscpp")
+test_check("dirichletprocess")
