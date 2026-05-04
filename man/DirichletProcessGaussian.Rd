@@ -18,7 +18,9 @@ DirichletProcessGaussian(
 
 \item{alphaPriors}{Alpha prior parameters. See \code{\link{UpdateAlpha}}.}
 
-\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
+\item{cpp}{Logical compatibility argument. Constructors no longer toggle the
+package-wide C++ implementation flag; `Fit()` now selects the validated C++
+path automatically when supported.}
 }
 \value{
 Dirichlet process object

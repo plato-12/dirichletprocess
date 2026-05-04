@@ -273,10 +273,10 @@ void ConjugateNormalDP::clusterComponentUpdate() {
     double cumsum = 0.0;
     int newLabel = -1;
 
-    for (int k = 0; k < allProbs.n_elem; k++) {
+    for (arma::uword k = 0; k < allProbs.n_elem; k++) {
       cumsum += allProbs[k];
       if (u <= cumsum) {
-        newLabel = k;
+        newLabel = static_cast<int>(k);
         break;
       }
     }
@@ -369,8 +369,8 @@ Rcpp::List ConjugateNormalDP::clusterLabelChange(int i, int newLabel, int curren
   // 2. Handle empty cluster removal
   if (pointsPerCluster[currentLabel] == 0) {
     // Compact the clusters
-    for (int j = 0; j < n; j++) {
-      if (clusterLabels[j] > currentLabel) {
+    for (arma::uword j = 0; j < static_cast<arma::uword>(n); j++) {
+      if (clusterLabels[j] > static_cast<arma::uword>(currentLabel)) {
         clusterLabels[j]--;
       }
     }

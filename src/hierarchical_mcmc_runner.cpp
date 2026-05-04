@@ -82,8 +82,9 @@ Rcpp::List HierarchicalMCMCRunner::run() {
     // Extract current state instead of running full MCMC
     Rcpp::List dp_result;
     const auto& state = runners[i]->get_state();
-    const auto& mixing_dist = runners[i]->get_mixing_dist();
-    
+    // mixing_dist available if needed for future extensions
+    // const auto& mixing_dist = runners[i]->get_mixing_dist();
+
     // Convert state to R list format (cluster labels will be added later with proper 1-indexing)
     
     // Convert cluster parameters to R Beta format (mu/nu structure)

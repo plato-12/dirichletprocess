@@ -2,7 +2,7 @@
 #ifndef CONJUGATE_DP_H
 #define CONJUGATE_DP_H
 
-#include "DirichletProcess.h"
+#include "dirichletprocess.h"
 
 namespace dp {
 

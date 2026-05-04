@@ -13,13 +13,9 @@
 HierarchicalBetaCreate <- function(n, priorParameters, hyperPriorParameters,
                                    alphaPrior, maxT, gammaPrior,
                                    mhStepSize, num_sticks) {
-
-  # Use C++ implementation if enabled
-  if (using_cpp_hierarchical_samplers()) {
-    return(HierarchicalBetaCreate.cpp(n, priorParameters, hyperPriorParameters,
-                                      alphaPrior, maxT, gammaPrior,
-                                      mhStepSize, num_sticks))
-  }
+  # Phase 5 route lock:
+  # hierarchical construction stays on the rewritten R path until a coherent
+  # hierarchical C++ implementation exists.
 
   # Original R implementation
   mdobj_beta_base <- BetaMixtureCreate(priorParameters, mhStepSize = mhStepSize,

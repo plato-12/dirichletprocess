@@ -1,16 +1,20 @@
-#' Generate the posterior clusters of a Dirichlet Process
+#' Draw posterior clusters conditional on one fitted state
 #'
-#' Using the stick breaking representation the user can draw the posterior clusters and weights for a fitted Dirichlet Process.
-#' See also \code{\link{PosteriorFunction}}.
+#' Using the stick-breaking representation, this lower-level helper draws
+#' posterior clusters and weights conditional on the current fitted state, or
+#' on one retained stored iteration when \code{ind} is supplied. See also
+#' \code{\link{PosteriorFunction}} and \code{\link{PosteriorSummary}}.
 #'
 #' @param dpobj Fitted Dirichlet process
-#' @param ind Index for which the posterior will be drawn from. Defaults to the last iteration of the fit.
-#' @return A list with the weights and cluster parameters that form the posterior of the Dirichlet process.
+#' @param ind Stored-iteration index for which the posterior will be drawn.
+#'   If omitted, the current fitted state is used.
+#' @return A list with the weights and cluster parameters that form a
+#'   conditional posterior draw from the Dirichlet process.
 #'
 #' @examples
 #' y <- rnorm(10)
 #' dp <- DirichletProcessGaussian(y)
-#' dp <- Fit(dp, 5)
+#' dp <- Fit(dp, 5, progressBar = FALSE)
 #' postClusters <- PosteriorClusters(dp)
 #'
 #' @export
@@ -50,7 +54,7 @@ PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
   dirichlet_draws <- gtools::rdirichlet(1, c(active_pointsPerCluster, alpha))
   numBreaks <- ceiling(alpha + numLabels) * 20 + 5
 
-  sticks <- StickBreaking(alpha + numLabels, numBreaks)
+  sticks <- StickBreaking(alpha, numBreaks)
   active_numLabels <- length(active_pointsPerCluster)
   sticks <- sticks * dirichlet_draws[active_numLabels + 1]
 
@@ -65,45 +69,32 @@ PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
   PriorDraws <- PriorDraw(mdobj, numBreaks)
   postParams <- list()
 
-  # For normal distributions, clusterParams contains the actual parameter data
-  # and we need to construct synthetic parameter arrays for stick-breaking
+  # For normal distributions, preserve the sampled cluster parameters stored on
+  # the DP object rather than reconstructing empirical summaries from data.
   if (inherits(mdobj, "normal") && inherits(mdobj, "conjugate")) {
-    # For normal conjugate case, create synthetic parameter structure
-    # that matches what the plotting functions expect
-    
-    # Get the parameter names from PriorDraws
     param_names <- names(PriorDraws)
-    
-    if (!is.null(param_names) && length(param_names) == 2) {
-      # For normal distribution: mu and sigma parameters
-      # Create arrays that combine existing cluster data with prior draws
+
+    if (is.null(param_names)) {
+      param_names <- names(clusterParams)
+    }
+
+    if (!is.null(param_names) && length(param_names) == length(clusterParams)) {
       for (i in seq_along(param_names)) {
         param_name <- param_names[i]
-        
-        # PriorDraws has the right structure: [1, 1, numBreaks]
-        # We need to create a compatible structure for existing clusters
-        cluster_array <- array(0, dim = c(1, 1, numLabels))
-        
-        # Fill the cluster array with actual parameter values (if available)
-        # For normal distribution, we use synthetic values based on data
-        if (numLabels > 0) {
-          if (param_name == "mu") {
-            # Use cluster means as synthetic mu values
-            for (k in seq_len(numLabels)) {
-              cluster_array[1, 1, k] <- mean(dpobj$data[dpobj$clusterLabels == k])
-            }
-          } else { # sigma
-            # Use cluster standard deviations as synthetic sigma values
-            for (k in seq_len(numLabels)) {
-              cluster_data <- dpobj$data[dpobj$clusterLabels == k]
-              cluster_array[1, 1, k] <- if(length(cluster_data) > 1) sd(cluster_data) else 1.0
-            }
-          }
+        cluster_array <- if (!is.null(names(clusterParams)) &&
+                             param_name %in% names(clusterParams)) {
+          clusterParams[[param_name]]
+        } else {
+          clusterParams[[i]]
         }
-        
-        # Combine cluster parameters with prior draws
-        postParams[[i]] <- array(c(cluster_array, PriorDraws[[param_name]]),
-                                 dim = c(1, 1, numBreaks + numLabels))
+
+        if (param_name %in% names(PriorDraws)) {
+          postParams[[i]] <- array(c(cluster_array, PriorDraws[[param_name]]),
+                                   dim = c(dim(PriorDraws[[param_name]])[1:2],
+                                           numBreaks + numLabels))
+        } else {
+          postParams[[i]] <- cluster_array
+        }
       }
       names(postParams) <- param_names
     }
@@ -165,6 +156,3 @@ PosteriorClusters.dirichletprocess <- function(dpobj, ind) {
 
   return(returnList)
 }
-
-
-

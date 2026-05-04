@@ -210,8 +210,8 @@ validate_r_cpp_consistency <- function(distribution_type,
     set.seed(current_seed)
     set_use_cpp(FALSE)
     # Disable all C++ samplers
-    options(dirichletprocess.use_cpp_samplers = FALSE)
-    options(dirichletprocess.use_cpp_hierarchical = FALSE)
+    options(dirichletprocesscpp.use_cpp_samplers = FALSE)
+    options(dirichletprocesscpp.use_cpp_hierarchical = FALSE)
     dp_r <- create_dp_object(distribution_type, test_data)
     dp_r <- Fit(dp_r, its = iterations, updatePrior = TRUE)
 

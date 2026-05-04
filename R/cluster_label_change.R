@@ -23,6 +23,15 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
   clusterParams <- dpObj$clusterParameters
   numLabels <- dpObj$numberClusters
   mdObj <- dpObj$mixingDistribution
+  mvnormal_cov_model <- if (inherits(dpObj, "mvnormal")) {
+    if (is.null(mdObj$priorParameters$covModel)) {
+      "FULL"
+    } else {
+      as.character(mdObj$priorParameters$covModel)
+    }
+  } else {
+    NULL
+  }
 
   # Caller of ClusterLabelChange is responsible for decrementing pointsPerCluster[currentLabel]
   # This function handles the assignment to newLabel and potential cleanup/creation.
@@ -38,7 +47,8 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
       pointsPerCluster <- pointsPerCluster[-currentLabel]
 
       # Handle pre-allocated arrays for mvnormal
-      if (inherits(dpObj, "mvnormal") && is.list(clusterParams)) {
+      if (inherits(dpObj, "mvnormal") && is.list(clusterParams) &&
+          !identical(mvnormal_cov_model, "FULL")) {
         # For mvnormal, we keep the pre-allocated structure but mark slots as unused
         # We don't actually remove slots, just compact the active ones
         for (j in seq_along(clusterParams)) {
@@ -114,7 +124,8 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
       post_draw <- PosteriorDraw(mdObj, x) # Parameters for the new cluster
 
       # Handle pre-allocated arrays for mvnormal
-      if (inherits(dpObj, "mvnormal") && is.list(clusterParams)) {
+      if (inherits(dpObj, "mvnormal") && is.list(clusterParams) &&
+          !identical(mvnormal_cov_model, "FULL")) {
         # For mvnormal, use the pre-allocated slot
         for (j in seq_along(clusterParams)) {
           param_dims <- dim(clusterParams[[j]])
@@ -130,7 +141,8 @@ ClusterLabelChange.conjugate <- function(dpObj, i, newLabel, currentLabel, aux=0
           }
         }
       } else {
-        # For other distributions, expand the arrays
+        # Repaired-R mvnormal FULL objects and other distributions expand only
+        # the active cluster arrays when a new cluster is created.
         for (j in seq_along(clusterParams)) {
           dim_existing <- dim(clusterParams[[j]])
           new_param_array <- array(NA, dim = c(dim_existing[1], dim_existing[2], numLabels + 1))
@@ -225,4 +237,3 @@ ClusterLabelChange.default <- function(dpObj, i, newLabel, currentLabel, aux=0) 
     stop("ClusterLabelChange not implemented for this object type")
   }
 }
-

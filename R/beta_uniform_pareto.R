@@ -1,5 +1,8 @@
 #' Create a Beta mixture with zeros at the boundaries.
 #'
+#' This bounded Beta mixing distribution also uses the mean and precision
+#' parameterisation on \eqn{(0, maxT)}.
+#'
 #' @param priorParameters The prior parameters for the base measure.
 #' @param mhStepSize The Metropolis Hastings step size. A numeric vector of length 2.
 #' @param maxT The upper bound of the Beta distribution. Defaults to 1 for the standard Beta distribution.
@@ -32,8 +35,9 @@ Likelihood.beta2 <- function(mdObj, x, theta){
 #' @rdname PriorDraw
 PriorDraw.beta2 <- function(mdObj, n=1, ...){
 
-  # Use C++ if enabled
-  if (can_use_cpp()) {
+  # Match repaired-R initialization semantics by only taking the C++ helper
+  # path when the package is explicitly configured to use C++.
+  if (using_cpp() && exists("cpp_beta2_prior_draw", mode = "function")) {
     params <- cpp_beta2_prior_draw(mdObj$priorParameters[1], mdObj$maxT, n)
     mu <- params[1:n]
     nu <- params[(n+1):(2*n)]
@@ -44,27 +48,8 @@ PriorDraw.beta2 <- function(mdObj, n=1, ...){
 
   mu <- runif(n, 0, mdObj$maxT)
 
-  # Handle NA values in mu
-  if (any(is.na(mu))) {
-    mu[is.na(mu)] <- mdObj$maxT / 2  # Default to middle value
-  }
-
   muLim <- vapply(mu, function(x) max(1/(x/mdObj$maxT), 1/(1-(x/mdObj$maxT))), numeric(1))
-
-  # Handle potential NA or infinite values in muLim
-  if (any(is.na(muLim)) || any(is.infinite(muLim))) {
-    muLim[is.na(muLim) | is.infinite(muLim)] <- 10  # Default reasonable value
-  }
-
   nu <- rpareto(n, muLim, priorParameters[1])
-
-  # Handle NA values in nu
-  if (any(is.na(nu))) {
-    nu[is.na(nu)] <- 1.0  # Default to reasonable value
-  }
-
-  # Ensure nu doesn't have zero values
-  nu[nu == 0] <- 1e-04
 
   theta <- list(mu = array(mu, c(1, 1, n)), nu = array(nu, c(1, 1, n)))
   return(theta)
@@ -86,36 +71,11 @@ PriorDensity.beta2 <- function(mdObj, theta){
 #' @export
 #' @rdname Initialise
 Initialise.beta2 <- function(dpObj, posterior = TRUE, m = 3, verbose = TRUE, numInitialClusters = 1, ...) {
-
-  dpObj$m <- m
-  dpObj$numberClusters <- 1
-  dpObj$clusterLabels <- rep(1, dpObj$n)
-  dpObj$pointsPerCluster <- c(dpObj$n)
-
-  # Ensure parameters are properly structured as 3D arrays with correct names
-  priorDraws <- PriorDraw(dpObj$mixingDistribution, 1)
-  dpObj$clusterParameters <- list(
-    mu = array(priorDraws$mu, dim = c(1, 1, 1)),
-    nu = array(priorDraws$nu, dim = c(1, 1, 1))
-  )
-
-  dpObj$alpha <- dpObj$alphaPriorParameters[1] / dpObj$alphaPriorParameters[2]
-
-  # Generate auxiliary parameters with proper structure
-  dpObj$aux <- vector("list", m)
-  for(i in seq_len(m)) {
-    aux_draw <- PriorDraw(dpObj$mixingDistribution, 1)
-    dpObj$aux[[i]] <- list(
-      mu = array(aux_draw$mu, dim = c(1, 1, 1)),
-      nu = array(aux_draw$nu, dim = c(1, 1, 1))
-    )
-  }
-
-  if (verbose) {
-    cat("Beta2 mixture initialized with", dpObj$numberClusters, "cluster(s)\n")
-  }
-
-  return(dpObj)
+  Initialise.nonconjugate(dpObj,
+                          posterior = posterior,
+                          m = m,
+                          verbose = verbose,
+                          numInitialClusters = numInitialClusters)
 }
 
 #' @export
@@ -157,5 +117,3 @@ MhParameterProposal.beta2 <- function(mdObj, old_params){
   return(new_params)
 
 }
-
-

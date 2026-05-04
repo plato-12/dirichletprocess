@@ -5,7 +5,9 @@
 #' @param sigma The fixed variance
 #' @param g0Priors Base Distribution Priors.
 #' @param alphaPriors Prior parameter distributions for the alpha concentration parameter.
-#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
+#' @param cpp Logical compatibility argument. Constructors no longer toggle the
+#'   package-wide C++ implementation flag; `Fit()` now selects the validated
+#'   C++ path automatically when supported.
 #' @return Dirichlet process object
 #'
 #' @export
@@ -18,13 +20,6 @@ DirichletProcessGaussianFixedVariance <- function(y,
   mdobj <- GaussianFixedVarianceMixtureCreate(g0Priors, sigma)
   dpobj <- DirichletProcessCreate(y, mdobj, alphaPriors)
   dpobj <- Initialise(dpobj)
-  
-  # Set cpp preference for this object
-  if (cpp) {
-    options(dirichletprocess.use_cpp = TRUE)
-  } else {
-    options(dirichletprocess.use_cpp = FALSE)
-  }
-  
+
   return(dpobj)
 }

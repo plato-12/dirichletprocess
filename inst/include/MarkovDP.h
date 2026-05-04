@@ -38,6 +38,7 @@ public:
   void paramUpdate();
 
   // Fitting method
+  using DirichletProcess::fit;  // Bring base class fit() into scope to avoid hiding it
   void fit(int iterations, bool updatePrior = false, bool progressBar = true);
 
   // Helper methods

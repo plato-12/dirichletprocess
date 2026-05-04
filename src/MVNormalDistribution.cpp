@@ -457,7 +457,7 @@ Rcpp::List MVNormalMixingDistribution::priorDraw(int n) const {
       // Convert to covariance and extract model-specific parameters
       arma::mat cov_draw = arma::inv_sympd(prec_draw);
       arma::vec params = extractCovarianceParams(cov_draw);
-      for (int j = 0; j < params.n_elem; j++) {
+      for (arma::uword j = 0; j < params.n_elem; j++) {
         sig_arr[j + i * params.n_elem] = params(j);
       }
     }
@@ -563,7 +563,7 @@ Rcpp::List MVNormalMixingDistribution::posteriorDraw(const arma::mat& x, int n) 
       // Convert to covariance and extract model-specific parameters
       arma::mat cov_draw = arma::inv_sympd(prec_draw);
       arma::vec params = extractCovarianceParams(cov_draw);
-      for (int j = 0; j < params.n_elem; j++) {
+      for (arma::uword j = 0; j < params.n_elem; j++) {
         sig_arr[j + i * params.n_elem] = params(j);
       }
     }

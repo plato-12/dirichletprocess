@@ -2,7 +2,7 @@
 
 #include <RcppArmadillo.h>
 #include "BetaDistribution.h"
-#include "DirichletProcess.h"
+#include "dirichletprocess.h"
 #include "beta2_mixing.h"
 #include <iostream>
 

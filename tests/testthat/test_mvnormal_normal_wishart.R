@@ -37,6 +37,25 @@ test_that("Multivariate Normal Likelihood", {
   }
 })
 
+test_that("Multivariate Normal Likelihood uses covariance on FULL returned objects", {
+  old_cpp_setting <- using_cpp()
+  on.exit(set_use_cpp(old_cpp_setting), add = TRUE)
+  set_use_cpp(TRUE)
+
+  priorParameters <- list(mu0 = c(0, 0), Lambda = diag(2), kappa0 = 1, nu = 3)
+  mdobj <- MvnormalCreate(priorParameters)
+  theta <- list(
+    mu = array(c(0, 0), dim = c(1, 2, 1)),
+    sig = array(diag(c(2, 3)), dim = c(2, 2, 1))
+  )
+
+  expected <- mvtnorm::dmvnorm(matrix(c(0.5, -0.25), nrow = 1),
+                               mean = c(0, 0),
+                               sigma = diag(c(2, 3)))
+
+  expect_equal(Likelihood(mdobj, matrix(c(0.5, -0.25), nrow = 1), theta), expected)
+})
+
 test_that("Multivariate Normal Prior Draw", {
   priorParameters <- list(mu0=c(0,0), Lambda=diag(2), kappa0=1, nu=2)
 
@@ -237,7 +256,64 @@ test_that("Multivariate Normal Initial Clusters", {
 
   expect_equal(dp$numberClusters, 5)
   expect_length(dp$pointsPerCluster, 5)
-  # Pre-allocated arrays will have at least 20 slots
-  expect_gte(dim(dp$clusterParameters[[1]])[3], 5)
-  expect_gte(dim(dp$clusterParameters[[2]])[3], 5)
+  expect_equal(dim(dp$clusterParameters[[1]])[3], 5)
+  expect_equal(dim(dp$clusterParameters[[2]])[3], 5)
+})
+
+test_that("Multivariate Normal cpp constructor is repaired-R consistent for FULL only", {
+  old_cpp_setting <- using_cpp()
+  on.exit(set_use_cpp(old_cpp_setting), add = TRUE)
+
+  test_data <- matrix(c(0, 0, 0.1, 0.1, 0.2, 0.3), ncol = 2, byrow = TRUE)
+
+  dp <- DirichletProcessMvnormal(test_data, cpp = TRUE)
+  expect_equal(dim(dp$clusterParameters$mu)[3], 1)
+  expect_equal(dim(dp$clusterParameters$sig)[3], 1)
+  expect_length(dp$predictiveArray, nrow(test_data))
+
+  expect_error(
+    DirichletProcessMvnormal(
+      test_data,
+      g0Priors = list(mu0 = c(0, 0), Lambda = diag(2), kappa0 = 1, nu = 3, covModel = "EII"),
+      cpp = TRUE
+    ),
+    "currently supports only covModel = 'FULL'"
+  )
+})
+
+test_that("Multivariate Normal constructor rejects non-FULL covariance models early", {
+  test_data <- matrix(c(0, 0, 0.1, 0.1, 0.2, 0.3), ncol = 2, byrow = TRUE)
+
+  expect_error(
+    MvnormalCreate(
+      list(mu0 = c(0, 0), Lambda = diag(2), kappa0 = 1, nu = 3, covModel = "EEI")
+    ),
+    "currently supports only covModel = 'FULL'"
+  )
+
+  expect_error(
+    DirichletProcessMvnormal(
+      test_data,
+      g0Priors = list(mu0 = c(0, 0), Lambda = diag(2), kappa0 = 1, nu = 3, covModel = "EEI")
+    ),
+    "currently supports only covModel = 'FULL'"
+  )
+})
+
+test_that("Mvnormal documentation and README describe the FULL-only boundary", {
+  skip_if_not_installed("pkgload")
+  pkg_root <- tryCatch(pkgload::pkg_path(), error = function(e) NULL)
+  if (is.null(pkg_root)) skip("Not in a package development environment")
+  readme_path <- file.path(pkg_root, "README.md")
+  mvnormal_rd_path <- file.path(pkg_root, "man", "MvnormalCreate.Rd")
+  constructor_rd_path <- file.path(pkg_root, "man", "DirichletProcessMvnormal.Rd")
+
+  readme_text <- paste(readLines(readme_path, warn = FALSE), collapse = "\n")
+  mvnormal_rd_text <- paste(readLines(mvnormal_rd_path, warn = FALSE), collapse = "\n")
+  constructor_rd_text <- paste(readLines(constructor_rd_path, warn = FALSE), collapse = "\n")
+
+  expect_match(readme_text, 'DirichletProcessMvnormal\\(\\).*only `covModel = "FULL"`', perl = TRUE)
+  expect_match(readme_text, 'Multivariate Normal with Normal-Wishart prior \\(`covModel = "FULL"` only\\)', perl = TRUE)
+  expect_match(mvnormal_rd_text, 'Only \\\\code\\{"FULL"\\} is currently supported', perl = TRUE)
+  expect_match(constructor_rd_text, 'supports only \\\\code\\{covModel = "FULL"\\}', perl = TRUE)
 })

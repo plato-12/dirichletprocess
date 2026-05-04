@@ -104,7 +104,7 @@ arma::vec HierarchicalBetaMixing::posterior_draw(const arma::mat& cluster_data,
 
     // Prior ratio (using G0)
     double log_prior_ratio = 0.0;
-    for (int k = 0; k < global_params.size(); k++) {
+    for (size_t k = 0; k < global_params.size(); k++) {
       double log_g0_proposed = -0.5 * arma::sum(arma::square(proposed - global_params[k]));
       double log_g0_current = -0.5 * arma::sum(arma::square(current_params - global_params[k]));
       log_prior_ratio += global_stick_weights[k] * (log_g0_proposed - log_g0_current);
@@ -138,7 +138,7 @@ arma::vec HierarchicalBetaMixing::draw_from_g0() const {
   double u = R::runif(0, 1);
   double cumsum = 0.0;
 
-  for (int k = 0; k < global_params.size(); k++) {
+  for (size_t k = 0; k < global_params.size(); k++) {
     cumsum += global_stick_weights[k];
     if (u <= cumsum) {
       // Add small noise for continuous G0
@@ -165,7 +165,7 @@ void HierarchicalBetaMixing::update_global_parameters(
   // Following Teh et al. (2006) for hierarchical DP
   // Update each global parameter using all data assigned to it
 
-  for (int k = 0; k < global_params.size(); k++) {
+  for (size_t k = 0; k < global_params.size(); k++) {
     // Collect all data assigned to global cluster k
     arma::mat pooled_data;
     int n_assigned = 0;
@@ -192,7 +192,7 @@ void HierarchicalBetaMixing::update_global_stick_weights(int n_global_clusters) 
   // Update stick-breaking weights using Beta distribution
   // Based on Section 4.1 of Teh et al. (2006)
 
-  if (n_global_clusters != global_stick_weights.n_elem) {
+  if (static_cast<arma::uword>(n_global_clusters) != global_stick_weights.n_elem) {
     global_stick_weights.resize(n_global_clusters);
     global_params.resize(n_global_clusters);
   }

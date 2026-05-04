@@ -1,7 +1,8 @@
 #' Create a Multivariate Normal mixing distribution with conjugate prior
 #'
 #' Creates a multivariate normal mixing distribution with Normal-Wishart conjugate prior.
-#' The base measure is G_0(μ, Σ | μ_0, κ_0, ν, Λ) = N(μ | μ_0, Σ/κ_0) * IW(Σ | ν, Λ)
+#' The base measure is \eqn{G_0(\mu, \Sigma | \mu_0, \kappa_0, \nu, \Lambda) = N(\mu | \mu_0, \Sigma/\kappa_0) * IW(\Sigma | \nu, \Lambda)}
+#' Non-\code{"FULL"} covariance models are currently rejected in the live package.
 #'
 #' @param priorParameters A list containing prior parameters:
 #'   \describe{
@@ -9,8 +10,8 @@
 #'     \item{kappa0}{Prior precision parameter for the mean}
 #'     \item{nu}{Prior degrees of freedom for the covariance}
 #'     \item{Lambda}{Prior scale matrix for the covariance}
-#'     \item{covModel}{Covariance model: "FULL" (default), "E", "V", "EII", "VII",
-#'                     "EEI", "VEI", "EVI", or "VVI"}
+#'     \item{covModel}{Only \code{"FULL"} is currently supported in the live
+#'                     package and is the default.}
 #'   }
 #' @return A mixing distribution object
 #' @export
@@ -68,11 +69,10 @@ MvnormalCreate <- function(priorParameters) {
     priorParameters$Lambda <- diag(default_d)
   }
 
-  # Validate covariance model
-  valid_models <- c("FULL", "E", "V", "EII", "VII", "EEI", "VEI", "EVI", "VVI")
-  if (!priorParameters$covModel %in% valid_models) {
-    stop("Invalid covariance model. Must be one of: ",
-         paste(valid_models, collapse = ", "))
+  # Validate covariance model against the current live support boundary.
+  if (!identical(as.character(priorParameters$covModel), "FULL")) {
+    stop("DirichletProcessMvnormal() currently supports only covModel = 'FULL'.",
+         call. = FALSE)
   }
 
   # Ensure mu0 is a vector
@@ -139,6 +139,50 @@ MvnormalCreate <- function(priorParameters) {
 #' @export
 #' @rdname Likelihood
 Likelihood.mvnormal <- function(mdObj, x, theta) {
+  covModel <- if (is.null(mdObj$priorParameters$covModel)) "FULL" else as.character(mdObj$priorParameters$covModel)
+
+  if (identical(covModel, "FULL")) {
+    if (!is.matrix(x)) {
+      x <- matrix(x, nrow = 1)
+    }
+
+    if (!is.list(theta)) {
+      stop("theta must be a list")
+    }
+
+    if (all(c("mu", "sig") %in% names(theta))) {
+      mu_array <- theta$mu
+      sig_array <- theta$sig
+    } else if (length(theta) >= 2 && is.null(names(theta))) {
+      mu_array <- theta[[1]]
+      sig_array <- theta[[2]]
+    } else {
+      stop("theta must be a list with either named components (mu, sig) or two unnamed components")
+    }
+
+    n_clusters <- if (!is.null(dim(mu_array)) && length(dim(mu_array)) >= 3) {
+      dim(mu_array)[3]
+    } else if (!is.null(dim(sig_array)) && length(dim(sig_array)) >= 3) {
+      dim(sig_array)[3]
+    } else {
+      1L
+    }
+
+    y <- vapply(
+      seq_len(n_clusters),
+      function(i) {
+        mvtnorm::dmvnorm(
+          x,
+          mean = as.vector(mu_array[, , i, drop = TRUE]),
+          sigma = sig_array[, , i, drop = TRUE]
+        )
+      },
+      numeric(nrow(x))
+    )
+
+    return(y)
+  }
+
   if (using_cpp_samplers()) {
     # Ensure x is a vector (for single observation)
     if (is.matrix(x)) {
@@ -500,6 +544,36 @@ PosteriorParameters.mvnormal <- function(mdObj, x) {
 #' @export
 #' @rdname PriorDraw
 PriorDraw.mvnormal <- function(mdObj, n = 1, ...) {
+  covModel <- if (is.null(mdObj$priorParameters$covModel)) "FULL" else as.character(mdObj$priorParameters$covModel)
+
+  if (identical(covModel, "FULL")) {
+    priorParameters <- mdObj$priorParameters
+
+    sig <- simplify2array(
+      lapply(
+        seq_len(n),
+        function(x) solve(rWishart(1,
+                                   priorParameters$nu,
+                                   solve(priorParameters$Lambda))[,,1])
+      )
+    )
+
+    mu <- simplify2array(
+      lapply(
+        seq_len(n),
+        function(x) {
+          mvtnorm::rmvnorm(
+            1,
+            priorParameters$mu0,
+            sig[, , x] / priorParameters$kappa0
+          )
+        }
+      )
+    )
+
+    return(list(mu = mu, sig = sig))
+  }
+
   if (using_cpp_samplers()) {
     return(mvnormal_prior_draw_cpp(mdObj$priorParameters, n))
   }
@@ -544,6 +618,36 @@ PriorDraw.mvnormal <- function(mdObj, n = 1, ...) {
 #' @export
 #' @rdname PosteriorDraw
 PosteriorDraw.mvnormal <- function(mdObj, x, n = 1, ...) {
+  covModel <- if (is.null(mdObj$priorParameters$covModel)) "FULL" else as.character(mdObj$priorParameters$covModel)
+
+  if (identical(covModel, "FULL")) {
+    post_parameters <- PosteriorParameters(mdObj, x)
+
+    sig <- simplify2array(
+      lapply(
+        seq_len(n),
+        function(x) solve(rWishart(1,
+                                   post_parameters$nu_n,
+                                   solve(post_parameters$t_n))[,,1])
+      )
+    )
+
+    mu <- simplify2array(
+      lapply(
+        seq_len(n),
+        function(x) {
+          mvtnorm::rmvnorm(
+            1,
+            post_parameters$mu_n,
+            sig[, , x] / post_parameters$kappa_n
+          )
+        }
+      )
+    )
+
+    return(list(mu = mu, sig = sig))
+  }
+
   if (using_cpp_samplers()) {
     return(mvnormal_posterior_draw_cpp(mdObj$priorParameters, as.matrix(x), n))
   }
@@ -586,6 +690,45 @@ PosteriorDraw.mvnormal <- function(mdObj, x, n = 1, ...) {
 #' @export
 #' @rdname Predictive
 Predictive.mvnormal <- function(mdObj, x) {
+  covModel <- if (is.null(mdObj$priorParameters$covModel)) "FULL" else as.character(mdObj$priorParameters$covModel)
+
+  if (identical(covModel, "FULL")) {
+    if (!is.matrix(x)) {
+      x <- matrix(x, nrow = 1)
+    }
+
+    priorParameters <- mdObj$priorParameters
+    pred <- numeric(nrow(x))
+    d <- ncol(x)
+
+    for (i in seq_along(pred)) {
+      post_params <- PosteriorParameters(mdObj, x[i, , drop = FALSE])
+
+      pred[i] <- (pi^(-nrow(x[i, , drop = FALSE]) * d / 2))
+      pred[i] <- pred[i] * (priorParameters$kappa0 / post_params$kappa_n)^(d / 2)
+      pred[i] <- pred[i] * (det(priorParameters$Lambda)^(priorParameters$nu / 2)) /
+        (det(post_params$t_n)^(post_params$nu_n / 2))
+
+      if (pred[i] > 0) {
+        gamma_contrib <- prod(vapply(
+          seq_len(d),
+          function(j) gamma(priorParameters$nu / 2 +
+                              nrow(x[i, , drop = FALSE]) / 2 +
+                              (1 - j) / 2),
+          numeric(1)
+        )) / prod(vapply(
+          seq_len(d),
+          function(j) gamma(priorParameters$nu / 2 + (1 - j) / 2),
+          numeric(1)
+        ))
+
+        pred[i] <- pred[i] * gamma_contrib
+      }
+    }
+
+    return(pred)
+  }
+
   if (using_cpp_samplers()) {
     if (!is.matrix(x)) {
       x <- matrix(x, nrow = 1)
@@ -759,23 +902,19 @@ mvnormal_likelihood_wrapper_cpp <- function(x, theta, priorParams) {
   
   # Handle covariance based on model
   if (priorParams$covModel == "FULL") {
-    # For FULL model, sig parameters need to be converted to a covariance matrix
+    # User-facing FULL mvnormal objects store covariance, not precision.
     if (is.matrix(theta$sig)) {
-      # Check if matrix is square
       if (nrow(theta$sig) == ncol(theta$sig) && nrow(theta$sig) == d) {
-        sig_matrix <- solve(theta$sig)  # Convert precision to covariance
+        sig_matrix <- theta$sig
       } else {
-        # For FULL model, we have packed parameters, not a full matrix
         nCovParams <- getNumCovParams(d, priorParams$covModel)
         if (length(theta$sig) == nCovParams) {
-          # Reconstruct the covariance matrix from packed parameters
           sig_matrix <- reconstructCovarianceMatrix(as.vector(theta$sig), d, priorParams$covModel)
         } else {
           stop(paste("Invalid sigma parameters: expected", nCovParams, "parameters for FULL model with", d, "dimensions, got", length(theta$sig)))
         }
       }
     } else {
-      # Vector of parameters - reconstruct covariance matrix
       nCovParams <- getNumCovParams(d, priorParams$covModel)
       if (length(theta$sig) == nCovParams) {
         sig_matrix <- reconstructCovarianceMatrix(theta$sig, d, priorParams$covModel)

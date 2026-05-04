@@ -86,7 +86,7 @@ arma::vec MVNormalCovarianceMixing::prior_draw() const {
       for (int j = 0; j < d; j++) {
         int array_idx = i + j * d;
         int sig_idx = i * d + j;
-        if (array_idx < sig_array.size() && sig_idx < sig.n_elem) {
+        if (array_idx < sig_array.size() && sig_idx < static_cast<int>(sig.n_elem)) {
           sig(sig_idx) = sig_array[array_idx]; // Column-major order
         }
       }
@@ -135,19 +135,19 @@ arma::vec MVNormalCovarianceMixing::flattenParams(const arma::vec& mu, const arm
   return params;
 }
 
-void MVNormalCovarianceMixing::unflattenParams(const arma::vec& params, 
+void MVNormalCovarianceMixing::unflattenParams(const arma::vec& params,
                                                arma::vec& mu, arma::vec& sig) const {
   // Extract mean with bounds checking
-  if (d > 0 && params.n_elem >= d) {
+  if (d > 0 && params.n_elem >= static_cast<arma::uword>(d)) {
     mu = params.subvec(0, d-1);
   } else {
     mu.set_size(d);
     mu.zeros();
   }
-  
+
   // Extract covariance parameters with bounds checking
   int nCovParams = mvn_dist->getNumCovParams(d);
-  if (nCovParams > 0 && params.n_elem >= d + nCovParams) {
+  if (nCovParams > 0 && params.n_elem >= static_cast<arma::uword>(d + nCovParams)) {
     sig = params.subvec(d, d + nCovParams - 1);
   } else {
     sig.set_size(nCovParams);

@@ -34,13 +34,13 @@ inline arma::mat ensureSymmetric(const arma::mat& M) {
   if (max_asymmetry < 1e-10) {  // Stricter tolerance to prevent warnings
     return M;  // Already symmetric enough
   }
-  
+
+  // Initialize symmetric matrix to avoid uninitialized variable warning
   arma::mat symmetric = 0.5 * (M + M.t());
-  
+
   // Check for NaN or infinite values
   if (!symmetric.is_finite()) {
-    symmetric = arma::eye<arma::mat>(M.n_rows, M.n_cols);
-    return symmetric;
+    return arma::eye<arma::mat>(M.n_rows, M.n_cols);
   }
   
   // Ensure positive definiteness by regularization if needed

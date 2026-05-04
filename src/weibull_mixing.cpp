@@ -2,8 +2,79 @@
 #include <Rcpp.h>
 #include <cmath>
 #include <algorithm>
+#include <limits>
 
 namespace dirichletprocess {
+
+namespace {
+
+bool valid_weibull_start(const arma::vec& params, double phi) {
+  return params.n_elem >= 2 &&
+    std::isfinite(params[0]) &&
+    std::isfinite(params[1]) &&
+    params[0] > 0.0 &&
+    params[0] <= phi &&
+    params[1] > 0.0;
+}
+
+double gibbs_lambda_draw(const arma::mat& cluster_data, double alpha,
+                         double alpha0, double beta0) {
+  double sum_x_alpha = 0.0;
+  for (arma::uword i = 0; i < cluster_data.n_rows; ++i) {
+    double x = cluster_data(i, 0);
+    if (x > 0.0) {
+      double term = std::pow(x, alpha);
+      if (!std::isfinite(term)) {
+        return std::numeric_limits<double>::infinity();
+      }
+      sum_x_alpha += term;
+    }
+  }
+
+  double gamma_draw = R::rgamma(cluster_data.n_rows + alpha0,
+                                1.0 / (sum_x_alpha + beta0));
+  return 1.0 / gamma_draw;
+}
+
+double weibull_log_likelihood_sum(const arma::mat& cluster_data,
+                                  double alpha, double lambda) {
+  if (!std::isfinite(alpha) || !std::isfinite(lambda) || alpha <= 0.0 || lambda <= 0.0) {
+    return -std::numeric_limits<double>::infinity();
+  }
+
+  double log_lik = 0.0;
+  for (arma::uword i = 0; i < cluster_data.n_rows; ++i) {
+    double x = cluster_data(i, 0);
+    if (x < 0.0) {
+      return -std::numeric_limits<double>::infinity();
+    }
+    if (x == 0.0) {
+      if (alpha < 1.0) {
+        return std::numeric_limits<double>::infinity();
+      }
+      if (alpha == 1.0) {
+        log_lik += std::log(alpha) - std::log(lambda);
+        continue;
+      }
+      return -std::numeric_limits<double>::infinity();
+    } else {
+      double term = std::pow(x, alpha);
+      if (!std::isfinite(term)) {
+        return -std::numeric_limits<double>::infinity();
+      }
+      double value = -std::log(lambda) + std::log(alpha) +
+        (alpha - 1.0) * std::log(x) - term / lambda;
+      if (!std::isfinite(value)) {
+        return -std::numeric_limits<double>::infinity();
+      }
+      log_lik += value;
+    }
+  }
+
+  return log_lik;
+}
+
+} // namespace
 
 // Constructor
 WeibullMixing::WeibullMixing(double phi, double alpha0, double beta0,
@@ -23,7 +94,17 @@ double WeibullMixing::log_likelihood(const arma::vec& data_point,
   double lambda = params[1];
 
   // Check bounds
-  if (x <= 0 || alpha <= 0 || lambda <= 0) {
+  if (x < 0 || alpha <= 0 || lambda <= 0) {
+    return -std::numeric_limits<double>::infinity();
+  }
+
+  if (x == 0.0) {
+    if (alpha < 1.0) {
+      return std::numeric_limits<double>::infinity();
+    }
+    if (alpha == 1.0) {
+      return std::log(alpha) - std::log(lambda);
+    }
     return -std::numeric_limits<double>::infinity();
   }
 
@@ -46,7 +127,7 @@ arma::vec WeibullMixing::prior_draw() const {
 
   // lambda = 1/Gamma(alpha0, beta0)
   double gamma_draw = R::rgamma(alpha0, 1.0 / beta0);
-  params[1] = 1.0 / std::max(1e-10, gamma_draw);
+  params[1] = 1.0 / gamma_draw;
 
   return params;
 }
@@ -54,101 +135,50 @@ arma::vec WeibullMixing::prior_draw() const {
 // Optimized posterior draw using Metropolis-Hastings
 arma::vec WeibullMixing::posterior_draw(const arma::mat& cluster_data,
                                         const arma::vec& prior_params) const {
-  int n = cluster_data.n_rows;
-
-  // Handle empty cluster
-  if (n == 0) {
+  if (cluster_data.n_rows == 0) {
     return prior_draw();
   }
 
-  // Pre-compute log(x) for all data points to avoid repeated calculations
-  arma::vec log_x(n);
-  for (int i = 0; i < n; ++i) {
-    double xi = cluster_data(i, 0);
-    log_x[i] = (xi > 0) ? std::log(xi) : -std::numeric_limits<double>::infinity();
-  }
+  arma::vec current_params = valid_weibull_start(prior_params, phi) ? prior_params : prior_draw();
+  current_params[1] = gibbs_lambda_draw(cluster_data, current_params[0], alpha0, beta0);
 
-  // Initialize with prior draw
-  arma::vec current_params = prior_draw();
+  int draws = std::max(1, mh_draws);
+  for (int iter = 1; iter < draws; ++iter) {
+    current_params[1] = gibbs_lambda_draw(cluster_data, current_params[0], alpha0, beta0);
 
-  // Run Metropolis-Hastings with Gibbs update for lambda
-  for (int iter = 0; iter < mh_draws; ++iter) {
-    double alpha_current = current_params[0];
+    double current_log_prior = log_prior_density(current_params);
+    double current_log_lik = weibull_log_likelihood_sum(cluster_data,
+                                                        current_params[0],
+                                                        current_params[1]);
 
-    // Propose new alpha
-    double alpha_prop = std::abs(alpha_current + mh_step_alpha * R::rnorm(0, 1.7));
-    if (alpha_prop > phi) {
-      alpha_prop = phi;
-    }
+    arma::vec proposed_params = current_params;
+    proposed_params[0] = current_params[0] + mh_step_alpha * R::rnorm(0.0, 1.7);
 
-    // Efficiently compute sum(x^alpha) using pre-computed log(x)
-    double sum_x_alpha_current = 0.0;
-    double sum_x_alpha_prop = 0.0;
+    double proposed_log_prior = log_prior_density(proposed_params);
+    double proposed_log_lik = weibull_log_likelihood_sum(cluster_data,
+                                                         proposed_params[0],
+                                                         proposed_params[1]);
 
-    for (int i = 0; i < n; ++i) {
-      if (std::isfinite(log_x[i])) {
-        sum_x_alpha_current += std::exp(alpha_current * log_x[i]);
-        sum_x_alpha_prop += std::exp(alpha_prop * log_x[i]);
-      }
-    }
+    double log_ratio = proposed_log_prior + proposed_log_lik -
+      current_log_prior - current_log_lik;
 
-    // Sample lambda values using conjugate posteriors
-    double shape_post = n + alpha0;
-    double rate_post_current = sum_x_alpha_current + beta0;
-    double rate_post_prop = sum_x_alpha_prop + beta0;
-
-    double gamma_current = R::rgamma(shape_post, 1.0 / rate_post_current);
-    double lambda_current = 1.0 / std::max(1e-10, gamma_current);
-
-    double gamma_prop = R::rgamma(shape_post, 1.0 / rate_post_prop);
-    double lambda_prop = 1.0 / std::max(1e-10, gamma_prop);
-
-    // Compute log likelihoods efficiently
-    double log_lik_current = 0.0;
-    double log_lik_prop = 0.0;
-
-    // Pre-compute constants
-    double log_lambda_current = std::log(lambda_current);
-    double log_lambda_prop = std::log(lambda_prop);
-    double log_alpha_current = std::log(alpha_current);
-    double log_alpha_prop = std::log(alpha_prop);
-
-    for (int i = 0; i < n; ++i) {
-      if (std::isfinite(log_x[i])) {
-        // Current parameters
-        log_lik_current += log_alpha_current - log_lambda_current +
-          (alpha_current - 1.0) * log_x[i] -
-          std::exp(alpha_current * log_x[i]) / lambda_current;
-
-        // Proposed parameters
-        log_lik_prop += log_alpha_prop - log_lambda_prop +
-          (alpha_prop - 1.0) * log_x[i] -
-          std::exp(alpha_prop * log_x[i]) / lambda_prop;
-      }
-    }
-
-    // Compute log priors for alpha only
-    double log_prior_alpha_current = (alpha_current > 0 && alpha_current <= phi) ?
-    -std::log(phi) : -std::numeric_limits<double>::infinity();
-    double log_prior_alpha_prop = (alpha_prop > 0 && alpha_prop <= phi) ?
-    -std::log(phi) : -std::numeric_limits<double>::infinity();
-
-    // Accept/reject
-    double log_ratio = (log_lik_prop + log_prior_alpha_prop) -
-    (log_lik_current + log_prior_alpha_current);
-
-    if (!std::isfinite(log_ratio)) {
-      log_ratio = -std::numeric_limits<double>::infinity();
-    }
-
-    double accept_prob = std::min(1.0, std::exp(log_ratio));
-
-    if (R::runif(0, 1) < accept_prob) {
-      current_params[0] = alpha_prop;
-      current_params[1] = lambda_prop;
+    double accept_prob = std::numeric_limits<double>::quiet_NaN();
+    if (std::isnan(log_ratio)) {
+      accept_prob = std::numeric_limits<double>::quiet_NaN();
+    } else if (log_ratio >= 0.0) {
+      accept_prob = 1.0;
+    } else if (std::isfinite(log_ratio)) {
+      accept_prob = std::exp(log_ratio);
     } else {
-      current_params[0] = alpha_current;
-      current_params[1] = lambda_current;
+      accept_prob = 0.0;
+    }
+
+    if (std::isnan(accept_prob)) {
+      accept_prob = 0.0;
+    }
+
+    if (R::runif(0.0, 1.0) < accept_prob) {
+      current_params = proposed_params;
     }
   }
 
@@ -217,7 +247,7 @@ void WeibullMixing::update_hyperparameters(const std::vector<arma::vec>& all_par
   phi = qpareto(U, xm, shape);
 
   // Update beta0 using Gamma posterior
-  double post_shape = hyper_b1 + 2 * K;
+  double post_shape = hyper_b1 + alpha0 * K;
   double post_rate = hyper_b2 + sum_inv_lambda;
   beta0 = R::rgamma(post_shape, 1.0 / post_rate);
 }

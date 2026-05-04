@@ -286,8 +286,28 @@ test_that("Beta DP Posterior Function", {
   beta_dpobj <- Fit(beta_dpobj, 5, FALSE, FALSE)
 
   post_func <- PosteriorFunction(beta_dpobj)
+  x_grid <- ppoints(5)
+  post_eval <- post_func(x_grid)
 
   expect_is(post_func, "function")
+  expect_type(post_eval, "double")
+  expect_length(post_eval, length(x_grid))
+  expect_true(all(is.finite(post_eval)))
+
+})
+
+test_that("Beta DP Posterior Frame", {
+
+  pts <- rbeta(10, 2,2)
+  beta_dpobj <- DirichletProcessBeta(pts, 1)
+  beta_dpobj <- Fit(beta_dpobj, 5, FALSE, FALSE)
+
+  post_frame <- PosteriorFrame(beta_dpobj, ppoints(5), ndraws = 3)
+
+  expect_s3_class(post_frame, "data.frame")
+  expect_equal(nrow(post_frame), 5)
+  expect_equal(ncol(post_frame), 4)
+  expect_true(all(is.finite(unlist(post_frame))))
 
 })
 
@@ -325,6 +345,5 @@ test_that("Dirichlet Process Likelihood", {
 
 
 })
-
 
 

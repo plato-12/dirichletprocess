@@ -2,7 +2,7 @@
 #ifndef NONCONJUGATE_DP_H
 #define NONCONJUGATE_DP_H
 
-#include "DirichletProcess.h"
+#include "dirichletprocess.h"
 
 namespace dp {
 

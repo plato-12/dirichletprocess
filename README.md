@@ -1,5 +1,5 @@
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- README.md is maintained directly in this repository. -->
 
 # dirichletprocess
 
@@ -11,22 +11,65 @@ Status](https://ci.appveyor.com/api/projects/status/github/dm13450/dirichletproc
 Status](https://codecov.io/gh/dm13450/dirichletprocess/branch/master/graph/badge.svg)](https://app.codecov.io/gh/dm13450/dirichletprocess)
 
 The dirichletprocess package provides tools for building custom
-Dirichlet process mixture models for nonparametric Bayesian analysis. 
-The package features high-performance C++ implementations alongside pure R 
-implementations, offering significant speed improvements while maintaining 
-full compatibility and automatic fallback mechanisms.
+Dirichlet process mixture models for nonparametric Bayesian analysis.
+The current interface supports ordinary, hierarchical, and hidden
+Markov model workflows. The main supported ordinary models use validated
+compiled C++ core sampler paths when available, with R fallbacks kept for
+unsupported paths.
 
 **Key Features:**
 - Pre-built distributions: Normal, Beta, Exponential, Weibull, Multivariate Normal
 - Hierarchical Dirichlet Process models
-- High-performance C++ backend with automatic R fallback
-- Comprehensive covariance model support (EII, VII, EEI, VEI, EVI, VVI, FULL)
-- Advanced MCMC algorithms (Neal's Algorithm 4 & 8)
-- Extensive validation and testing framework
+- Compiled C++ core sampler paths for the main supported ordinary models
+- Multivariate normal support with `covModel = "FULL"`
+- Retained-sample posterior summaries through `PosteriorSummary()`
+- Ordinary univariate `plot()` intervals based on retained MCMC samples
 
 Model your data nonparametrically in as little as four lines of code.
 
 ## Installation
+
+### System requirements
+
+`dirichletprocess` ships compiled C++ samplers (via Rcpp + RcppArmadillo)
+with optional OpenMP parallelism, so a working C++17 toolchain is
+required to install from source:
+
+- **R** ≥ 4.0
+- **C++17 compiler** — `g++` on Linux, Apple `clang++` on macOS, or
+  Rtools on Windows
+- **OpenMP runtime** — built into `g++`/Rtools; on macOS install
+  `libomp` (`brew install libomp`) and configure `~/.R/Makevars` per the
+  CRAN macOS instructions at <https://mac.r-project.org/openmp/>. The
+  package will still install without OpenMP, but compiled paths run
+  single-threaded.
+- **LAPACK/BLAS** — provided by your R install; no extra setup needed
+- **(Optional) LaTeX** — only needed if you want to build the PDF
+  vignette locally (`R CMD build` with vignettes, or
+  `devtools::install_github(..., build_vignettes = TRUE)`). TinyTeX
+  (`tinytex::install_tinytex()`) is the easiest option.
+
+### R package dependencies
+
+Imports (auto-installed): `Rcpp` (≥ 1.0.11), `RcppArmadillo`, `gtools`,
+`ggplot2`, `mvtnorm`, `abind`. Suggested (only required for tests and
+vignettes): `testthat`, `knitr`, `rmarkdown`, `tidyr`, `dplyr`, `coda`,
+`pkgload`.
+
+If installing fails on a fresh R session because a build dependency is
+missing, you can pre-install everything in one shot:
+
+``` r
+install.packages(c(
+  "Rcpp", "RcppArmadillo", "gtools", "ggplot2", "mvtnorm", "abind"
+))
+# Optional, only for tests/vignettes:
+install.packages(c(
+  "testthat", "knitr", "rmarkdown", "tidyr", "dplyr", "coda", "pkgload"
+))
+```
+
+### Installing the package
 
 You can install the stable release of dirichletprocess from CRAN:
 
@@ -56,16 +99,16 @@ browseVignettes(package = "dirichletprocess")
 Dirichlet processes can be used for nonparametric density estimation.
 
 ``` r
+library(dirichletprocess)
+
 faithfulTransformed <- faithful$waiting - mean(faithful$waiting)
 faithfulTransformed <- faithfulTransformed/sd(faithful$waiting)
 
-# Using R implementation (default)
-dp <- DirichletProcessGaussian(faithfulTransformed, cpp = FALSE)
+# Ordinary fits retain samples by default for PosteriorSummary() and plot()
+dp <- DirichletProcessGaussian(faithfulTransformed)
 dp <- Fit(dp, 100, progressBar = FALSE)
 plot(dp)
-
-# For better performance, use C++ implementation
-# dp <- DirichletProcessGaussian(faithfulTransformed, cpp = TRUE)
+PosteriorSummary(dp, seq(-2, 2, length.out = 5))
 ```
 
 <img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/density-1.png width=50% />
@@ -78,115 +121,80 @@ common distribution parameters.
 ``` r
 faithfulTrans <- scale(faithful)
 
-# Using R implementation (default)
-dpCluster <- DirichletProcessMvnormal(faithfulTrans, cpp = FALSE)
-dpCluster <- Fit(dpCluster, 2000, progressBar = FALSE)
+dpCluster <- DirichletProcessMvnormal(faithfulTrans)
+dpCluster <- Fit(dpCluster, 500, progressBar = FALSE)
 plot(dpCluster)
-
-# For better performance with large datasets, use C++ implementation
-# dpCluster <- DirichletProcessMvnormal(faithfulTrans, cpp = TRUE)
 ```
 
 <img src=https://github.com/dm13450/dirichletprocess/raw/master/vignettes/img/clustering-1.png width=50% />
 
 For more detailed explanations and examples see the vignette.
 
-## Performance & Implementation Control
+## Posterior Summaries and Plotting
 
-The package provides both R and high-performance C++ implementations for all distributions. You can now explicitly control which implementation to use with the `cpp` parameter in all constructor functions.
-
-### Using the cpp Parameter
-
-**New Feature (v0.5.0+):** All distribution constructors now accept a `cpp` parameter to explicitly choose the implementation:
+For ordinary non-hierarchical Dirichlet process objects, retained MCMC
+history is now the standard route for posterior summaries and interval
+plots.
 
 ```r
-library(dirichletprocess)
 y <- rt(200, 3) + 2
+dp <- DirichletProcessGaussian(y)
+dp <- Fit(dp, 200, progressBar = FALSE, thinning = 2)
 
-# Use R implementation (default)
-dp_r <- DirichletProcessGaussian(y, cpp = FALSE)
-dp_r <- Fit(dp_r, 1000)
-
-# Use C++ implementation for better performance
-dp_cpp <- DirichletProcessGaussian(y, cpp = TRUE)
-dp_cpp <- Fit(dp_cpp, 1000)
+summary_df <- PosteriorSummary(dp, seq(-4, 8, length.out = 25))
+head(summary_df)
 ```
 
-### Available for All Distributions
+Repeated `Fit()` calls append newly retained samples. Setting
+`storeSamples = FALSE` still updates the fitted state but appends no new
+retained sample history.
 
-The `cpp` parameter works with **all** distribution types:
+Ordinary univariate `plot()` uses retained-sample `PosteriorSummary()`
+intervals when usable stored samples exist. If not, it plots only the
+current fitted curve and explains why intervals are unavailable.
+
+`PosteriorFrame()`, `PosteriorFunction()`, and `PosteriorClusters()`
+remain available as lower-level conditional-on-current-state helpers.
+
+## Implementation Control
+
+Ordinary supported `Fit()` paths select validated compiled C++ samplers
+automatically when available. You can override that routing globally:
 
 ```r
-# Normal distributions
-dp <- DirichletProcessGaussian(data, cpp = TRUE)
-dp <- DirichletProcessGaussianFixedVariance(data, sigma = 1, cpp = TRUE)
-
-# Other distributions
-dp <- DirichletProcessBeta(data, cpp = TRUE)
-dp <- DirichletProcessExponential(data, cpp = TRUE)
-dp <- DirichletProcessWeibull(data, g0Priors = c(1, 1, 1, 1), cpp = TRUE)
-
-# Multivariate distributions
-dp <- DirichletProcessMvnormal(mvdata, cpp = TRUE)
-dp <- DirichletProcessMvnormal2(mvdata, cpp = TRUE)
-
-# Hierarchical models
-dp <- DirichletProcessHierarchicalBeta(dataList, maxY = 1, cpp = TRUE)
-dp <- DirichletProcessHierarchicalMvnormal2(dataList, cpp = TRUE)
-
-# Markov models
-dp <- DirichletHMMCreate(data, mdobj, alpha = 1, beta = 1, cpp = TRUE)
+set_use_cpp(TRUE)    # Force supported ordinary Fit() paths to use C++
+set_use_cpp(FALSE)   # Force ordinary Fit() paths to stay in R
+set_use_cpp(NULL)    # Restore automatic ordinary routing
 ```
 
-### Global Control (Legacy Method)
+Constructor `cpp` arguments are retained for backward compatibility, but
+they are not the primary live routing interface. In particular,
+hierarchical and HMM constructor `cpp` arguments should not be read as
+enabling compiled fitting for those paths.
 
-You can still control the implementation globally using the legacy functions:
+## Model Notes
 
-```r
-# Check current implementation preference
-using_cpp()  # Returns TRUE if C++ backend is preferred
-
-# Set global preference (affects all new objects)
-set_use_cpp(TRUE)   # Prefer C++ implementations
-set_use_cpp(FALSE)  # Prefer R implementations
-```
-
-### Performance Benefits
-
-C++ implementations provide substantial speedups for large datasets while maintaining **identical results** to R implementations:
-
-- **~2-10x faster** for most distributions
-- **Automatic fallback** to R if C++ unavailable  
-- **Identical statistical results** guaranteed
-- **Memory efficient** for large datasets
-
-### Default Behavior
-
-- **Default**: `cpp = FALSE` (R implementation) for predictable, cross-platform behavior
-- **Recommendation**: Use `cpp = TRUE` for large datasets or production workflows
-- **Compatibility**: Both implementations produce identical statistical results
+- `DirichletProcessMvnormal()` currently supports only `covModel = "FULL"`.
+- Beta mixtures use a bounded mean/precision parameterisation, not the
+  ordinary Beta shape-parameter parameterisation.
+- Top-level hierarchical `PosteriorSummary()`, `PosteriorFrame()`,
+  `PosteriorFunction()`, `PosteriorClusters()`, and `plot()` calls are
+  intentionally unsupported. For a local restaurant object, use
+  `dplist$indDP[[j]]`.
 
 ## Supported Distributions
 
-**Conjugate Models:**
-- Normal (Gaussian) with Inverse-Gamma prior
-- Exponential with Gamma prior  
-- Multivariate Normal with Normal-Wishart prior (all covariance models)
-
-**Non-Conjugate Models:**
-- Beta with Uniform priors
-- Weibull with Uniform priors
+- Normal (Gaussian)
+- Normal with fixed variance
+- Exponential
+- Beta
+- Beta with boundary-avoiding precision prior
+- Weibull
+- Multivariate Normal with Normal-Wishart prior (`covModel = "FULL"` only)
 - Multivariate Normal with semi-conjugate priors
-
-**Hierarchical Models:**
 - Hierarchical Beta
-- Hierarchical Multivariate Normal (two variants)
-
-## Covariance Models
-
-For multivariate normal distributions, the package supports:
-- **FULL**: Unrestricted covariance matrices
-- **EII, VII, EEI, VEI, EVI, VVI**: Constrained covariance models
+- Hierarchical Multivariate Normal variants
+- Hidden Markov model constructions
 
 ### Tutorials
 

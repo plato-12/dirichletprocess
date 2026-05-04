@@ -12,6 +12,7 @@ test_that("Creation", {
 test_that("Fit", {
 
   dp <- DirichletProcessExponential(testData)
+  fit_uses_cpp <- getFromNamespace("should_use_cpp_fit", "dirichletprocess")(dp)
   dp <- Fit(dp, 10, FALSE, FALSE)
 
   expect_is(dp, c("list", "dirichletprocess", "exponenital", "cojugate"))
@@ -19,8 +20,9 @@ test_that("Fit", {
   expect_is(dp$clusterParameters, "list")
   expect_length(dp$clusterParameters, 1)
 
-  # Implementation-aware testing: C++ may not store chain the same way as R
-  if (using_cpp()) {
+  # The live Fit() path can use C++ automatically even when the manual override
+  # is not explicitly set.
+  if (fit_uses_cpp) {
     # C++ implementation may have different chain storage behavior
     expect_true(length(dp$clusterParametersChain) >= 0)
   } else {

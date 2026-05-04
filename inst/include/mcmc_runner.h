@@ -31,6 +31,10 @@ class MCMCRunner {
     int thin;
     bool update_concentration_flag;
     int m_auxiliary; // Number of auxiliary parameters for Algorithm 8
+    bool store_history;
+    bool use_initial_state;
+    std::vector<int> initial_cluster_labels;
+    std::vector<arma::vec> initial_cluster_params;
 
     // Alpha prior parameters
     double alpha_prior_shape;
@@ -72,9 +76,11 @@ public:
     void update_concentration();
     void store_iteration(int iter);
     void cleanup_empty_clusters();
+    double compute_repaired_r_loglikelihood() const;
 
     // Helper function for categorical sampling
     int sample_categorical(const std::vector<double>& probs);
+    std::vector<double> stable_probs_from_log(const std::vector<double>& log_probs) const;
 };
 
 // State container for DP

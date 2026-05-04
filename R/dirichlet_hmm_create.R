@@ -1,12 +1,16 @@
 #' Create a generic Dirichlet process hidden Markov Model
 #'
-#' Create a hidden Markov model where the data is believed to be generated from the mixing object distribution.
+#' Create a hidden Markov model where the data is believed to be generated from
+#' the mixing object distribution.
 #'
 #' @param x Data to be modelled
 #' @param mdobj Mixing distribution object
 #' @param alpha Alpha parameter
 #' @param beta Beta parameter
-#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
+#' @param cpp Logical compatibility argument. HMM compiled routing is controlled
+#'   separately from the ordinary DP C++ override; this argument is accepted for
+#'   backward compatibility only and does not itself enable compiled HMM
+#'   fitting or mutate unrelated routing flags.
 #' @export
 DirichletHMMCreate <- function(x, mdobj, alpha, beta, cpp = FALSE){
 
@@ -60,14 +64,11 @@ DirichletHMMCreate <- function(x, mdobj, alpha, beta, cpp = FALSE){
   dp$alpha <- alpha
   dp$beta <- beta
 
-  class(dp) <- append(class(dp), c("markov", "dirichletprocess", class(mdobj)[-1]))
+  class(dp) <- append(class(dp),
+                      c("markov", "dirichletprocess", class_without_list(mdobj)))
 
-  # Set cpp preference for this object
-  if (cpp) {
-    options(dirichletprocess.use_cpp = TRUE)
-  } else {
-    options(dirichletprocess.use_cpp = FALSE)
-  }
+  # Compatibility only: do not mutate unrelated routing flags from the constructor.
+  force(cpp)
 
   return(dp)
 }

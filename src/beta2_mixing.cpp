@@ -45,7 +45,7 @@ double Beta2Mixing::log_likelihood(const arma::vec& data_point,
   }
 
   // Beta likelihood (same as regular Beta)
-  return R::dbeta(x / maxT, a, b, 1);
+  return R::dbeta(x / maxT, a, b, 1) - std::log(maxT);
 }
 
 // Prior draw
@@ -142,8 +142,12 @@ arma::vec Beta2Mixing::posterior_draw(const arma::mat& cluster_data,
     return prior_draw();
   }
 
-  // Initialize with prior draw
-  arma::vec current_params = prior_draw();
+  arma::vec current_params;
+  if (prior_params.n_elem == 2 && prior_params.is_finite()) {
+    current_params = prior_params;
+  } else {
+    current_params = prior_draw();
+  }
 
   // Run MH algorithm
   double current_log_prior = log_prior_density(current_params);
@@ -153,8 +157,10 @@ arma::vec Beta2Mixing::posterior_draw(const arma::mat& cluster_data,
     current_log_lik += log_likelihood(cluster_data.row(i).t(), current_params);
   }
 
-  // MH iterations
-  for (int iter = 0; iter < mh_draws; ++iter) {
+  // Match the repaired R MH semantics: the incoming state is sample 1 and
+  // only the remaining mh_draws - 1 steps generate proposals.
+  int n_proposals = std::max(0, mh_draws - 1);
+  for (int iter = 0; iter < n_proposals; ++iter) {
     // Propose new parameters
     arma::vec proposed_params = mh_parameter_proposal(current_params);
 
@@ -169,11 +175,16 @@ arma::vec Beta2Mixing::posterior_draw(const arma::mat& cluster_data,
     // Calculate acceptance ratio
     double log_ratio = (proposed_log_prior + proposed_log_lik) -
       (current_log_prior + current_log_lik);
-    double accept_prob = std::min(1.0, std::exp(log_ratio));
-
-    // Handle numerical issues
-    if (std::isnan(accept_prob) || !std::isfinite(accept_prob)) {
+    double accept_prob = 0.0;
+    if (std::isnan(log_ratio)) {
       accept_prob = 0.0;
+    } else if (std::isinf(log_ratio) && log_ratio > 0) {
+      accept_prob = 1.0;
+    } else {
+      accept_prob = std::min(1.0, std::exp(log_ratio));
+      if (std::isnan(accept_prob) || !std::isfinite(accept_prob)) {
+        accept_prob = 0.0;
+      }
     }
 
     // Accept or reject

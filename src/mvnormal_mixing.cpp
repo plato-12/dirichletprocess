@@ -15,7 +15,7 @@ MVNormalMixing::MVNormalMixing(const arma::vec& mu0, double kappa0,
   if (nu <= d - 1) {
     Rcpp::stop("nu must be greater than dimension - 1");
   }
-  if (Lambda.n_rows != d || Lambda.n_cols != d) {
+  if (Lambda.n_rows != static_cast<arma::uword>(d) || Lambda.n_cols != static_cast<arma::uword>(d)) {
     Rcpp::stop("Lambda must be a d x d matrix");
   }
 
@@ -26,7 +26,7 @@ MVNormalMixing::MVNormalMixing(const arma::vec& mu0, double kappa0,
 double MVNormalMixing::log_likelihood(const arma::vec& data_point,
                                       const arma::vec& params) const {
   // Validate input dimensions
-  if (data_point.n_elem != d || d == 0) {
+  if (data_point.n_elem != static_cast<arma::uword>(d) || d == 0) {
     return -std::numeric_limits<double>::infinity();
   }
 
@@ -36,7 +36,7 @@ double MVNormalMixing::log_likelihood(const arma::vec& data_point,
   unflatten_params(params, mu, Sigma);
 
   // Validate that unflatten_params worked correctly
-  if (mu.n_elem != d || Sigma.n_rows != d || Sigma.n_cols != d) {
+  if (mu.n_elem != static_cast<arma::uword>(d) || Sigma.n_rows != static_cast<arma::uword>(d) || Sigma.n_cols != static_cast<arma::uword>(d)) {
     return -std::numeric_limits<double>::infinity();
   }
 
@@ -52,7 +52,7 @@ double MVNormalMixing::log_likelihood(const arma::vec& data_point,
   }
 
   // Using precision parameterization with bounds checking
-  if (x_centered.n_elem != d) {
+  if (x_centered.n_elem != static_cast<arma::uword>(d)) {
     return -std::numeric_limits<double>::infinity();
   }
   
@@ -72,7 +72,7 @@ arma::vec MVNormalMixing::posterior_draw(const arma::mat& cluster_data,
   int n = cluster_data.n_rows;
 
   // Handle empty cluster case or invalid dimensions
-  if (n == 0 || cluster_data.n_cols != d || d == 0) {
+  if (n == 0 || cluster_data.n_cols != static_cast<arma::uword>(d) || d == 0) {
     return prior_draw();
   }
 
@@ -81,7 +81,7 @@ arma::vec MVNormalMixing::posterior_draw(const arma::mat& cluster_data,
   try {
     arma::rowvec x_bar_row = arma::mean(cluster_data, 0);
     x_bar = x_bar_row.t();
-    if (x_bar.n_elem != d) {
+    if (x_bar.n_elem != static_cast<arma::uword>(d)) {
       return prior_draw();
     }
   } catch (...) {
@@ -99,7 +99,7 @@ arma::vec MVNormalMixing::posterior_draw(const arma::mat& cluster_data,
     if (i >= 0 && i < static_cast<int>(cluster_data.n_rows)) {
       try {
         arma::vec xi = cluster_data.row(i).t();
-        if (xi.n_elem == d && x_bar.n_elem == d) {
+        if (xi.n_elem == static_cast<arma::uword>(d) && x_bar.n_elem == static_cast<arma::uword>(d)) {
           arma::vec diff = xi - x_bar;
           S += diff * diff.t();
         }
@@ -138,7 +138,7 @@ arma::vec MVNormalMixing::posterior_draw(const arma::mat& cluster_data,
 
   // Sample precision matrix from Wishart distribution
   // Additional validation before Wishart sampling to prevent segfaults
-  if (!Lambda_n_inv.is_finite() || Lambda_n_inv.n_rows != d || Lambda_n_inv.n_cols != d) {
+  if (!Lambda_n_inv.is_finite() || Lambda_n_inv.n_rows != static_cast<arma::uword>(d) || Lambda_n_inv.n_cols != static_cast<arma::uword>(d)) {
     return prior_draw(); // Fall back to prior if matrix is invalid
   }
   
@@ -180,9 +180,9 @@ arma::vec MVNormalMixing::posterior_draw(const arma::mat& cluster_data,
 
 arma::vec MVNormalMixing::prior_draw() const {
   // Validate dimensions
-  if (d <= 0 || mu0.n_elem != d || Lambda.n_rows != d || Lambda.n_cols != d) {
-    Rcpp::stop("Invalid dimensions in prior_draw: d=" + std::to_string(d) + 
-               ", mu0.size=" + std::to_string(mu0.n_elem) + 
+  if (d <= 0 || mu0.n_elem != static_cast<arma::uword>(d) || Lambda.n_rows != static_cast<arma::uword>(d) || Lambda.n_cols != static_cast<arma::uword>(d)) {
+    Rcpp::stop("Invalid dimensions in prior_draw: d=" + std::to_string(d) +
+               ", mu0.size=" + std::to_string(mu0.n_elem) +
                ", Lambda.size=" + std::to_string(Lambda.n_rows) + "x" + std::to_string(Lambda.n_cols));
   }
 
@@ -206,15 +206,15 @@ arma::vec MVNormalMixing::prior_draw() const {
   }
 
   // Validate Lambda_inv dimensions
-  if (Lambda_inv.n_rows != d || Lambda_inv.n_cols != d) {
-    Rcpp::stop("Lambda_inv has wrong dimensions: " + 
+  if (Lambda_inv.n_rows != static_cast<arma::uword>(d) || Lambda_inv.n_cols != static_cast<arma::uword>(d)) {
+    Rcpp::stop("Lambda_inv has wrong dimensions: " +
                std::to_string(Lambda_inv.n_rows) + "x" + std::to_string(Lambda_inv.n_cols));
   }
 
   arma::mat prec_draw;
   try {
     // Additional validation before Wishart sampling to prevent segfaults
-    if (!Lambda_inv.is_finite() || Lambda_inv.n_rows != d || Lambda_inv.n_cols != d) {
+    if (!Lambda_inv.is_finite() || Lambda_inv.n_rows != static_cast<arma::uword>(d) || Lambda_inv.n_cols != static_cast<arma::uword>(d)) {
       Rcpp::stop("Invalid Lambda_inv matrix for Wishart sampling");
     }
     
@@ -224,9 +224,9 @@ arma::vec MVNormalMixing::prior_draw() const {
       // Matrix is too ill-conditioned, use regularized version
       Lambda_inv += arma::eye<arma::mat>(d, d) * 1e-6;
     }
-    
+
     prec_draw = arma::wishrnd(Lambda_inv, nu);
-    if (prec_draw.n_rows != d || prec_draw.n_cols != d) {
+    if (prec_draw.n_rows != static_cast<arma::uword>(d) || prec_draw.n_cols != static_cast<arma::uword>(d)) {
       Rcpp::stop("prec_draw has wrong dimensions after Wishart draw");
     }
     prec_draw = ensureSymmetric(prec_draw);
@@ -257,7 +257,7 @@ arma::vec MVNormalMixing::prior_draw() const {
   arma::vec mu_draw;
   try {
     mu_draw = arma::mvnrnd(mu0, cov_mu);
-    if (mu_draw.n_elem != d) {
+    if (mu_draw.n_elem != static_cast<arma::uword>(d)) {
       Rcpp::stop("mu_draw has wrong size: " + std::to_string(mu_draw.n_elem));
     }
   } catch (const std::exception& e) {
@@ -277,16 +277,16 @@ arma::vec MVNormalMixing::flatten_params(const arma::vec& mu,
   arma::vec params(param_dim());
 
   // First d elements are the mean with bounds checking
-  if (d > 0 && mu.n_elem >= d) {
+  if (d > 0 && mu.n_elem >= static_cast<arma::uword>(d)) {
     params.subvec(0, d-1) = mu;
   }
 
   // Remaining elements are the precision matrix (column-major order) with bounds checking
-  if (d > 0 && Sigma.n_rows == d && Sigma.n_cols == d) {
+  if (d > 0 && Sigma.n_rows == static_cast<arma::uword>(d) && Sigma.n_cols == static_cast<arma::uword>(d)) {
     arma::vec sigma_vec = arma::vectorise(Sigma);
     int sigma_start = d;
     int sigma_end = param_dim() - 1;
-    if (sigma_end >= sigma_start && sigma_vec.n_elem == (sigma_end - sigma_start + 1)) {
+    if (sigma_end >= sigma_start && sigma_vec.n_elem == static_cast<arma::uword>(sigma_end - sigma_start + 1)) {
       params.subvec(sigma_start, sigma_end) = sigma_vec;
     }
   }
@@ -297,7 +297,7 @@ arma::vec MVNormalMixing::flatten_params(const arma::vec& mu,
 void MVNormalMixing::unflatten_params(const arma::vec& params,
                                       arma::vec& mu, arma::mat& Sigma) const {
   // Extract mean with bounds checking
-  if (d > 0 && params.n_elem >= d) {
+  if (d > 0 && params.n_elem >= static_cast<arma::uword>(d)) {
     mu = params.subvec(0, d-1);
   } else {
     mu.set_size(d);
@@ -306,9 +306,9 @@ void MVNormalMixing::unflatten_params(const arma::vec& params,
 
   // Extract precision matrix with bounds checking
   int expected_size = param_dim();
-  if (d > 0 && params.n_elem >= expected_size) {
+  if (d > 0 && params.n_elem >= static_cast<arma::uword>(expected_size)) {
     arma::vec sigma_vec = params.subvec(d, expected_size-1);
-    if (sigma_vec.n_elem == d * d) {
+    if (sigma_vec.n_elem == static_cast<arma::uword>(d * d)) {
       Sigma = arma::reshape(sigma_vec, d, d);
       Sigma = ensureSymmetric(Sigma);
     } else {

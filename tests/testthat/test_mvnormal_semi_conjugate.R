@@ -20,17 +20,22 @@ test_that("Multivariate Normal Likelihood", {
 
   expect_equal(lik_test, 1/sqrt(4*pi^2))
 
-  # Test multi-cluster case - force R implementation to avoid C++ inconsistency  
   old_cpp_setting <- using_cpp()
-  set_use_cpp(FALSE)
-  
-  test_theta_multi <- list(mu=array(c(0,0), c(1,2,2)), sig=array(diag(2), c(2,2,2)))
-  lik_test_multi <- Likelihood(mdobj, matrix(c(0,0), nrow=1), test_theta_multi)
+  on.exit(set_use_cpp(old_cpp_setting), add = TRUE)
+  set_use_cpp(TRUE)
 
-  expect_equal(lik_test_multi, rep.int(1/sqrt(4*pi^2), 2))
-  
-  # Restore original C++ setting
-  set_use_cpp(old_cpp_setting)
+  test_theta_multi <- list(
+    mu = array(c(0, 0,
+                 2, 2), c(1, 2, 2)),
+    sig = array(c(diag(2), diag(2)), c(2, 2, 2))
+  )
+  lik_test_multi <- Likelihood(mdobj, matrix(c(0,0), nrow=1), test_theta_multi)
+  expected_multi <- c(
+    mvtnorm::dmvnorm(matrix(c(0, 0), nrow = 1), c(0, 0), diag(2)),
+    mvtnorm::dmvnorm(matrix(c(0, 0), nrow = 1), c(2, 2), diag(2))
+  )
+
+  expect_equal(lik_test_multi, expected_multi)
 
 })
 
@@ -76,6 +81,7 @@ test_that("DP Object", {
   dp <- DirichletProcessMvnormal2(test_data)
 
   expect_is(dp, c("list", "dirichletprocess", "mvnormal2", "nonconjugate"))
+  expect_equal(dp$mixingDistribution$priorParameters$nu0, 2)
 
 })
 
@@ -90,5 +96,4 @@ test_that("DP Object Fit", {
   expect_length(dp$alphaChain, 2)
 
 })
-
 

@@ -2,7 +2,7 @@
 #ifndef WEIBULL_DISTRIBUTION_H
 #define WEIBULL_DISTRIBUTION_H
 
-#include "DirichletProcess.h"
+#include "dirichletprocess.h"
 #include <map>
 
 namespace dp {

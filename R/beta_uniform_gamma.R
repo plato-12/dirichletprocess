@@ -1,6 +1,8 @@
 #' Create a Beta mixing distribution.
 #'
-#' See \code{\link{DirichletProcessBeta}} for the default prior and hyper prior distributions.
+#' Creates a bounded Beta mixing distribution using the mean and precision
+#' parameterisation on \eqn{(0, maxT)}. See \code{\link{DirichletProcessBeta}}
+#' for the default prior and hyper-prior distributions.
 #'
 #' @param priorParameters The prior parameters for the base measure.
 #' @param mhStepSize The Metropolis Hastings step size. A numeric vector of length 2.
@@ -22,113 +24,16 @@ BetaMixtureCreate <- function(priorParameters = c(2, 8), mhStepSize = c(1, 1), m
 #' @rdname Likelihood
 Likelihood.beta <- function(mdObj, x, theta) {
   maxT <- mdObj$maxT
-  x <- as.numeric(x)
+  x <- as.vector(x, "numeric")
+  mu <- as.numeric(theta[[1]])
+  tau <- as.numeric(theta[[2]])
 
-  # Validate theta structure
-  if (!is.list(theta)) {
-    stop("theta must be a list with mu and nu components")
-  }
+  a <- (mu * tau)/maxT
+  b <- (1 - mu/maxT) * tau
 
-  if (!all(c("mu", "nu") %in% names(theta))) {
-    stop("theta must contain 'mu' and 'nu' components")
-  }
+  y <- 1/maxT * dbeta(x/maxT, a, b)
 
-  # Extract parameters with proper handling for various formats
-  mu <- if (is.array(theta$mu)) {
-    # Handle 3D arrays (dim = c(1,1,n))
-    if (length(dim(theta$mu)) == 3) {
-      as.numeric(theta$mu[,,, drop = TRUE])
-    } else {
-      as.numeric(theta$mu)
-    }
-  } else if (is.list(theta$mu)) {
-    unlist(theta$mu)
-  } else {
-    as.numeric(theta$mu)
-  }
-
-  nu <- if (is.array(theta$nu)) {
-    # Handle 3D arrays (dim = c(1,1,n))
-    if (length(dim(theta$nu)) == 3) {
-      as.numeric(theta$nu[,,, drop = TRUE])
-    } else {
-      as.numeric(theta$nu)
-    }
-  } else if (is.list(theta$nu)) {
-    unlist(theta$nu)
-  } else {
-    as.numeric(theta$nu)
-  }
-
-  # Ensure we have valid values
-  mu <- mu[!is.na(mu)]
-  nu <- nu[!is.na(nu)]
-
-  if (length(mu) == 0 || length(nu) == 0) {
-    return(rep(1e-300, length(x)))
-  }
-
-  # Ensure mu and nu have the same length
-  n_params <- max(length(mu), length(nu))
-  if (length(mu) == 1 && n_params > 1) {
-    mu <- rep(mu, n_params)
-  }
-  if (length(nu) == 1 && n_params > 1) {
-    nu <- rep(nu, n_params)
-  }
-
-  # Calculate likelihood
-  n_clusters <- length(mu)
-  if (length(x) == 1) {
-    # Single observation
-    lik <- numeric(n_clusters)
-    for (k in 1:n_clusters) {
-      if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
-        a <- (mu[k] * nu[k]) / maxT
-        b <- (1 - mu[k]/maxT) * nu[k]
-
-        if (a > 0 && b > 0 && x >= 0 && x <= maxT) {
-          lik[k] <- (1/maxT) * dbeta(x/maxT, a, b)
-        } else {
-          lik[k] <- 1e-300
-        }
-      } else {
-        lik[k] <- 1e-300
-      }
-    }
-    return(if (n_clusters == 1) lik[1] else lik)
-  } else {
-    # Multiple observations 
-    if (n_clusters == 1) {
-      # Single cluster - return vector
-      lik <- rep(1e-300, length(x))
-      if (mu[1] > 0 && mu[1] < maxT && nu[1] > 0) {
-        a <- (mu[1] * nu[1]) / maxT
-        b <- (1 - mu[1]/maxT) * nu[1]
-
-        if (a > 0 && b > 0) {
-          valid_idx <- x >= 0 & x <= maxT
-          lik[valid_idx] <- (1/maxT) * dbeta(x[valid_idx]/maxT, a, b)
-        }
-      }
-      return(lik)
-    } else {
-      # Multiple clusters - return matrix
-      lik <- matrix(1e-300, nrow = length(x), ncol = n_clusters)
-      for (k in 1:n_clusters) {
-        if (mu[k] > 0 && mu[k] < maxT && nu[k] > 0) {
-          a <- (mu[k] * nu[k]) / maxT
-          b <- (1 - mu[k]/maxT) * nu[k]
-
-          if (a > 0 && b > 0) {
-            valid_idx <- x >= 0 & x <= maxT
-            lik[valid_idx, k] <- (1/maxT) * dbeta(x[valid_idx]/maxT, a, b)
-          }
-        }
-      }
-      return(lik)
-    }
-  }
+  return(as.numeric(y))
 }
 
 #' @export

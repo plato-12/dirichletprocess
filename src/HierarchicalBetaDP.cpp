@@ -213,8 +213,8 @@ void HierarchicalBetaDP::globalParameterUpdate() {
       for (int j = 0; j < betaDP->numberClusters; j++) {
         if (std::abs(mu_params[j] - mu_global[global_idx]) < PARAM_TOLERANCE) {
           // Get data points for this cluster
-          for (arma::uword i = 0; i < betaDP->n; i++) {
-            if (betaDP->clusterLabels[i] == j) {
+          for (arma::uword i = 0; i < static_cast<arma::uword>(betaDP->n); i++) {
+            if (betaDP->clusterLabels[i] == static_cast<arma::uword>(j)) {
               combined_data.push_back(betaDP->data(i, 0));
             }
           }

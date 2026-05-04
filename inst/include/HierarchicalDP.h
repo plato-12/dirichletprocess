@@ -29,7 +29,7 @@ public:
 
   // Hierarchical specific methods (these should be virtual if intended to be overridden by further derived classes)
   virtual void globalParameterUpdate();
-  virtual void updateG0();
+  virtual void updateG0() override;
   virtual void updateGamma();
 
   // Conversion methods

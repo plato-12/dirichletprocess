@@ -93,7 +93,7 @@ ClusterParameterUpdate.conjugate.cpp <- function(dpObj) {
 #' @param use_cpp Logical indicating whether to use C++ implementations
 #' @export
 enable_cpp_normal_samplers <- function(use_cpp = TRUE) {
-  options(dirichletprocess.use_cpp_samplers = use_cpp)
+  options(dirichletprocesscpp.use_cpp_samplers = use_cpp)
 
   if (use_cpp) {
     message("C++ samplers enabled for conjugate Normal distribution")

@@ -4,7 +4,14 @@
 \alias{prepare_mcmc_params}
 \title{Create MCMC parameters for C++}
 \usage{
-prepare_mcmc_params(dp_obj, its, updatePrior, n_burn = 0, thin = 1)
+prepare_mcmc_params(
+  dp_obj,
+  its,
+  updatePrior,
+  n_burn = 0,
+  thin = 1,
+  store_history = TRUE
+)
 }
 \arguments{
 \item{dp_obj}{Dirichlet process object}

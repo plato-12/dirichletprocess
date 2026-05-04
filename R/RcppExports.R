@@ -132,8 +132,24 @@ conjugate_exponential_cluster_parameter_update_cpp <- function(dpObj) {
     .Call(`_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp`, dpObj)
 }
 
+#' @title Fit Exponential DP with batch C++ live path
+#' @description C++ batch implementation of the live exponential `Fit()` path
+#'   with repaired-R-style pre-update chain semantics.
+#' @param data Data matrix.
+#' @param mixing_dist_params Mixing distribution parameters.
+#' @param mcmc_params MCMC parameters.
+#' @return A list containing repaired-R-style pre-update chains and final state.
+#' @export
+run_exponential_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocess_run_exponential_fit_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
 run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
     .Call(`_dirichletprocess_run_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
+run_gaussian_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocess_run_gaussian_fit_cpp`, data, mixing_dist_params, mcmc_params)
 }
 
 #' @title Fit Hierarchical Beta DP (C++)
@@ -346,9 +362,10 @@ mvnormal2_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
 
 #' @title Calculate MVNormal2 likelihood (C++)
 #' @description C++ implementation for calculating multivariate normal likelihood.
-#' @param x A numeric vector of a single data point.
+#' @param x A numeric matrix of data points.
 #' @param theta A list containing mu and sig parameters.
-#' @return A numeric vector of likelihood values.
+#' @return A numeric matrix of likelihood values with one row per observation
+#'   and one column per cluster.
 #' @export
 mvnormal2_likelihood_cpp <- function(x, theta) {
     .Call(`_dirichletprocess_mvnormal2_likelihood_cpp`, x, theta)
@@ -426,6 +443,10 @@ conjugate_mvnormal_cluster_parameter_update_cpp <- function(dpObj) {
 
 mvnormal_log_likelihood_cpp <- function(x, mu, Sigma) {
     .Call(`_dirichletprocess_mvnormal_log_likelihood_cpp`, x, mu, Sigma)
+}
+
+run_mvnormal_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocess_run_mvnormal_fit_cpp`, data, mixing_dist_params, mcmc_params)
 }
 
 #' @title Create a Markov DP from R object (C++)
@@ -710,5 +731,9 @@ cpp_normal_fixed_variance_likelihood <- function(x, mu, sigma) {
 
 cpp_normal_fixed_variance_posterior_parameters <- function(data, mu0, sigma0, sigma) {
     .Call(`_dirichletprocess_cpp_normal_fixed_variance_posterior_parameters`, data, mu0, sigma0, sigma)
+}
+
+run_normal_fixed_variance_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocess_run_normal_fixed_variance_fit_cpp`, data, mixing_dist_params, mcmc_params)
 }
 

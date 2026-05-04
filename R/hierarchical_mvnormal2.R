@@ -12,12 +12,9 @@
 HierarchicalMvnormal2Create <- function(n, priorParameters,
                                         alphaPrior, gammaPrior,
                                         num_sticks) {
-
-  # Use C++ implementation if enabled
-  if (using_cpp_hierarchical_samplers()) {
-    return(HierarchicalMvnormal2Create.cpp(n, priorParameters, alphaPrior,
-                                           gammaPrior, num_sticks))
-  }
+  # Phase 5 route lock:
+  # hierarchical construction stays on the rewritten R path until a coherent
+  # hierarchical C++ implementation exists.
 
   # Original R implementation
   mdobj_mvnormal2 <- Mvnormal2Create(priorParameters)
