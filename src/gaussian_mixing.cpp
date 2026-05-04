@@ -37,14 +37,18 @@ double GaussianMixing::log_likelihood(const arma::vec& data_point,
 arma::vec GaussianMixing::posterior_draw(const arma::mat& cluster_data,
                                          const arma::vec& prior_params) const {
   int n = cluster_data.n_rows;
+  if (n == 0) {
+    return prior_draw();
+  }
+
   double data_mean = arma::mean(cluster_data.col(0));
-  double data_var = arma::var(cluster_data.col(0));
+  double sumsq = arma::accu(arma::square(cluster_data.col(0) - data_mean));
 
   // Posterior parameters (Normal-Inverse-Gamma)
   double kappa_n = kappa0 + n;
   double mu_n = (kappa0 * mu0 + n * data_mean) / kappa_n;
   double alpha_n = alpha0 + n / 2.0;
-  double beta_n = beta0 + 0.5 * n * data_var +
+  double beta_n = beta0 + 0.5 * sumsq +
     0.5 * kappa0 * n * std::pow(data_mean - mu0, 2) / kappa_n;
 
   // Sample variance from Inverse-Gamma
@@ -80,11 +84,13 @@ double GaussianMixing::predictive_probability(const arma::vec& data_point) const
   // Using the same logic as in posteriorParameters method
   int n_x = 1;
   double ybar = x;
-  
-  double mu_n = (kappa0 * mu0 + n_x * ybar) / (kappa0 + n_x);
+
+  // mu_n calculated but not needed for predictive probability
+  // double mu_n = (kappa0 * mu0 + n_x * ybar) / (kappa0 + n_x);
   double kappa_n = kappa0 + n_x;
   double alpha_n = alpha0 + n_x / 2.0;
-  double beta_n = beta0 + 0.5 * n_x * std::pow(ybar - ybar, 2) +
+  // For single data point, ybar - ybar = 0, so first term vanishes
+  double beta_n = beta0 +
     kappa0 * n_x * std::pow(ybar - mu0, 2) / (2.0 * (kappa0 + n_x));
   
   // Calculate the predictive probability using R's formula:

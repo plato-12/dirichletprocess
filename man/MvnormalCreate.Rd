@@ -13,8 +13,8 @@ MvnormalCreate(priorParameters)
   \item{kappa0}{Prior precision parameter for the mean}
   \item{nu}{Prior degrees of freedom for the covariance}
   \item{Lambda}{Prior scale matrix for the covariance}
-  \item{covModel}{Covariance model: "FULL" (default), "E", "V", "EII", "VII",
-                  "EEI", "VEI", "EVI", or "VVI"}
+  \item{covModel}{Only \code{"FULL"} is currently supported in the live
+                  package and is the default.}
 }}
 }
 \value{
@@ -22,5 +22,6 @@ A mixing distribution object
 }
 \description{
 Creates a multivariate normal mixing distribution with Normal-Wishart conjugate prior.
-The base measure is G_0(μ, Σ | μ_0, κ_0, ν, Λ) = N(μ | μ_0, Σ/κ_0) * IW(Σ | ν, Λ)
+The base measure is \eqn{G_0(\mu, \Sigma | \mu_0, \kappa_0, \nu, \Lambda) = N(\mu | \mu_0, \Sigma/\kappa_0) * IW(\Sigma | \nu, \Lambda)}
+Non-\code{"FULL"} covariance models are currently rejected in the live package.
 }

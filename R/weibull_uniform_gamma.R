@@ -15,51 +15,59 @@ WeibullMixtureCreate <- function(priorParameters, mhStepSize,
   return(mdObj)
 }
 
+weibull_extract_theta_values <- function(theta_component) {
+  theta_dims <- dim(theta_component)
+
+  if (is.null(theta_dims) || length(theta_dims) <= 2) {
+    return(as.numeric(theta_component))
+  }
+
+  if (length(theta_dims) == 3) {
+    return(theta_component[, , , drop = TRUE])
+  }
+
+  if (length(theta_dims) == 4) {
+    return(theta_component[, , , , drop = TRUE])
+  }
+
+  as.numeric(theta_component)
+}
+
 #' @export
 Likelihood.weibull <- function(mdObj, x, theta) {
-  # as.numeric(dweibull(x, theta[[1]], theta[[2]]))
   x <- as.vector(x, "numeric")
-  
-  # Check if theta has the required components
+
   if (!is.list(theta) || length(theta) < 2) {
-    # Fallback values if theta structure is unexpected
     return(rep(0, length(x)))
   }
-  
-  # Handle different array dimensions safely
-  alpha_dims <- dim(theta[[1]])
-  lambda_dims <- dim(theta[[2]])
-  
-  # Extract values with appropriate dropping based on dimensions
-  if (is.null(alpha_dims) || length(alpha_dims) <= 2) {
-    alpha <- as.numeric(theta[[1]])
-  } else if (length(alpha_dims) == 3) {
-    alpha <- theta[[1]][, , , drop = TRUE]
-  } else if (length(alpha_dims) == 4) {
-    alpha <- theta[[1]][, , , , drop = TRUE]
-  } else {
-    alpha <- as.numeric(theta[[1]])
-  }
-  
-  if (is.null(lambda_dims) || length(lambda_dims) <= 2) {
-    lambda <- as.numeric(theta[[2]])
-  } else if (length(lambda_dims) == 3) {
-    lambda <- theta[[2]][, , , drop = TRUE]
-  } else if (length(lambda_dims) == 4) {
-    lambda <- theta[[2]][, , , , drop = TRUE]
-  } else {
-    lambda <- as.numeric(theta[[2]])
+
+  alpha <- weibull_extract_theta_values(theta[[1]])
+  lambda <- weibull_extract_theta_values(theta[[2]])
+
+  out_length <- max(length(x), length(alpha), length(lambda))
+  x_vals <- rep_len(x, out_length)
+  alpha_vals <- rep_len(alpha, out_length)
+  lambda_vals <- rep_len(lambda, out_length)
+
+  y <- numeric(out_length)
+  valid <- is.finite(x_vals) &
+    is.finite(alpha_vals) &
+    is.finite(lambda_vals) &
+    alpha_vals > 0 &
+    lambda_vals > 0 &
+    x_vals >= 0
+
+  if (any(valid)) {
+    x_valid <- x_vals[valid]
+    alpha_valid <- alpha_vals[valid]
+    lambda_valid <- lambda_vals[valid]
+
+    y[valid] <- (alpha_valid / lambda_valid) *
+      x_valid^(alpha_valid - 1) *
+      exp(-(x_valid^alpha_valid) / lambda_valid)
   }
 
-  # a <- alpha
-  # b <- lambda^(1/alpha)
-  # b[is.infinite(b)] <- 1000000000000000
-  #y <- dweibull(x, a, b, log = TRUE)
-
-  y <- as.numeric(lambda^(-1) * alpha * x^(alpha - 1) * exp(-lambda^(-1) * x^alpha))
-  y[is.infinite(lambda)] <- 0
-  y[x < 0] <- 0
-  return(y)
+  as.numeric(y)
 }
 
 #' @export
@@ -97,31 +105,37 @@ PriorDraw.weibull <- function(mdObj, n = 1, ...) {
 PriorDensity.weibull <- function(mdObj, theta) {
 
   priorParameters <- mdObj$priorParameters
+  alpha_dims <- dim(theta[[1]])
+  lambda_dims <- dim(theta[[2]])
+  alpha <- weibull_extract_theta_values(theta[[1]])
+  lambda <- weibull_extract_theta_values(theta[[2]])
 
-  # Handle different input types (matrix or list)
-  if (is.matrix(theta)) {
-    theta_val <- theta[1, 1]
-  } else if (is.list(theta)) {
-    # Handle different parameter dimensions safely
-    if (is.array(theta[[1]])) {
-      param_dims <- dim(theta[[1]])
-      if (length(param_dims) == 3) {
-        theta_val <- theta[[1]][1,1,1]
-      } else if (length(param_dims) == 2) {
-        theta_val <- theta[[1]][1,1]
-      } else {
-        theta_val <- theta[[1]][1]
-      }
-    } else {
-      theta_val <- theta[[1]]
-    }
-  } else {
-    theta_val <- theta[1]
+  out_length <- max(length(alpha), length(lambda))
+  alpha_vals <- rep_len(alpha, out_length)
+  lambda_vals <- rep_len(lambda, out_length)
+
+  theta_density <- numeric(out_length)
+  valid <- is.finite(alpha_vals) &
+    is.finite(lambda_vals) &
+    alpha_vals > 0 &
+    lambda_vals > 0 &
+    alpha_vals <= priorParameters[1]
+
+  if (any(valid)) {
+    theta_density[valid] <- dunif(alpha_vals[valid], 0, priorParameters[1]) *
+      dgamma(1 / lambda_vals[valid], priorParameters[2], priorParameters[3]) /
+      lambda_vals[valid]^2
   }
-  
-  theta_density <- dunif(as.numeric(theta_val), 0, priorParameters[1])
-  #theta_density <- thetaDensity * dgamma(1/theta[[2]], priorParameters[2], priorParameters[3])
-  return(theta_density)
+
+  if (!is.null(alpha_dims) && prod(alpha_dims) == out_length) {
+    return(array(theta_density, dim = alpha_dims))
+  }
+
+  if (!is.null(lambda_dims) && prod(lambda_dims) == out_length) {
+    return(array(theta_density, dim = lambda_dims))
+  }
+
+  theta_density
 }
 
 #' @export
@@ -154,7 +168,7 @@ PriorParametersUpdate.weibull <- function(mdObj, clusterParameters, n = 1) {
 
   newPhi <- rpareto(n, max(clusterParameters[[1]], hyperPriorParameters[1]),
                     hyperPriorParameters[2] + numClusters)
-  newGamma <- rgamma(n, hyperPriorParameters[3] + 2 * numClusters,
+  newGamma <- rgamma(n, hyperPriorParameters[3] + priorParameters[2] * numClusters,
                      hyperPriorParameters[4] + sum(1/clusterParameters[[2]]))
 
   new_priorParameters <- matrix(c(newPhi[n],
@@ -170,31 +184,9 @@ MhParameterProposal.weibull <- function(mdObj, old_params) {
 
   mhStepSize <- mdObj$mhStepSize
   new_params <- old_params
-  
-  # Extract current values
-  old_alpha <- as.numeric(old_params[[1]])
-  old_lambda <- as.numeric(old_params[[2]])
-  
-  # Propose new alpha (ensure positive)
-  new_alpha <- abs(old_alpha + mhStepSize[1] * rnorm(1, 0, 1.7))
-  
-  # Handle NA values and ensure minimum values
-  if (is.na(new_alpha) || new_alpha == 0) {
-    new_alpha <- 1e-04
-  }
-  
-  # Propose new lambda (ensure positive)
-  new_lambda <- abs(old_lambda + mhStepSize[2] * rnorm(1, 0, 1.7))
-  
-  # Handle NA values and ensure minimum values
-  if (is.na(new_lambda) || new_lambda == 0) {
-    new_lambda <- 1e-04
-  }
-  
-  # Return in proper format
-  new_params[[1]] <- array(new_alpha, dim = c(1, 1, 1))
-  new_params[[2]] <- array(new_lambda, dim = c(1, 1, 1))
-  
+
+  new_params[[1]] <- array(abs(c(old_params[[1]]) + mhStepSize * rnorm(1, 0, 1.7)), dim=c(1,1,1))
+
   return(new_params)
 }
 
@@ -256,18 +248,19 @@ MetropolisHastings.beta <- function(mixingDistribution, x, start_pos, no_draws) 
 
 #' @export
 MetropolisHastings.list <- function(mixingDistribution, x, start_pos, no_draws = 100) {
-  # For list objects, dispatch based on the second class in the hierarchy
-  if (length(class(mixingDistribution)) > 1) {
-    dist_class <- class(mixingDistribution)[2]
+  dist_class <- mixing_distribution_method_class(mixingDistribution,
+                                                 "MetropolisHastings")
+  if (!is.null(dist_class)) {
     ns <- getNamespace("dirichletprocess")
-    
-    # Handle weibull
+    method_func <- utils::getS3method("MetropolisHastings",
+                                      dist_class,
+                                      optional = TRUE)
+
     if (dist_class == "weibull") {
       weibull_func <- get("MetropolisHastings.weibull", envir = ns)
       return(weibull_func(mixingDistribution, x, start_pos, no_draws))
     }
-    
-    # Handle beta
+
     if (dist_class == "beta") {
       # Call the beta method directly here
       parameter_samples <- list()
@@ -321,8 +314,11 @@ MetropolisHastings.list <- function(mixingDistribution, x, start_pos, no_draws =
       accept_ratio <- accept_count / no_draws
       return(list(parameter_samples = parameter_samples, accept_ratio = accept_ratio))
     }
+
+    if (!is.null(method_func)) {
+      return(method_func(mixingDistribution, x, start_pos, no_draws))
+    }
   }
-  
-  # Fall back to default method
+
   return(MetropolisHastings.default(mixingDistribution, x, start_pos, no_draws))
 }

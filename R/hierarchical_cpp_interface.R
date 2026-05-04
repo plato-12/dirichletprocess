@@ -49,7 +49,7 @@ run_hierarchical_mcmc_cpp <- function(dp_list, n_iter = 1000, n_burn = 100,
   )
 
   # Call C++ implementation
-  result <- .Call("_dirichletprocess_run_hierarchical_mcmc_cpp",
+  result <- .Call("_dirichletprocesscpp_run_hierarchical_mcmc_cpp",
                   datasets, mixing_params, mcmc_params,
                   PACKAGE = "dirichletprocess")
 
@@ -111,20 +111,15 @@ run_hierarchical_mcmc_cpp <- function(dp_list, n_iter = 1000, n_burn = 100,
 #' @return Logical indicating availability
 #' @export
 can_use_hierarchical_cpp <- function(dp_list) {
-  if (!exists("_dirichletprocess_run_hierarchical_mcmc_cpp")) {
-    return(FALSE)
-  }
-
-  # Check if it's a hierarchical object
   if (!inherits(dp_list, "hierarchical")) {
     return(FALSE)
   }
 
-  # Check if all individual DPs are supported
-  all_beta <- all(sapply(dp_list$indDP, function(x) inherits(x, "beta")))
-  all_mvnormal2 <- all(sapply(dp_list$indDP, function(x) inherits(x, "mvnormal2")))
-
-  return(all_beta || all_mvnormal2)
+  # Phase 5 route lock:
+  # the live hierarchical HDP path is now the rewritten R implementation.
+  # Legacy hierarchical C++ samplers remain in the package but are disabled
+  # from automatic live routing until they are rewritten coherently.
+  FALSE
 }
 
 #' Update DP object from MCMC results

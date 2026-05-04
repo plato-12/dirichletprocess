@@ -219,6 +219,10 @@ Rcpp::List BetaMixingDistribution::metropolisHastings(const arma::mat& x_data,
     mu_samples[iter] = current_mu;
     nu_samples[iter] = current_nu;
   }
+
+  // Suppress unused variable warning - accept_count tracked for potential future diagnostics
+  (void)accept_count;
+
   return Rcpp::List::create(
     Rcpp::Named("mu") = mu_samples,
     Rcpp::Named("nu") = nu_samples

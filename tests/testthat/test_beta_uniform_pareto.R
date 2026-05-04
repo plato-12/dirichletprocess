@@ -56,6 +56,25 @@ test_that("Beta2 Prior Density",{
 
 })
 
+test_that("Beta2 Posterior helpers handle fitted theta shapes", {
+
+  set.seed(1)
+  dpobj <- DirichletProcessBeta2(rbeta(10, 2, 2), maxY = 1, cpp = FALSE)
+  dpobj <- Fit(dpobj, 5, FALSE, FALSE)
+
+  x_grid <- ppoints(5)
+  post_func <- PosteriorFunction(dpobj)
+  post_eval <- post_func(x_grid)
+  post_frame <- PosteriorFrame(dpobj, x_grid, ndraws = 3)
+
+  expect_is(post_func, "function")
+  expect_type(post_eval, "double")
+  expect_length(post_eval, length(x_grid))
+  expect_true(all(is.finite(post_eval)))
+  expect_s3_class(post_frame, "data.frame")
+  expect_equal(nrow(post_frame), length(x_grid))
+})
+
 
 test_that("Beta2 Parameter Proposal",{
 
@@ -74,5 +93,4 @@ test_that("Beta2 Parameter Proposal",{
   lapply(pd, function(x) expect_length(x, 1))
 
 })
-
 

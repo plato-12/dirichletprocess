@@ -12,154 +12,86 @@
 #'
 #'@export
 ClusterParameterUpdate <- function(dpObj) UseMethod("ClusterParameterUpdate", dpObj)
-
 #'@export
 ClusterParameterUpdate.conjugate <- function(dpObj) {
 
-  # Check for C++ implementation for MVNormal
-  if (inherits(dpObj, "mvnormal") && using_cpp() &&
-      exists("conjugate_mvnormal_cluster_parameter_update_cpp")) {
-    return(ClusterParameterUpdate.mvnormal.cpp(dpObj))
-  }
-
   y <- dpObj$data
   numLabels <- dpObj$numberClusters
+
   clusterLabels <- dpObj$clusterLabels
   clusterParams <- dpObj$clusterParameters
+
   mdobj <- dpObj$mixingDistribution
 
-  # Check if numLabels is valid
-  if (is.null(numLabels) || numLabels == 0) {
-    return(dpObj)
-  }
-
   for (i in 1:numLabels) {
-    if (dpObj$pointsPerCluster[i] > 0) {
-      pts <- y[which(clusterLabels == i), , drop = FALSE]
-      post_draw <- PosteriorDraw(mdobj, pts)
+    pts <- y[which(clusterLabels == i), , drop = FALSE]
 
-      for (param_name in names(clusterParams)) {
-        param_dims <- dim(clusterParams[[param_name]])
-        if (length(param_dims) == 3) {
-          # FULL covariance model - 3D array
-          clusterParams[[param_name]][, , i] <- post_draw[[param_name]]
-        } else if (length(param_dims) == 2) {
-          # Constrained covariance models - 2D array
-          clusterParams[[param_name]][, i] <- post_draw[[param_name]]
-        } else {
-          # Single cluster case
-          clusterParams[[param_name]][i] <- post_draw[[param_name]]
-        }
-      }
+    post_draw <- PosteriorDraw(mdobj, pts)
+
+    for (j in seq_along(clusterParams)) {
+      clusterParams[[j]][, , i] <- post_draw[[j]]
     }
+
   }
 
   dpObj$clusterParameters <- clusterParams
   return(dpObj)
 }
-
 #' @export
 #' @rdname ClusterParameterUpdate
 ClusterParameterUpdate.hierarchical <- function(dpObj) {
-  # For hierarchical objects, update each individual DP
   for (i in seq_along(dpObj$indDP)) {
     dpObj$indDP[[i]] <- ClusterParameterUpdate(dpObj$indDP[[i]])
   }
   return(dpObj)
 }
-
-#' @export
-#' @rdname ClusterParameterUpdate
+#'@export
 ClusterParameterUpdate.nonconjugate <- function(dpObj) {
 
-  if (inherits(dpObj, "beta") && using_cpp_samplers()) {
-    cpp_result <- nonconjugate_beta_cluster_parameter_update_cpp(dpObj)
-    if (!is.null(cpp_result)) {
-      dpObj$clusterParameters <- cpp_result
-      return(dpObj)
+  y <- dpObj$data
+  numLabels <- dpObj$numberClusters
+
+  clusterLabels <- dpObj$clusterLabels
+  clusterParams <- dpObj$clusterParameters
+
+  mdobj <- dpObj$mixingDistribution
+  mhDraws <- dpObj$mhDraws
+
+  accept_ratio <- numeric(numLabels)
+
+  start_pos <- PriorDraw(mdobj)
+
+  for (i in 1:numLabels) {
+    pts <- y[which(clusterLabels == i), , drop = FALSE]
+
+    for (j in seq_along(clusterParams)) {
+      start_pos[[j]] <- clusterParams[[j]][, , i, drop = FALSE]
     }
+
+    parameter_samples <- PosteriorDraw(mdobj, pts, mhDraws, start_pos = start_pos)
+
+    for (j in seq_along(clusterParams)) {
+      clusterParams[[j]][, , i] <- parameter_samples[[j]][, , mhDraws]
+    }
+
+
+    accept_ratio[i] <- length(unique(parameter_samples[[1]]))/mhDraws
   }
-
-  for (i in seq_len(dpObj$numberClusters)) {
-    cluster_data_indices <- dpObj$clusterLabels == i
-    if (sum(cluster_data_indices) == 0) {
-      next
-    }
-    cluster_data <- dpObj$data[cluster_data_indices, , drop = FALSE]
-
-    # Prepare current parameters - handle different dimensions
-    param1_dims <- dim(dpObj$clusterParameters[[1]])
-    param2_dims <- dim(dpObj$clusterParameters[[2]])
-    
-    # Extract mu parameter
-    if (length(param1_dims) == 3) {
-      mu_param <- dpObj$clusterParameters[[1]][, , i]
-    } else if (length(param1_dims) == 2) {
-      mu_param <- dpObj$clusterParameters[[1]][, i]
-    } else {
-      mu_param <- dpObj$clusterParameters[[1]][i]
-    }
-    
-    # Extract nu parameter  
-    if (length(param2_dims) == 3) {
-      nu_param <- dpObj$clusterParameters[[2]][, , i]
-    } else if (length(param2_dims) == 2) {
-      nu_param <- dpObj$clusterParameters[[2]][, i]
-    } else {
-      nu_param <- dpObj$clusterParameters[[2]][i]
-    }
-    
-    current_params_list <- list(
-      mu = array(mu_param, dim = c(1,1,1)),
-      nu = array(nu_param, dim = c(1,1,1))
-    )
-
-    posterior_draw_samples <- PosteriorDraw(dpObj$mixingDistribution,
-                                            cluster_data,
-                                            n = dpObj$mhDraws,
-                                            start_pos = current_params_list)
-
-    # Handle different return formats from PosteriorDraw
-    if (inherits(dpObj, "beta")) {
-      # PosteriorDraw.beta returns list(mu=vector, nu=vector)
-      # Extract the last sample from each
-      mu_values <- posterior_draw_samples$mu
-      nu_values <- posterior_draw_samples$nu
-
-      # Take the last value from the MCMC chain - handle different dimensions
-      if (length(param1_dims) == 3) {
-        dpObj$clusterParameters[[1]][, , i] <- mu_values[length(mu_values)]
-      } else if (length(param1_dims) == 2) {
-        dpObj$clusterParameters[[1]][, i] <- mu_values[length(mu_values)]
-      } else {
-        dpObj$clusterParameters[[1]][i] <- mu_values[length(mu_values)]
-      }
-      
-      if (length(param2_dims) == 3) {
-        dpObj$clusterParameters[[2]][, , i] <- nu_values[length(nu_values)]
-      } else if (length(param2_dims) == 2) {
-        dpObj$clusterParameters[[2]][, i] <- nu_values[length(nu_values)]
-      } else {
-        dpObj$clusterParameters[[2]][i] <- nu_values[length(nu_values)]
-      }
-    } else {
-      # Original logic for other distributions - handle different dimensions
-      if (length(param1_dims) == 3) {
-        dpObj$clusterParameters[[1]][, , i] <- posterior_draw_samples[[1]][,,dpObj$mhDraws, drop=FALSE]
-      } else if (length(param1_dims) == 2) {
-        dpObj$clusterParameters[[1]][, i] <- posterior_draw_samples[[1]][,dpObj$mhDraws, drop=FALSE]
-      } else {
-        dpObj$clusterParameters[[1]][i] <- posterior_draw_samples[[1]][dpObj$mhDraws]
-      }
-      
-      if (length(param2_dims) == 3) {
-        dpObj$clusterParameters[[2]][, , i] <- posterior_draw_samples[[2]][,,dpObj$mhDraws, drop=FALSE]
-      } else if (length(param2_dims) == 2) {
-        dpObj$clusterParameters[[2]][, i] <- posterior_draw_samples[[2]][,dpObj$mhDraws, drop=FALSE]
-      } else {
-        dpObj$clusterParameters[[2]][i] <- posterior_draw_samples[[2]][dpObj$mhDraws]
-      }
-    }
-  }
+  dpObj$clusterParameters <- clusterParams
   return(dpObj)
+}
+
+cluster_parameter_update <- function(mdobj, data, clusters, params){
+
+  uniqueClusters <- unique(clusters)
+
+  newParams <- lapply(uniqueClusters, function(i){
+    updateData <- data[clusters==i, ,drop=F]
+    newParam <- PosteriorDraw(mdobj, updateData)
+    return(newParam)
+
+  } )
+
+  #newParamsFull <- newParams[clusters]
+  return(newParams)
 }

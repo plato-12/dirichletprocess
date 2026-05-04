@@ -39,9 +39,17 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
     double beta0 = Rcpp::as<double>(params["beta0"]);
     double maxT = params.containsElementNamed("maxT") ?
     Rcpp::as<double>(params["maxT"]) : 1.0;
+    Rcpp::NumericVector mhStepSize = params.containsElementNamed("mhStepSize") ?
+      Rcpp::as<Rcpp::NumericVector>(params["mhStepSize"]) :
+      Rcpp::NumericVector::create(1.0, 1.0);
+    if (mhStepSize.size() < 2) {
+      mhStepSize = Rcpp::NumericVector::create(mhStepSize[0], mhStepSize[0]);
+    }
+    int mh_draws = params.containsElementNamed("mh_draws") ?
+      Rcpp::as<int>(params["mh_draws"]) : 250;
 
     return std::unique_ptr<MixingDistribution>(
-      new BetaMixing(alpha0, beta0, maxT));
+      new BetaMixing(alpha0, beta0, maxT, mhStepSize[0], mhStepSize[1], mh_draws));
   } else if (type == "beta2") {
     double gamma_prior = params.containsElementNamed("gamma_prior") ?
     Rcpp::as<double>(params["gamma_prior"]) : 2.0;
@@ -145,9 +153,11 @@ std::unique_ptr<MixingDistribution> MixingDistribution::create(
     arma::mat sigma0 = Rcpp::as<arma::mat>(params["sigma0"]);
     arma::mat phi0 = Rcpp::as<arma::mat>(params["phi0"]);
     double nu0 = Rcpp::as<double>(params["nu0"]);
+    int mh_draws = params.containsElementNamed("mh_draws") ?
+      Rcpp::as<int>(params["mh_draws"]) : 250;
 
     return std::unique_ptr<MixingDistribution>(
-      new MVNormal2Mixing(mu0, sigma0, phi0, nu0)
+      new MVNormal2Mixing(mu0, sigma0, phi0, nu0, mh_draws)
     );
   }
 

@@ -1,6 +1,14 @@
 // src/mcmc_runner.cpp
 #include "mcmc_runner.h"
 #include "mixing_distribution_base.h"
+#include "beta_mixing.h"
+#include "beta2_mixing.h"
+#include "exponential_mixing.h"
+#include "gaussian_mixing.h"
+#include "mvnormal_mixing.h"
+#include "mvnormal2_mixing.h"
+#include "normal_fixed_variance_mixing.h"
+#include "weibull_mixing.h"
 #include "utilities.h"
 #include <set>
 #include <algorithm>
@@ -19,12 +27,34 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
   n_burn = Rcpp::as<int>(mcmc_params["n_burn"]);
   thin = Rcpp::as<int>(mcmc_params["thin"]);
   update_concentration_flag = Rcpp::as<bool>(mcmc_params["update_concentration"]);
+  if (mcmc_params.containsElementNamed("store_history")) {
+    store_history = Rcpp::as<bool>(mcmc_params["store_history"]);
+  } else {
+    store_history = true;
+  }
 
   // Set m_auxiliary (default to 3 for Algorithm 8)
   if (mcmc_params.containsElementNamed("m_auxiliary")) {
     m_auxiliary = Rcpp::as<int>(mcmc_params["m_auxiliary"]);
   } else {
     m_auxiliary = 3;
+  }
+
+  use_initial_state = false;
+  if (mcmc_params.containsElementNamed("initial_cluster_labels") &&
+      mcmc_params.containsElementNamed("initial_cluster_params")) {
+    initial_cluster_labels =
+      Rcpp::as<std::vector<int>>(mcmc_params["initial_cluster_labels"]);
+
+    Rcpp::List initial_params_list =
+      Rcpp::as<Rcpp::List>(mcmc_params["initial_cluster_params"]);
+    initial_cluster_params.reserve(initial_params_list.size());
+    for (int i = 0; i < initial_params_list.size(); ++i) {
+      initial_cluster_params.push_back(Rcpp::as<arma::vec>(initial_params_list[i]));
+    }
+
+    use_initial_state = !initial_cluster_labels.empty() &&
+      !initial_cluster_params.empty();
   }
 
   // Extract alpha prior parameters
@@ -57,14 +87,38 @@ MCMCRunner::MCMCRunner(const arma::mat& data,
 
   state = std::unique_ptr<DPState>(new DPState(data.n_rows, initial_alpha));
 
-  // Pre-allocate storage
-  alpha_samples.reserve(n_iter);
-  cluster_samples.reserve(n_iter);
-  theta_samples.reserve(n_iter);
-  likelihood_samples.reserve(n_iter);
+  // Pre-allocate storage only when the caller will actually consume it.
+  if (store_history) {
+    alpha_samples.reserve(n_iter);
+    cluster_samples.reserve(n_iter);
+    theta_samples.reserve(n_iter);
+    likelihood_samples.reserve(n_iter);
+  }
 }
 
 void MCMCRunner::initialize_state() {
+  if (use_initial_state) {
+    if (initial_cluster_labels.size() != data.n_rows) {
+      Rcpp::stop("Initial cluster labels do not match the number of observations");
+    }
+
+    state->cluster_labels = initial_cluster_labels;
+    state->cluster_params = initial_cluster_params;
+    state->n_clusters = initial_cluster_params.size();
+    state->cluster_sizes.set_size(state->n_clusters);
+    state->cluster_sizes.zeros();
+
+    for (int label : state->cluster_labels) {
+      if (label < 0 || label >= state->n_clusters) {
+        Rcpp::stop("Initial cluster labels reference missing cluster parameters");
+      }
+      state->cluster_sizes[label]++;
+    }
+
+    cleanup_empty_clusters();
+    return;
+  }
+
   // Initialize with one cluster containing all data
   std::fill(state->cluster_labels.begin(), state->cluster_labels.end(), 0);
   state->n_clusters = 1;
@@ -133,6 +187,74 @@ int MCMCRunner::sample_categorical(const std::vector<double>& probs) {
   }
 
   return probs.size() - 1;  // Fallback to last category
+}
+
+std::vector<double> MCMCRunner::stable_probs_from_log(const std::vector<double>& log_probs) const {
+  std::vector<double> safe_log_probs(log_probs);
+  const double neg_inf = -std::numeric_limits<double>::infinity();
+
+  for (double& value : safe_log_probs) {
+    if (std::isnan(value)) {
+      value = neg_inf;
+    }
+  }
+
+  int n_pos_inf = 0;
+  for (double value : safe_log_probs) {
+    if (std::isinf(value) && value > 0) {
+      n_pos_inf++;
+    }
+  }
+
+  if (n_pos_inf > 0) {
+    std::vector<double> probs(safe_log_probs.size(), 0.0);
+    const double mass = 1.0 / static_cast<double>(n_pos_inf);
+    for (size_t i = 0; i < safe_log_probs.size(); ++i) {
+      if (std::isinf(safe_log_probs[i]) && safe_log_probs[i] > 0) {
+        probs[i] = mass;
+      }
+    }
+    return probs;
+  }
+
+  bool any_finite = false;
+  double max_log_prob = neg_inf;
+  for (double value : safe_log_probs) {
+    if (std::isfinite(value)) {
+      any_finite = true;
+      if (value > max_log_prob) {
+        max_log_prob = value;
+      }
+    }
+  }
+
+  if (!any_finite) {
+    return std::vector<double>(safe_log_probs.size(),
+                               1.0 / static_cast<double>(safe_log_probs.size()));
+  }
+
+  std::vector<double> probs(safe_log_probs.size(), 0.0);
+  double prob_sum = 0.0;
+  for (size_t i = 0; i < safe_log_probs.size(); ++i) {
+    if (std::isfinite(safe_log_probs[i])) {
+      probs[i] = std::exp(safe_log_probs[i] - max_log_prob);
+      if (!std::isfinite(probs[i])) {
+        probs[i] = 0.0;
+      }
+    }
+    prob_sum += probs[i];
+  }
+
+  if (!std::isfinite(prob_sum) || prob_sum <= 0.0) {
+    return std::vector<double>(safe_log_probs.size(),
+                               1.0 / static_cast<double>(safe_log_probs.size()));
+  }
+
+  for (double& value : probs) {
+    value /= prob_sum;
+  }
+
+  return probs;
 }
 
 void MCMCRunner::cleanup_empty_clusters() {
@@ -206,19 +328,48 @@ Rcpp::List MCMCRunner::run() {
   
   // Initialize state
   initialize_state();
+  double last_pre_update_loglik = R_NegInf;
 
   // MCMC loop with bounds checking
   for (int iter = 0; iter < n_iter; ++iter) {
     try {
+      if (!store_history) {
+        last_pre_update_loglik = compute_repaired_r_loglikelihood();
+      }
+
       // Single iteration update
       single_iteration_update();
 
-      // Store current iteration
-      store_iteration(iter);
+      // Store current iteration only when history is requested.
+      if (store_history) {
+        store_iteration(iter);
+      }
       
     } catch (const std::exception& e) {
       Rcpp::stop("Error at MCMC iteration " + std::to_string(iter) + ": " + std::string(e.what()));
     }
+  }
+
+  if (!store_history) {
+    Rcpp::IntegerVector final_labels(state->cluster_labels.begin(),
+                                     state->cluster_labels.end());
+    Rcpp::List final_params(state->cluster_params.size());
+    for (size_t j = 0; j < state->cluster_params.size(); ++j) {
+      final_params[j] = state->cluster_params[j];
+    }
+
+    arma::vec alpha_vector(1);
+    alpha_vector[0] = state->alpha;
+
+    arma::vec likelihood_vector(1);
+    likelihood_vector[0] = last_pre_update_loglik;
+
+    return Rcpp::List::create(
+      Rcpp::Named("alpha_chain") = alpha_vector,
+      Rcpp::Named("likelihood_chain") = likelihood_vector,
+      Rcpp::Named("cluster_labels") = Rcpp::List::create(final_labels),
+      Rcpp::Named("theta") = Rcpp::List::create(final_params)
+    );
   }
 
   // Convert stored samples to proper format for R
@@ -281,9 +432,12 @@ Rcpp::List MCMCRunner::run() {
 }
 
 void MCMCRunner::update_cluster_assignments_algorithm4(const std::vector<double>& predictive_probs) {
-  // Algorithm 4 (Neal 2000): Chinese Restaurant Process for conjugate distributions
-  // This matches the R implementation in cluster_component_update.R
-  
+  const double neg_inf = -std::numeric_limits<double>::infinity();
+  const bool gaussian_immediate_cleanup =
+    dynamic_cast<GaussianMixing*>(mixing_dist.get()) != nullptr;
+  const bool normal_fixed_variance_immediate_cleanup =
+    dynamic_cast<NormalFixedVarianceMixing*>(mixing_dist.get()) != nullptr;
+
   for (size_t i = 0; i < data.n_rows; ++i) {
     arma::vec obs = data.row(i).t();
     int current_cluster = state->cluster_labels[i];
@@ -298,104 +452,94 @@ void MCMCRunner::update_cluster_assignments_algorithm4(const std::vector<double>
       }
     }
 
-    // Calculate probabilities for existing clusters with comprehensive bounds checking
-    std::vector<double> cluster_probs(state->n_clusters, 0.0);
+    std::vector<double> log_probs(state->n_clusters + 1, neg_inf);
     for (int k = 0; k < state->n_clusters; ++k) {
       if (k >= 0 && 
           k < static_cast<int>(state->cluster_sizes.n_elem) && 
           k < static_cast<int>(state->cluster_params.size()) &&
           state->cluster_sizes[k] > 0) {
-        try {
-          // Calculate likelihood of data point under cluster k parameters
-          double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
-          if (std::isfinite(log_lik) && log_lik > -1000.0) {  // Prevent extreme values
-            cluster_probs[k] = state->cluster_sizes[k] * std::exp(log_lik);
-          } else {
-            cluster_probs[k] = 0.0;
-          }
-        } catch (...) {
-          cluster_probs[k] = 0.0;  // Handle any likelihood computation errors
+        double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
+        if (std::isfinite(log_lik)) {
+          log_probs[k] = std::log(state->cluster_sizes[k]) + log_lik;
         }
       }
     }
 
-    // Add probability for new cluster using predictive probability
-    double new_cluster_prob = state->alpha * predictive_probs[i];
-    
-    // Combine all probabilities
-    std::vector<double> all_probs(cluster_probs);
-    all_probs.push_back(new_cluster_prob);
-
-    // Handle numerical issues
-    for (auto& p : all_probs) {
-      if (!std::isfinite(p) || p < 0) {
-        p = 0.0;
-      }
+    if (state->alpha > 0.0 &&
+        i < predictive_probs.size() &&
+        std::isfinite(predictive_probs[i]) &&
+        predictive_probs[i] > 0.0) {
+      log_probs[state->n_clusters] = std::log(state->alpha) + std::log(predictive_probs[i]);
     }
 
-    // Normalize probabilities
-    double prob_sum = std::accumulate(all_probs.begin(), all_probs.end(), 0.0);
-    if (prob_sum <= 0.0) {
-      // Fallback to uniform
-      std::fill(all_probs.begin(), all_probs.end(), 1.0 / all_probs.size());
-    } else {
-      for (auto& p : all_probs) {
-        p /= prob_sum;
-      }
-    }
-
-    // Sample new cluster
-    int chosen_idx = sample_categorical(all_probs);
+    int chosen_idx = sample_categorical(stable_probs_from_log(log_probs));
 
     if (chosen_idx < state->n_clusters) {
-      // Assign to existing cluster with bounds checking
       if (chosen_idx >= 0 && chosen_idx < static_cast<int>(state->cluster_sizes.n_elem)) {
         state->cluster_labels[i] = chosen_idx;
         state->cluster_sizes[chosen_idx]++;
-      } else {
-        // Fallback to cluster 0 if bounds are invalid
-        state->cluster_labels[i] = 0;
-        if (state->cluster_sizes.n_elem > 0) {
-          state->cluster_sizes[0]++;
+
+        // Match the repaired R Gaussian conjugate sweep, which removes an empty
+        // source cluster immediately inside ClusterLabelChange() rather than
+        // deferring compaction until the end of the sweep.
+        if ((gaussian_immediate_cleanup ||
+             normal_fixed_variance_immediate_cleanup) &&
+            current_cluster >= 0 &&
+            current_cluster < static_cast<int>(state->cluster_sizes.n_elem) &&
+            current_cluster < static_cast<int>(state->cluster_params.size()) &&
+            current_cluster != chosen_idx &&
+            state->cluster_sizes[current_cluster] == 0) {
+          cleanup_empty_clusters();
         }
       }
     } else {
-      // Create new cluster
-      int new_cluster_idx = state->n_clusters;
-      
-      try {
-        // Add new cluster parameter
-        arma::vec new_param = mixing_dist->prior_draw();
+      arma::mat singleton_data(1, data.n_cols);
+      singleton_data.row(0) = data.row(i);
+
+      if (current_cluster >= 0 &&
+          current_cluster < state->n_clusters &&
+          current_cluster < static_cast<int>(state->cluster_sizes.n_elem) &&
+          current_cluster < static_cast<int>(state->cluster_params.size()) &&
+          state->cluster_sizes[current_cluster] == 0) {
+        state->cluster_params[current_cluster] =
+          mixing_dist->posterior_draw(singleton_data, state->cluster_params[current_cluster]);
+        state->cluster_labels[i] = current_cluster;
+        state->cluster_sizes[current_cluster] = 1;
+      } else {
+        arma::vec new_param = mixing_dist->posterior_draw(singleton_data, arma::vec());
+        int new_cluster_idx = state->n_clusters;
         state->cluster_params.push_back(new_param);
-        
-        // Extend cluster sizes safely
+
         arma::vec new_cluster_sizes(state->cluster_sizes.n_elem + 1);
         if (state->cluster_sizes.n_elem > 0) {
           new_cluster_sizes.head(state->cluster_sizes.n_elem) = state->cluster_sizes;
         }
         new_cluster_sizes(state->cluster_sizes.n_elem) = 1;
         state->cluster_sizes = new_cluster_sizes;
-        
+
         state->cluster_labels[i] = new_cluster_idx;
         state->n_clusters++;
-      } catch (...) {
-        // Fallback: assign to existing cluster 0
-        state->cluster_labels[i] = 0;
-        if (state->cluster_sizes.n_elem > 0) {
-          state->cluster_sizes[0]++;
-        }
       }
     }
   }
   
-  // Clean up empty clusters
-  cleanup_empty_clusters();
+  // Match the repaired R fixed-variance normal sweep more closely: once empty
+  // clusters are compacted immediately during reassignment, there is no
+  // separate end-of-sweep cleanup step for this model.
+  if (!normal_fixed_variance_immediate_cleanup) {
+    cleanup_empty_clusters();
+  }
 }
 
 void MCMCRunner::update_cluster_assignments_algorithm8() {
   cleanup_empty_clusters();  // First clean up any empty clusters
+  const double neg_inf = -std::numeric_limits<double>::infinity();
+  bool immediate_cleanup_nonconjugate =
+    dynamic_cast<BetaMixing*>(mixing_dist.get()) != nullptr ||
+    dynamic_cast<Beta2Mixing*>(mixing_dist.get()) != nullptr ||
+    dynamic_cast<WeibullMixing*>(mixing_dist.get()) != nullptr ||
+    dynamic_cast<MVNormal2Mixing*>(mixing_dist.get()) != nullptr;
 
-  // Changed loop counter from 'int' to 'size_t' to avoid signed/unsigned comparison warnings
   for (size_t i = 0; i < data.n_rows; ++i) {
     arma::vec obs = data.row(i).t();
     int current_cluster = state->cluster_labels[i];
@@ -407,97 +551,82 @@ void MCMCRunner::update_cluster_assignments_algorithm8() {
       }
     }
 
-    // Prepare probabilities for existing clusters and auxiliary parameters
-    std::vector<double> probs;
-    std::vector<arma::vec> candidate_params;
-    std::vector<int> candidate_indices;  // Track if it's existing cluster or new
+    bool reuse_empty_cluster =
+      current_cluster >= 0 &&
+      current_cluster < state->n_clusters &&
+      current_cluster < static_cast<int>(state->cluster_sizes.n_elem) &&
+      current_cluster < static_cast<int>(state->cluster_params.size()) &&
+      state->cluster_sizes[current_cluster] == 0;
 
-    // Add existing clusters with comprehensive bounds checking
+    std::vector<arma::vec> auxiliary_params;
+    auxiliary_params.reserve(m_auxiliary);
+
+    if (reuse_empty_cluster) {
+      auxiliary_params.push_back(state->cluster_params[current_cluster]);
+    }
+
+    int n_prior_draws = reuse_empty_cluster ? std::max(0, m_auxiliary - 1) : m_auxiliary;
+    for (int j = 0; j < n_prior_draws; ++j) {
+      auxiliary_params.push_back(mixing_dist->prior_draw());
+    }
+
+    std::vector<double> log_probs(state->n_clusters + auxiliary_params.size(), neg_inf);
+
     for (int k = 0; k < state->n_clusters; ++k) {
       if (k >= 0 && k < static_cast<int>(state->cluster_params.size()) && 
-          k < static_cast<int>(state->cluster_sizes.n_elem)) {
+          k < static_cast<int>(state->cluster_sizes.n_elem) &&
+          state->cluster_sizes[k] > 0) {
         double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
-        double weight;
-
-        if (k == current_cluster && state->cluster_sizes[k] == 0) {
-          // If this cluster is now empty, treat it like an auxiliary
-          weight = state->alpha / m_auxiliary;
-        } else {
-          weight = state->cluster_sizes[k];
+        if (std::isfinite(log_lik)) {
+          log_probs[k] = std::log(state->cluster_sizes[k]) + log_lik;
         }
-
-        probs.push_back(weight * std::exp(log_lik));
-        candidate_params.push_back(state->cluster_params[k]);
-        candidate_indices.push_back(k);
       }
     }
 
-    int n_existing = probs.size();
-
-    // Add m auxiliary parameters
-    for (int j = 0; j < m_auxiliary; ++j) {
-      arma::vec aux_param = mixing_dist->prior_draw();
-      double log_lik = mixing_dist->log_likelihood(obs, aux_param);
-      probs.push_back((state->alpha / m_auxiliary) * std::exp(log_lik));
-      candidate_params.push_back(aux_param);
-      candidate_indices.push_back(-1);  // Mark as new cluster
+    double aux_log_weight = neg_inf;
+    if (state->alpha > 0.0 && m_auxiliary > 0) {
+      aux_log_weight = std::log(state->alpha) - std::log(static_cast<double>(m_auxiliary));
     }
 
-    // Handle numerical issues
-    double max_prob = *std::max_element(probs.begin(), probs.end());
-    if (max_prob > 1e100) {
-      for (auto& p : probs) {
-        p /= max_prob;
+    for (size_t j = 0; j < auxiliary_params.size(); ++j) {
+      double log_lik = mixing_dist->log_likelihood(obs, auxiliary_params[j]);
+      if (std::isfinite(log_lik) && std::isfinite(aux_log_weight)) {
+        log_probs[state->n_clusters + j] = aux_log_weight + log_lik;
       }
     }
 
-    // Normalize and sample
-    double prob_sum = std::accumulate(probs.begin(), probs.end(), 0.0);
-    if (prob_sum <= 0.0 || !std::isfinite(prob_sum)) {
-      // Fallback to uniform
-      std::fill(probs.begin(), probs.end(), 1.0 / probs.size());
+    int chosen_idx = sample_categorical(stable_probs_from_log(log_probs));
+
+    if (chosen_idx < state->n_clusters) {
+      state->cluster_labels[i] = chosen_idx;
+      state->cluster_sizes[chosen_idx]++;
+
+      if (immediate_cleanup_nonconjugate &&
+          reuse_empty_cluster &&
+          current_cluster != chosen_idx) {
+        cleanup_empty_clusters();
+      }
     } else {
-      for (auto& p : probs) {
-        p /= prob_sum;
-      }
-    }
+      int aux_idx = chosen_idx - state->n_clusters;
+      arma::vec new_param = auxiliary_params[aux_idx];
 
-    int chosen_idx = sample_categorical(probs);
-
-    // Assign to cluster
-    if (chosen_idx < n_existing && candidate_indices[chosen_idx] >= 0) {
-      // Existing cluster
-      int cluster_idx = candidate_indices[chosen_idx];
-      state->cluster_labels[i] = cluster_idx;
-      state->cluster_sizes[cluster_idx]++;
-    } else {
-      // New cluster from auxiliary parameter
-      int new_cluster_idx;
-
-      // Check if we can reuse the empty current cluster
-      if (current_cluster < state->n_clusters && state->cluster_sizes[current_cluster] == 0) {
-        new_cluster_idx = current_cluster;
-        state->cluster_params[new_cluster_idx] = candidate_params[chosen_idx];
+      if (reuse_empty_cluster) {
+        state->cluster_params[current_cluster] = new_param;
+        state->cluster_labels[i] = current_cluster;
+        state->cluster_sizes[current_cluster] = 1;
       } else {
-        // Create entirely new cluster
-        new_cluster_idx = state->n_clusters;
-        state->cluster_params.push_back(candidate_params[chosen_idx]);
+        int new_cluster_idx = state->n_clusters;
+        state->cluster_params.push_back(new_param);
 
-        // Fix for 'arma::vec' not having 'conservativeResize'
-        // Manually resize by creating a new, larger vector and copying elements.
         arma::vec new_cluster_sizes(state->cluster_sizes.n_elem + 1);
         if (state->cluster_sizes.n_elem > 0) {
           new_cluster_sizes.head(state->cluster_sizes.n_elem) = state->cluster_sizes;
         }
-        new_cluster_sizes(state->cluster_sizes.n_elem) = 0; // Initialize new element
+        new_cluster_sizes(state->cluster_sizes.n_elem) = 1;
         state->cluster_sizes = new_cluster_sizes;
 
+        state->cluster_labels[i] = new_cluster_idx;
         state->n_clusters++;
-      }
-
-      state->cluster_labels[i] = new_cluster_idx;
-      if (new_cluster_idx >= 0 && new_cluster_idx < static_cast<int>(state->cluster_sizes.n_elem)) {
-        state->cluster_sizes[new_cluster_idx] = 1;
       }
     }
   }
@@ -545,46 +674,163 @@ void MCMCRunner::update_cluster_parameters() {
 }
 
 void MCMCRunner::update_concentration() {
-  // Escobar & West (1995) auxiliary variable method
+  // Match the repaired R implementation of update_concentration() directly.
   double x = R::rbeta(state->alpha + 1.0, data.n_rows);
-
-  // Use the proper priors
   double log_x = std::log(x);
-  if (!std::isfinite(log_x)) {
-    log_x = -10.0;  // Fallback for numerical stability
-  }
 
   double pi1 = alpha_prior_shape + state->n_clusters - 1.0;
   double pi2 = data.n_rows * (alpha_prior_rate - log_x);
-
-  double pi_ratio = pi1 / (pi1 + pi2);
-  if (!std::isfinite(pi_ratio)) {
-    pi_ratio = 0.5;  // Fallback
-  }
-
-  // Sample posterior shape
-  double post_shape;
-  if (R::runif(0, 1) < pi_ratio) {
-    post_shape = alpha_prior_shape + state->n_clusters;
-  } else {
-    post_shape = alpha_prior_shape + state->n_clusters - 1.0;
-  }
-
-  // Sample new alpha
+  double mixing_prob = pi1 / (pi1 + pi2);
+  double post_shape = alpha_prior_shape + state->n_clusters;
   double post_rate = alpha_prior_rate - log_x;
-  if (post_rate <= 0.0) {
-    post_rate = 0.001;  // Ensure positive rate
+
+  if (R::runif(0, 1) > mixing_prob) {
+    post_shape -= 1.0;
   }
 
   state->alpha = R::rgamma(post_shape, 1.0 / post_rate);
+}
 
-  // Ensure alpha stays in reasonable range
-  if (state->alpha <= 0.0) {
-    state->alpha = 0.001;
+double MCMCRunner::compute_repaired_r_loglikelihood() const {
+  const double neg_inf = -std::numeric_limits<double>::infinity();
+
+  if (!state || data.n_rows == 0 || state->n_clusters <= 0) {
+    return neg_inf;
   }
-  if (state->alpha > 100.0) {
-    state->alpha = 100.0;  // Cap at reasonable value
+
+  if (dynamic_cast<const MVNormalMixing*>(mixing_dist.get()) != nullptr ||
+      dynamic_cast<const ExponentialMixing*>(mixing_dist.get()) != nullptr ||
+      dynamic_cast<const Beta2Mixing*>(mixing_dist.get()) != nullptr) {
+    arma::vec raw(data.n_rows * state->n_clusters, arma::fill::zeros);
+    arma::vec weights(state->n_clusters, arma::fill::zeros);
+
+    for (int k = 0; k < state->n_clusters; ++k) {
+      if (k < static_cast<int>(state->cluster_sizes.n_elem)) {
+        weights[k] = state->cluster_sizes[k] / static_cast<double>(data.n_rows);
+      }
+    }
+
+    arma::uword idx = 0;
+    for (arma::uword i = 0; i < data.n_rows; ++i) {
+      arma::vec obs = data.row(i).t();
+
+      for (int k = 0; k < state->n_clusters; ++k) {
+        double log_lik = neg_inf;
+
+        if (k >= 0 &&
+            k < static_cast<int>(state->cluster_sizes.n_elem) &&
+            k < static_cast<int>(state->cluster_params.size()) &&
+            state->cluster_sizes[k] > 0) {
+          log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
+        }
+
+        if (std::isnan(log_lik)) {
+          return NA_REAL;
+        }
+
+        raw[idx++] = std::isfinite(log_lik) ? std::exp(log_lik) : 0.0;
+      }
+    }
+
+    arma::mat likelihood_values(raw.memptr(),
+                                data.n_rows,
+                                state->n_clusters,
+                                false,
+                                true);
+    arma::vec mixture = likelihood_values * weights;
+    double total_loglik = 0.0;
+
+    for (arma::uword i = 0; i < mixture.n_elem; ++i) {
+      if (Rcpp::NumericVector::is_na(mixture[i]) || std::isnan(mixture[i])) {
+        return NA_REAL;
+      }
+      if (mixture[i] <= 0.0 || !std::isfinite(mixture[i])) {
+        return neg_inf;
+      }
+      total_loglik += std::log(mixture[i]);
+    }
+
+    return total_loglik;
   }
+
+  double total_loglik = 0.0;
+  const double log_n = std::log(static_cast<double>(data.n_rows));
+
+  for (size_t i = 0; i < data.n_rows; ++i) {
+    arma::vec obs = data.row(i).t();
+    double max_log_term = neg_inf;
+    double sum_exp = 0.0;
+    bool any_finite = false;
+    bool any_pos_inf = false;
+    bool any_nan = false;
+
+    for (int k = 0; k < state->n_clusters; ++k) {
+      if (k < 0 ||
+          k >= static_cast<int>(state->cluster_sizes.n_elem) ||
+          k >= static_cast<int>(state->cluster_params.size()) ||
+          state->cluster_sizes[k] <= 0) {
+        continue;
+      }
+
+      double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
+      if (std::isnan(log_lik)) {
+        any_nan = true;
+        break;
+      }
+
+      double log_term = std::log(state->cluster_sizes[k]) - log_n + log_lik;
+      if (std::isnan(log_term)) {
+        any_nan = true;
+        break;
+      }
+
+      if (std::isinf(log_term) && log_term > 0) {
+        any_pos_inf = true;
+        continue;
+      }
+
+      if (std::isfinite(log_term)) {
+        max_log_term = std::max(max_log_term, log_term);
+        any_finite = true;
+      }
+    }
+
+    if (any_nan) {
+      return NA_REAL;
+    }
+
+    if (any_pos_inf) {
+      return R_PosInf;
+    }
+
+    if (!any_finite) {
+      return neg_inf;
+    }
+
+    for (int k = 0; k < state->n_clusters; ++k) {
+      if (k < 0 ||
+          k >= static_cast<int>(state->cluster_sizes.n_elem) ||
+          k >= static_cast<int>(state->cluster_params.size()) ||
+          state->cluster_sizes[k] <= 0) {
+        continue;
+      }
+
+      double log_lik = mixing_dist->log_likelihood(obs, state->cluster_params[k]);
+      double log_term = std::log(state->cluster_sizes[k]) - log_n + log_lik;
+
+      if (std::isfinite(log_term)) {
+        sum_exp += std::exp(log_term - max_log_term);
+      }
+    }
+
+    if (!std::isfinite(sum_exp) || sum_exp <= 0.0) {
+      return neg_inf;
+    }
+
+    total_loglik += max_log_term + std::log(sum_exp);
+  }
+
+  return total_loglik;
 }
 
 void MCMCRunner::store_iteration(int iter) {

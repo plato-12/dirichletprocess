@@ -3,11 +3,13 @@ context("Metropolis Hastings Tests")
 # Helper function to call appropriate MetropolisHastings method based on distribution type
 call_metropolis_hastings <- function(mixingDistribution, x, start_pos, no_draws) {
   ns <- getNamespace("dirichletprocess")
-  
-  # For list objects, dispatch based on the second class element
-  if (is.list(mixingDistribution) && length(class(mixingDistribution)) > 1) {
-    dist_class <- class(mixingDistribution)[2]
-    
+
+  if (is.list(mixingDistribution)) {
+    dist_class <- get("mixing_distribution_method_class", envir = ns)(
+      mixingDistribution,
+      "MetropolisHastings"
+    )
+
     if (dist_class == "weibull") {
       # Call weibull method directly
       weibull_func <- get("MetropolisHastings.weibull", envir = ns)
@@ -73,7 +75,7 @@ call_metropolis_hastings <- function(mixingDistribution, x, start_pos, no_draws)
       return(list(parameter_samples = parameter_samples, accept_ratio = accept_ratio))
     }
   }
-  
+
   # Fallback to default method
   default_func <- get("MetropolisHastings.default", envir = ns)
   return(default_func(mixingDistribution, x, start_pos, no_draws))
@@ -110,4 +112,3 @@ test_that("Metropolis Hastings Full Sample Beta", {
   expect_equal(length(test_mh$parameter_samples[[1]]), 20)
   expect_equal(length(test_mh$parameter_samples[[2]]), 20)
 })
-

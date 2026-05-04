@@ -30,14 +30,18 @@ DirichletProcessBeta2(
 
 \item{mhDraws}{Number of Metropolis-Hastings samples to perform for each cluster update.}
 
-\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
+\item{cpp}{Logical compatibility argument. Constructors no longer toggle the
+package-wide C++ implementation flag; `Fit()` now selects the validated
+C++ path automatically when supported.}
 }
 \value{
 Dirichlet process object
 }
 \description{
-Create a Dirichlet process object using the mean and scale parameterisation of the Beta distribution bounded on \eqn{(0, maxY)}.
-The Pareto distribution is used as a prior on the scale parameter to ensure that the likelihood is 0 at the boundaries.
+Create a Dirichlet process object using the mean and precision
+parameterisation of the Beta distribution bounded on \eqn{(0, maxY)}.
+The Pareto distribution is used as a prior on the precision parameter to
+ensure that the likelihood is 0 at the boundaries.
 }
 \details{
 \eqn{G_0 (\mu , \nu | maxY, \alpha ) = U(\mu | 0, maxY) \mathrm{Pareto} (\nu | x_m, \gamma)}.

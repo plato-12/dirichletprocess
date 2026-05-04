@@ -22,7 +22,7 @@ arma::vec NormalFixedVarianceMixing::prior_draw() const {
   arma::vec params(1);
 
   // Draw normal values and handle potential NAs
-  params[0] = R::rnorm(mu0, sigma0);
+  params[0] = R::rnorm(mu0, sigma);
 
   // Handle NA values that can occur with extreme parameters
   if (std::isnan(params[0])) {
@@ -44,7 +44,7 @@ arma::vec NormalFixedVarianceMixing::posterior_parameters(const arma::mat& clust
     return params;
   }
 
-  double ybar = arma::mean(cluster_data.col(0));
+  // ybar = arma::mean(cluster_data.col(0)); // Not needed, using sum directly
 
   // Posterior precision and mean
   double sigma_posterior_sq = 1.0 / (1.0 / (sigma0 * sigma0) + n / (sigma * sigma));
@@ -53,7 +53,9 @@ arma::vec NormalFixedVarianceMixing::posterior_parameters(const arma::mat& clust
 
   arma::vec params(2);
   params[0] = mu_posterior;
-  params[1] = std::sqrt(sigma_posterior_sq);
+  // Match the repaired R implementation exactly: it returns the posterior
+  // variance-like quantity and passes it directly to rnorm() as the scale.
+  params[1] = sigma_posterior_sq;
 
   return params;
 }
@@ -75,6 +77,17 @@ double NormalFixedVarianceMixing::predictive_density(double x) const {
   double pred_var = sigma0 * sigma0 + sigma * sigma;
 
   return R::dnorm(x, mu0, std::sqrt(pred_var), 0);
+}
+
+double NormalFixedVarianceMixing::predictive_probability(const arma::vec& data_point) const {
+  arma::mat single_obs(1, 1);
+  single_obs(0, 0) = data_point[0];
+  arma::vec post_params = posterior_parameters(single_obs);
+
+  return R::dnorm(data_point[0],
+                  post_params[0],
+                  sigma0 * sigma0 + sigma * sigma,
+                  0);
 }
 
 } // namespace dirichletprocess

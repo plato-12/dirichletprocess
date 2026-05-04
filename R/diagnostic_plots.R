@@ -1,5 +1,5 @@
 # Declare global variables for R CMD check
-utils::globalVariables(c("Alpha", "..density..", "Index", "nclust", "Lik"))
+utils::globalVariables(c("Alpha", "Index", "nclust", "Lik"))
 
 #' Diagnostic plots for dirichletprocess objects
 #'
@@ -89,7 +89,7 @@ AlphaPriorPosteriorPlot <- function(dpobj, prior_color = "#2c7fb8", post_color =
     p <- ggplot2::ggplot() +
       ggplot2::geom_histogram(data = data.frame(Alpha = dpobj$alphaChain),
                               mapping = ggplot2::aes(x = Alpha,
-                                                     y = ..density..,
+                                                     y = ggplot2::after_stat(density),
                                                      colour = "Posterior", fill = "Posterior"),
                               bins = min(its / 10, 100)) +
       ggplot2::stat_function(fun = prior_fun,

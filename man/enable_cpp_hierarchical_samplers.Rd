@@ -7,7 +7,9 @@
 enable_cpp_hierarchical_samplers(enable = TRUE)
 }
 \arguments{
-\item{enable}{Logical indicating whether to enable hierarchical C++ samplers}
+\item{enable}{Logical indicating whether to enable hierarchical C++ samplers
+in the lower-level routing layer. This does not change the documented
+behavior of hierarchical constructor \code{cpp} arguments.}
 }
 \description{
 Enable C++ implementations for hierarchical models

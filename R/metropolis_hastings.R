@@ -95,17 +95,26 @@ MetropolisHastings.weibull <- function(mixingDistribution, x, start_pos, no_draw
 
   for(i in seq_len(no_draws-1)){
 
-    prop_param <- MhParameterProposal(mixingDistribution, old_param)
+    # Gibbs update for lambda conditional on the current alpha.
     lamSamp <- 1/rgamma(1, length(x)+mixingDistribution$priorParameters[2],
-                        sum(x^c(prop_param[[1]])) + mixingDistribution$priorParameters[3])
-    prop_param[[2]] <- array(lamSamp, dim=c(1,1,1))
+                        sum(x^c(old_param[[1]])) + mixingDistribution$priorParameters[3])
+    old_param[[2]] <- array(lamSamp, dim=c(1,1,1))
+
+    old_prior <- log(PriorDensity(mixingDistribution, old_param))
+    old_Likelihood <- sum(log(Likelihood(mixingDistribution, x, old_param)))
+
+    # Symmetric random-walk proposal on alpha, with lambda held fixed.
+    prop_param <- old_param
+    prop_param[[1]] <- array(c(old_param[[1]]) +
+                               mixingDistribution$mhStepSize * rnorm(1, 0, 1.7),
+                             dim = c(1, 1, 1))
 
     new_prior <- log(PriorDensity(mixingDistribution, prop_param))
     new_Likelihood <- sum(log(Likelihood(mixingDistribution, x, prop_param)))
 
     accept_prob <- min(1, exp(new_prior + new_Likelihood - old_prior - old_Likelihood))
 
-    if (is.na(accept_prob)) {
+    if (is.na(accept_prob) || !is.finite(accept_prob)) {
       accept_prob <- 0
     }
 
@@ -132,18 +141,14 @@ MetropolisHastings.weibull <- function(mixingDistribution, x, start_pos, no_draw
 
 #' @export
 MetropolisHastings.list <- function(mixingDistribution, x, start_pos, no_draws = 100) {
-  # For list objects, dispatch based on the second class in the hierarchy
-  if (length(class(mixingDistribution)) > 1) {
-    dist_class <- class(mixingDistribution)[2]
-    method_name <- paste0("MetropolisHastings.", dist_class)
-    ns <- getNamespace("dirichletprocess")
-    if (exists(method_name, envir = ns)) {
-      method_func <- get(method_name, envir = ns)
-      return(method_func(mixingDistribution, x, start_pos, no_draws))
-    }
+  dist_class <- mixing_distribution_method_class(mixingDistribution,
+                                                 "MetropolisHastings")
+  if (!is.null(dist_class)) {
+    method_func <- utils::getS3method("MetropolisHastings",
+                                      dist_class,
+                                      optional = TRUE)
+    return(method_func(mixingDistribution, x, start_pos, no_draws))
   }
-  
-  # Fall back to default method
+
   return(MetropolisHastings.default(mixingDistribution, x, start_pos, no_draws))
 }
-

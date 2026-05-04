@@ -15,8 +15,12 @@ DirichletHMMCreate(x, mdobj, alpha, beta, cpp = FALSE)
 
 \item{beta}{Beta parameter}
 
-\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
+\item{cpp}{Logical compatibility argument. HMM compiled routing is controlled
+separately from the ordinary DP C++ override; this argument is accepted for
+backward compatibility only and does not itself enable compiled HMM
+fitting or mutate unrelated routing flags.}
 }
 \description{
-Create a hidden Markov model where the data is believed to be generated from the mixing object distribution.
+Create a hidden Markov model where the data is believed to be generated from
+the mixing object distribution.
 }

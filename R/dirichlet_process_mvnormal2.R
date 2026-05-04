@@ -5,7 +5,9 @@
 #' @param y Data
 #' @param g0Priors Prior parameters for the base distribution.
 #' @param alphaPriors Alpha prior parameters. See \code{\link{UpdateAlpha}}.
-#' @param cpp Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.
+#' @param cpp Logical compatibility argument. Constructors no longer toggle the
+#'   package-wide C++ implementation flag; `Fit()` now selects the validated
+#'   C++ path automatically when supported.
 #' @export
 DirichletProcessMvnormal2 <- function(y,
                                       g0Priors,
@@ -17,30 +19,15 @@ DirichletProcessMvnormal2 <- function(y,
   }
 
   if(missing(g0Priors)){
-    # Fix: Ensure nu0 is large enough for the Wishart distribution
-    d <- ncol(y)
-    g0Priors <- list(nu0 = d + 2,  # Changed from 2 to d + 2
-                     phi0 = diag(d),
-                     mu0 = numeric(d),
-                     sigma0 = diag(d))
-  }
-
-  # Validate nu0
-  if(g0Priors$nu0 <= ncol(y) - 1) {
-    stop(sprintf("nu0 must be greater than %d (dimension - 1) for valid Wishart distribution",
-                 ncol(y) - 1))
+    g0Priors <- list(nu0 = 2,
+                     phi0 = diag(ncol(y)),
+                     mu0 = numeric(ncol(y)),
+                     sigma0 = diag(ncol(y)))
   }
 
   mdobj <- Mvnormal2Create(g0Priors)
   dpobj <- DirichletProcessCreate(y, mdobj, alphaPriors)
   dpobj <- Initialise(dpobj)
-
-  # Set cpp preference for this object
-  if (cpp) {
-    options(dirichletprocess.use_cpp = TRUE)
-  } else {
-    options(dirichletprocess.use_cpp = FALSE)
-  }
 
   return(dpobj)
 }

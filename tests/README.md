@@ -1,6 +1,6 @@
 # Dirichlet Process C++ Testing Framework
 
-This directory contains the comprehensive testing framework for validating the C++ implementation of the dirichletprocess package.
+This directory contains the comprehensive testing framework for validating the C++ implementation of the dirichletprocesscpp package.
 
 ## Overview
 
@@ -244,7 +244,7 @@ validate_r_cpp_consistency("normal", test_data)
 3. **Memory issues**
 ```r
 # Reduce test size
-options(dirichletprocess.test.size = "small")
+options(dirichletprocesscpp.test.size = "small")
 run_dp_tests("memory")
 ```
 

@@ -27,7 +27,7 @@ run_hierarchical_mvnormal_mcmc_cpp <- function(data_list, hdp_params, mcmc_param
   mcmc_params <- modifyList(default_mcmc, mcmc_params)
 
   # Call C++ implementation
-  .Call(`_dirichletprocess_hierarchical_mvnormal_run`,
+  .Call(`_dirichletprocesscpp_hierarchical_mvnormal_run`,
         data_list, hdp_params, mcmc_params,
         PACKAGE = "dirichletprocess")
 }

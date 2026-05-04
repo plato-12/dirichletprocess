@@ -36,11 +36,21 @@ DirichletProcessHierarchicalBeta(
 
 \item{mhDraws}{Number of Metropolis-Hastings samples to perform for each cluster update.}
 
-\item{cpp}{Logical. Use C++ implementation if TRUE, R implementation if FALSE. Default is FALSE.}
+\item{cpp}{Logical compatibility argument. The live hierarchical HDP path is
+locked to the rewritten R implementation; this argument is accepted for
+backward compatibility only and does not enable live hierarchical C++
+fitting or mutate ordinary C++ routing state.}
 }
 \value{
-dpobjlist A Hierarchical Dirichlet Process object that can be fitted, plotted etc.
+A hierarchical Dirichlet process object. Top-level posterior summary
+  and plotting helpers are intentionally unsupported; use local restaurant
+  objects in \code{indDP} for those tasks.
 }
 \description{
-Create a Hierarchical Dirichlet Mixture of Beta Distributions
+The top-level hierarchical object is fitted through the rewritten R-only
+live path. Top-level \code{PosteriorSummary()}, \code{PosteriorFrame()},
+\code{PosteriorFunction()}, \code{PosteriorClusters()}, and \code{plot()}
+calls are intentionally unsupported. For a local restaurant object, use
+\code{dplist$indDP[[j]]}, which can be summarised with
+\code{\link{PosteriorSummary}}.
 }

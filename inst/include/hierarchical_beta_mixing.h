@@ -22,8 +22,8 @@ private:
   double gamma_prior_shape;
   double gamma_prior_rate;
 
-  // Number of auxiliary parameters for Algorithm 8
-  int m_auxiliary;
+  // Number of auxiliary parameters for Algorithm 8 (reserved for future use)
+  [[maybe_unused]] int m_auxiliary;
 
 public:
   HierarchicalBetaMixing(double alpha0, double beta0, double maxT,

@@ -1,29 +1,187 @@
 #' Fit the Dirichlet process object
 #'
-#' Using Neal's algorithm 4 or 8 depending on conjugacy the sampling procedure
-#' for a Dirichlet process is carried out. Lists of both cluster parameters,
-#' weights and the sampled concentration values are included in the fitted dpObj.
-#' When update_prior is set to TRUE the parameters of the base measure are also updated.
+#' Using Neal's algorithm 4 or 8 depending on conjugacy, the sampling
+#' procedure for a Dirichlet process is carried out.
+#'
+#' Ordinary `Fit()` methods always update the current fitted state. When
+#' `storeSamples = TRUE`, retained iterations generated during the current
+#' `Fit()` call are appended to any existing retained history on the object.
+#' `thinning` applies only to newly generated iterations from the current call
+#' and keeps iterations `1, 1 + thinning, 1 + 2 * thinning, ...` from that
+#' call. When `storeSamples = FALSE`, the sampler still runs and updates the
+#' current fitted state, but no newly retained history is appended. Previously
+#' retained samples are never re-thinned or deleted by later `Fit()` calls.
+#'
+#' When `updatePrior = TRUE` the parameters of the base measure are also
+#' updated when supported by the mixing distribution.
 #'
 #' @param dpObj Initialised Dirichlet Process object
 #' @param its Number of iterations to use
 #' @param updatePrior Logical flag, defaults to FALSE. Set whether the parameters
 #'        of the base measure are updated.
 #' @param progressBar Logical flag indicating whether to display a progress bar.
+#' @param storeSamples Logical flag indicating whether to retain MCMC samples in
+#'        the fitted object. Defaults to `TRUE`. Retained samples are stored in
+#'        the fitted object, not written to disk.
+#' @param thinning Integer thinning interval applied only to iterations
+#'        generated in the current `Fit()` call. Defaults to `1`.
 #' @param ... Additional arguments
-#' @return A Dirichlet Process object with the fitted cluster parameters and labels.
+#' @return A fitted Dirichlet process-related object with updated current state
+#'   and, when requested, appended retained sample history.
 #'
 #' @references Neal, R. M. (2000). Markov chain sampling methods for Dirichlet
 #'             process mixture models. Journal of computational and graphical
 #'             statistics, 9(2), 249-265.
 #'
+#' @examples
+#' dp <- DirichletProcessGaussian(rnorm(20))
+#' dp <- Fit(dp, 10, progressBar = FALSE)
+#' dp <- Fit(dp, 6, progressBar = FALSE, thinning = 2)
+#'
 #' @export
-Fit <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
+Fit <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE,
+                storeSamples = TRUE, thinning = 1, ...) {
   UseMethod("Fit", dpObj)
 }
 
+validate_fit_storage_args <- function(storeSamples, thinning) {
+  if (!is.logical(storeSamples) || length(storeSamples) != 1L || is.na(storeSamples)) {
+    stop("'storeSamples' must be TRUE or FALSE.", call. = FALSE)
+  }
+
+  if (length(thinning) != 1L || is.na(thinning) || !is.numeric(thinning) ||
+      thinning < 1 || thinning != as.integer(thinning)) {
+    stop("'thinning' must be a positive integer.", call. = FALSE)
+  }
+
+  list(
+    storeSamples = isTRUE(storeSamples),
+    thinning = as.integer(thinning)
+  )
+}
+
+empty_dp_sample_storage <- function() {
+  list(
+    alphaChain = numeric(0),
+    likelihoodChain = numeric(0),
+    weightsChain = list(),
+    clusterParametersChain = list(),
+    priorParametersChain = list(),
+    labelsChain = list()
+  )
+}
+
+dp_sample_storage_from_object <- function(dpObj) {
+  storage <- empty_dp_sample_storage()
+
+  for (name in names(storage)) {
+    if (!is.null(dpObj[[name]])) {
+      storage[[name]] <- dpObj[[name]]
+    }
+  }
+
+  storage$alphaChain <- as.numeric(storage$alphaChain)
+  storage$likelihoodChain <- as.numeric(storage$likelihoodChain)
+  storage
+}
+
+dp_existing_sample_storage <- function(dpObj) {
+  storage <- dp_sample_storage_from_object(dpObj)
+
+  stored_iterations <- dpObj$storedIterations
+  if (is.null(stored_iterations)) {
+    if (length(storage$alphaChain) > 0L) {
+      stored_iterations <- seq_len(length(storage$alphaChain))
+    } else {
+      stored_iterations <- integer(0)
+    }
+  } else {
+    stored_iterations <- as.integer(stored_iterations)
+  }
+
+  total_iterations <- dpObj$totalIterations
+  if (is.null(total_iterations) || length(total_iterations) != 1L || is.na(total_iterations)) {
+    if (length(stored_iterations) > 0L) {
+      total_iterations <- max(stored_iterations)
+    } else {
+      total_iterations <- 0L
+    }
+  }
+
+  storage$storedIterations <- as.integer(stored_iterations)
+  storage$totalIterations <- as.integer(total_iterations)
+  storage
+}
+
+dp_subset_sample_storage <- function(storage, keep_idx) {
+  out <- empty_dp_sample_storage()
+
+  if (length(keep_idx) == 0L) {
+    return(out)
+  }
+
+  out$alphaChain <- as.numeric(storage$alphaChain[keep_idx])
+  out$likelihoodChain <- as.numeric(storage$likelihoodChain[keep_idx])
+  out$weightsChain <- storage$weightsChain[keep_idx]
+  out$clusterParametersChain <- storage$clusterParametersChain[keep_idx]
+  out$priorParametersChain <- storage$priorParametersChain[keep_idx]
+  out$labelsChain <- storage$labelsChain[keep_idx]
+  out
+}
+
+dp_apply_sample_storage <- function(dpObj, storage) {
+  dpObj$alphaChain <- as.numeric(storage$alphaChain)
+  dpObj$likelihoodChain <- as.numeric(storage$likelihoodChain)
+  dpObj$weightsChain <- storage$weightsChain
+  dpObj$clusterParametersChain <- storage$clusterParametersChain
+  dpObj$priorParametersChain <- storage$priorParametersChain
+  dpObj$labelsChain <- storage$labelsChain
+  dpObj$storedIterations <- as.integer(storage$storedIterations)
+  dpObj$totalIterations <- as.integer(storage$totalIterations)
+  dpObj
+}
+
+dp_finalize_fit_sample_storage <- function(dpObj, storage_before, its,
+                                           storeSamples, thinning) {
+  keep_idx <- if (storeSamples) {
+    seq.int(1L, as.integer(its), by = thinning)
+  } else {
+    integer(0)
+  }
+
+  new_storage <- dp_subset_sample_storage(
+    dp_sample_storage_from_object(dpObj),
+    keep_idx
+  )
+
+  total_before <- as.integer(storage_before$totalIterations)
+  merged_storage <- list(
+    alphaChain = c(storage_before$alphaChain, new_storage$alphaChain),
+    likelihoodChain = c(storage_before$likelihoodChain, new_storage$likelihoodChain),
+    weightsChain = c(storage_before$weightsChain, new_storage$weightsChain),
+    clusterParametersChain = c(storage_before$clusterParametersChain,
+                               new_storage$clusterParametersChain),
+    priorParametersChain = c(storage_before$priorParametersChain,
+                             new_storage$priorParametersChain),
+    labelsChain = c(storage_before$labelsChain, new_storage$labelsChain),
+    storedIterations = c(storage_before$storedIterations, total_before + keep_idx),
+    totalIterations = total_before + as.integer(its)
+  )
+
+  dp_apply_sample_storage(dpObj, merged_storage)
+}
+
 #' @export
-Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
+Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(),
+                        storeSamples = TRUE, thinning = 1, ...) {
+  storage_args <- validate_fit_storage_args(storeSamples, thinning)
+  storeSamples <- storage_args$storeSamples
+  thinning <- storage_args$thinning
+  storage_before <- dp_existing_sample_storage(dpObj)
+
+  if (updatePrior) {
+    AssertPriorUpdateSupported(dpObj$mixingDistribution)
+  }
 
   if (progressBar) {
     pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
@@ -50,10 +208,12 @@ Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interacti
     dpObj <- ClusterParameterUpdate(dpObj)
     dpObj <- UpdateAlpha(dpObj)
 
-    # Only update prior parameters for non-conjugate models when requested
-    if (updatePrior && !inherits(dpObj$mixingDistribution, "conjugate")) {
+    if (updatePrior) {
       dpObj$mixingDistribution <- PriorParametersUpdate(dpObj$mixingDistribution,
                                                         dpObj$clusterParameters)
+      if (inherits(dpObj, "conjugate")) {
+        dpObj <- InitialisePredictive(dpObj)
+      }
     }
 
     if (progressBar) {
@@ -72,34 +232,47 @@ Fit.default <- function(dpObj, its, updatePrior = FALSE, progressBar = interacti
   if (progressBar) {
     close(pb)
   }
-  return(dpObj)
+
+  dp_finalize_fit_sample_storage(dpObj, storage_before, its, storeSamples, thinning)
 }
 
 #' @export
-Fit.conjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
-  # Use C++ implementation if available and enabled
-  if (using_cpp() && can_use_cpp(dpObj)) {
-    return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar, ...))
+Fit.conjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(),
+                          storeSamples = TRUE, thinning = 1, ...) {
+  # Use the preferred live C++ implementation automatically when supported,
+  # unless explicitly forced back to R.
+  if (should_use_cpp_fit(dpObj)) {
+    return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar,
+                                storeSamples = storeSamples,
+                                thinning = thinning, ...))
   }
 
   # Otherwise use default R implementation
-  return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+  return(Fit.default(dpObj, its, updatePrior, progressBar,
+                     storeSamples = storeSamples,
+                     thinning = thinning, ...))
 }
 
 #' @export
-Fit.nonconjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
-  # Use unified C++ implementation if available (including MVNormal2)
-  if (using_cpp() && can_use_cpp(dpObj)) {
-    return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar, ...))
+Fit.nonconjugate <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(),
+                             storeSamples = TRUE, thinning = 1, ...) {
+  # Use the preferred live C++ implementation automatically when supported,
+  # unless explicitly forced back to R.
+  if (should_use_cpp_fit(dpObj)) {
+    return(Fit.dirichletprocess(dpObj, its, updatePrior, progressBar,
+                                storeSamples = storeSamples,
+                                thinning = thinning, ...))
   }
 
   # Otherwise use default R implementation
-  return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+  return(Fit.default(dpObj, its, updatePrior, progressBar,
+                     storeSamples = storeSamples,
+                     thinning = thinning, ...))
 }
 
 #' @export
-Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE, ...) {
-  # Validate inputs
+Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = TRUE,
+                                 storeSamples = TRUE, thinning = 1, ...) {
   if (!inherits(dpObj, "dirichletprocess")) {
     stop("dpObj must be a dirichletprocess object")
   }
@@ -107,138 +280,217 @@ Fit.dirichletprocess <- function(dpObj, its, updatePrior = FALSE, progressBar = 
     stop("Number of iterations must be positive")
   }
 
-  # Extract additional parameters
+  storage_args <- validate_fit_storage_args(storeSamples, thinning)
+  storeSamples <- storage_args$storeSamples
+  thinning <- storage_args$thinning
+  storage_before <- dp_existing_sample_storage(dpObj)
+
   dots <- list(...)
   n_burn <- ifelse(is.null(dots$n_burn), 0, dots$n_burn)
   thin <- ifelse(is.null(dots$thin), 1, dots$thin)
 
-  # Check if we should use C++ implementation
-  use_cpp <- getOption("dirichletprocess.use_cpp", FALSE) && can_use_cpp(dpObj)
+  if (n_burn != 0 || thin != 1) {
+    warning("The C++ Fit() path ignores 'n_burn' and 'thin' and stores every iteration to match the repaired R implementation.",
+            call. = FALSE)
+  }
+
+  use_cpp <- should_use_cpp_fit(dpObj)
 
   if (use_cpp) {
+    if (updatePrior) {
+      AssertPriorUpdateSupported(dpObj$mixingDistribution)
+    }
+
     tryCatch({
-      # Ensure dpObj has all required fields
       if (is.null(dpObj$data) || is.null(dpObj$alpha)) {
         stop("Invalid dirichletprocess object: missing data or alpha")
       }
 
-      # Prepare parameters for C++
-      mixing_params <- prepare_mixing_dist_params(dpObj)
-      mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, n_burn, thin)
-
-      # Initialize cluster labels if not present
       if (is.null(dpObj$clusterLabels)) {
         dpObj$clusterLabels <- rep(1L, nrow(dpObj$data))
       }
 
-      # Run C++ MCMC
-      results <- run_mcmc_cpp(
-        data = as.matrix(dpObj$data),
-        mixing_dist_params = mixing_params,
-        mcmc_params = mcmc_params
-      )
-
-      # Update dpObj with results
-      if (!is.null(results$cluster_labels)) {
-        # Get the final cluster labels and convert from 0-indexed to 1-indexed
-        final_labels <- results$cluster_labels[[length(results$cluster_labels)]]
-        dpObj$clusterLabels <- final_labels + 1
-      }
-
-      if (!is.null(results$alpha)) {
-        # Get the final alpha value (handle both vector and list cases)
-        alpha_chain <- results$alpha
-        if (is.list(alpha_chain)) {
-          dpObj$alpha <- as.numeric(alpha_chain[[length(alpha_chain)]])
-        } else {
-          dpObj$alpha <- as.numeric(tail(alpha_chain, 1))
+      if (inherits(dpObj$mixingDistribution, c("normal_inverse_gamma", "normal"))) {
+        if (progressBar) {
+          pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
         }
+
+        mixing_params <- prepare_mixing_dist_params(dpObj)
+        mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, 0L, 1L,
+                                           store_history = FALSE)
+
+        results <- run_gaussian_fit_cpp_batch(
+          data = as.matrix(dpObj$data),
+          mixing_dist_params = mixing_params,
+          mcmc_params = mcmc_params
+        )
+
+        dpObj <- update_gaussian_dpobj_from_cpp_batch_result(dpObj, results)
+
+        if (progressBar) {
+          setTxtProgressBar(pb, its)
+          close(pb)
+        }
+
+        return(dp_finalize_fit_sample_storage(dpObj, storage_before, its,
+                                              storeSamples, thinning))
       }
 
-      # Store chains (convert label chains from 0-indexed to 1-indexed)
-      if (!is.null(results$labelsChain)) {
-        dpObj$labelsChain <- lapply(results$labelsChain, function(labels) labels + 1)
-      }
-      dpObj$alphaChain <- results$alphaChain
-      dpObj$likelihoodChain <- results$likelihoodChain
+      if (inherits(dpObj$mixingDistribution, "normalFixedVariance")) {
+        if (progressBar) {
+          pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
+        }
 
-      # Extract final cluster parameters
-      if (!is.null(results$theta_chain)) {
-        final_params <- results$theta_chain[[length(results$theta_chain)]]
-        
-        # Convert parameter format for beta and beta2 distributions
-        if (inherits(dpObj, "beta") || inherits(dpObj, "beta2")) {
-          # C++ returns list(cluster1=c(mu1,nu1), cluster2=c(mu2,nu2), ...)
-          # R expects list(mu=array(mu1,mu2,...), nu=array(nu1,nu2,...))
-          n_clusters <- length(final_params)
-          if (n_clusters > 0) {
-            mu_vals <- sapply(final_params, function(x) x[1])
-            nu_vals <- sapply(final_params, function(x) x[2])
-            
-            # Create arrays with proper dimensions for beta/beta2
-            mu_array <- array(mu_vals, dim = c(1, 1, n_clusters))
-            nu_array <- array(nu_vals, dim = c(1, 1, n_clusters))
-            
-            dpObj$clusterParameters <- list(mu = mu_array, nu = nu_array)
+        mixing_params <- prepare_mixing_dist_params(dpObj)
+        mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, 0L, 1L,
+                                           store_history = FALSE)
+
+        results <- run_normal_fixed_variance_fit_cpp_batch(
+          data = as.matrix(dpObj$data),
+          mixing_dist_params = mixing_params,
+          mcmc_params = mcmc_params
+        )
+
+        dpObj <- update_normal_fixed_variance_dpobj_from_cpp_batch_result(dpObj, results)
+
+        if (progressBar) {
+          setTxtProgressBar(pb, its)
+          close(pb)
+        }
+
+        return(dp_finalize_fit_sample_storage(dpObj, storage_before, its,
+                                              storeSamples, thinning))
+      }
+
+      if (inherits(dpObj$mixingDistribution, "exponential")) {
+        if (progressBar) {
+          pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
+        }
+
+        mixing_params <- prepare_mixing_dist_params(dpObj)
+        mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, 0L, 1L,
+                                           store_history = FALSE)
+
+        results <- run_exponential_fit_cpp_batch(
+          data = as.matrix(dpObj$data),
+          mixing_dist_params = mixing_params,
+          mcmc_params = mcmc_params
+        )
+
+        dpObj <- update_exponential_dpobj_from_cpp_batch_result(dpObj, results)
+
+        if (progressBar) {
+          setTxtProgressBar(pb, its)
+          close(pb)
+        }
+
+        return(dp_finalize_fit_sample_storage(dpObj, storage_before, its,
+                                              storeSamples, thinning))
+      }
+
+      if (inherits(dpObj$mixingDistribution, "mvnormal")) {
+        if (progressBar) {
+          pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
+        }
+
+        mixing_params <- prepare_mixing_dist_params(dpObj)
+        mcmc_params <- prepare_mcmc_params(dpObj, its, updatePrior, 0L, 1L,
+                                           store_history = FALSE)
+
+        results <- run_mvnormal_fit_cpp_batch(
+          data = as.matrix(dpObj$data),
+          mixing_dist_params = mixing_params,
+          mcmc_params = mcmc_params
+        )
+
+        dpObj <- update_mvnormal_dpobj_from_cpp_batch_result(dpObj, results)
+
+        if (progressBar) {
+          setTxtProgressBar(pb, its)
+          close(pb)
+        }
+
+        return(dp_finalize_fit_sample_storage(dpObj, storage_before, its,
+                                              storeSamples, thinning))
+      }
+
+      alphaChain <- numeric(its)
+      likelihoodChain <- numeric(its)
+      weightsChain <- vector("list", length = its)
+      clusterParametersChain <- vector("list", length = its)
+      priorParametersChain <- vector("list", length = its)
+      labelsChain <- vector("list", length = its)
+
+      if (progressBar) {
+        pb <- txtProgressBar(min = 0, max = its, width = 50, char = "-", style = 3)
+      }
+
+      for (i in seq_len(its)) {
+        alphaChain[i] <- dpObj$alpha
+        weightsChain[[i]] <- dpObj$pointsPerCluster / dpObj$n
+        clusterParametersChain[[i]] <- dpObj$clusterParameters
+        priorParametersChain[[i]] <- dpObj$mixingDistribution$priorParameters
+        labelsChain[[i]] <- dpObj$clusterLabels
+
+        mixing_params <- prepare_mixing_dist_params(dpObj)
+        mcmc_params <- prepare_mcmc_params(dpObj, 1L, updatePrior, 0L, 1L,
+                                           store_history = FALSE)
+
+        results <- run_mcmc_cpp(
+          data = as.matrix(dpObj$data),
+          mixing_dist_params = mixing_params,
+          mcmc_params = mcmc_params
+        )
+
+        if (!is.null(results$likelihoodChain) && length(results$likelihoodChain) >= 1L) {
+          likelihoodChain[i] <- as.numeric(results$likelihoodChain[[1]])
+        } else {
+          likelihoodChain[i] <- sum(log(LikelihoodDP(dpObj)))
+        }
+
+        dpObj <- update_dpobj_from_cpp_result(dpObj, results)
+
+        if (updatePrior) {
+          dpObj$mixingDistribution <- PriorParametersUpdate(dpObj$mixingDistribution,
+                                                            dpObj$clusterParameters)
+          if (inherits(dpObj, "conjugate")) {
+            dpObj <- InitialisePredictive(dpObj)
           }
-        } else {
-          dpObj$clusterParameters <- final_params
+        }
+
+        if (progressBar) {
+          setTxtProgressBar(pb, i)
         }
       }
 
-      # Update cluster counts
-      unique_labels <- unique(dpObj$clusterLabels)
-      dpObj$numberClusters <- length(unique_labels)
-      dpObj$pointsPerCluster <- as.numeric(table(factor(dpObj$clusterLabels,
-                                                        levels = seq_len(dpObj$numberClusters))))
       dpObj$weights <- dpObj$pointsPerCluster / dpObj$n
+      dpObj$alphaChain <- alphaChain
+      dpObj$likelihoodChain <- likelihoodChain
+      dpObj$weightsChain <- weightsChain
+      dpObj$clusterParametersChain <- clusterParametersChain
+      dpObj$priorParametersChain <- priorParametersChain
+      dpObj$labelsChain <- labelsChain
 
-      # Store parameter chains
-      if (inherits(dpObj, "beta") || inherits(dpObj, "beta2")) {
-        # Convert parameter chain format for beta and beta2
-        dpObj$clusterParametersChain <- lapply(results$theta_chain, function(iter_params) {
-          n_clusters <- length(iter_params)
-          if (n_clusters > 0) {
-            mu_vals <- sapply(iter_params, function(x) x[1])
-            nu_vals <- sapply(iter_params, function(x) x[2])
-            
-            # Create arrays with proper dimensions for beta/beta2
-            mu_array <- array(mu_vals, dim = c(1, 1, n_clusters))
-            nu_array <- array(nu_vals, dim = c(1, 1, n_clusters))
-            
-            list(mu = mu_array, nu = nu_array)
-          } else {
-            list(mu = array(dim = c(1, 1, 0)), nu = array(dim = c(1, 1, 0)))
-          }
-        })
-      } else {
-        dpObj$clusterParametersChain <- results$theta_chain
-      }
-      if (!is.null(results$cluster_labels)) {
-        dpObj$weightsChain <- lapply(results$cluster_labels, function(labels) {
-          # Convert 0-indexed to 1-indexed labels for weight calculation
-          table(labels + 1) / length(labels)
-        })
+      if (progressBar) {
+        close(pb)
       }
 
-      # Prior parameters chain if updated
-      if (updatePrior && !is.null(results$prior_params_chain)) {
-        dpObj$priorParametersChain <- results$prior_params_chain
-        dpObj$mixingDistribution$priorParameters <-
-          results$prior_params_chain[[length(results$prior_params_chain)]]
-      }
-
-      return(dpObj)
+      return(dp_finalize_fit_sample_storage(dpObj, storage_before, its,
+                                            storeSamples, thinning))
 
     }, error = function(e) {
       warning("C++ implementation failed: ", e$message,
               "\nFalling back to R implementation")
-      return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+      return(Fit.default(dpObj, its, updatePrior, progressBar,
+                         storeSamples = storeSamples,
+                         thinning = thinning, ...))
     })
   }
 
   # Use R implementation
-  return(Fit.default(dpObj, its, updatePrior, progressBar, ...))
+  return(Fit.default(dpObj, its, updatePrior, progressBar,
+                     storeSamples = storeSamples,
+                     thinning = thinning, ...))
 }
 
 #' @export
@@ -443,7 +695,7 @@ Fit.hierarchical.cpp <- function(dpObj, its, updatePrior = FALSE, progressBar = 
 #' @export
 Fit.markov <- function(dpObj, its, updatePrior = FALSE, progressBar = interactive(), ...) {
   # Similar pattern - check for C++ then fall back to R
-  if (using_cpp() && exists("_dirichletprocess_markov_dp_fit_cpp")) {
+  if (using_cpp() && exists("_dirichletprocesscpp_markov_dp_fit_cpp")) {
     return(Fit.markov.cpp(dpObj, its, updatePrior, progressBar))
   }
 

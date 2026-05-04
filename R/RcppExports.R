@@ -2,43 +2,43 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 current_memory_usage <- function() {
-    .Call(`_dirichletprocess_current_memory_usage`)
+    .Call(`_dirichletprocesscpp_current_memory_usage`)
 }
 
 benchmark_cpp_components_impl <- function(dpObj, components, times) {
-    .Call(`_dirichletprocess_benchmark_cpp_components_impl`, dpObj, components, times)
+    .Call(`_dirichletprocesscpp_benchmark_cpp_components_impl`, dpObj, components, times)
 }
 
 benchmark_cpp_components <- function(dpObj, components, times) {
-    .Call(`_dirichletprocess_benchmark_cpp_components`, dpObj, components, times)
+    .Call(`_dirichletprocesscpp_benchmark_cpp_components`, dpObj, components, times)
 }
 
 beta_prior_draw_cpp <- function(priorParams, maxT, n) {
-    .Call(`_dirichletprocess_beta_prior_draw_cpp`, priorParams, maxT, n)
+    .Call(`_dirichletprocesscpp_beta_prior_draw_cpp`, priorParams, maxT, n)
 }
 
 beta_likelihood_cpp <- function(x, mu, nu, maxT) {
-    .Call(`_dirichletprocess_beta_likelihood_cpp`, x, mu, nu, maxT)
+    .Call(`_dirichletprocesscpp_beta_likelihood_cpp`, x, mu, nu, maxT)
 }
 
 beta_prior_density_cpp <- function(mu, nu, priorParams, maxT) {
-    .Call(`_dirichletprocess_beta_prior_density_cpp`, mu, nu, priorParams, maxT)
+    .Call(`_dirichletprocesscpp_beta_prior_density_cpp`, mu, nu, priorParams, maxT)
 }
 
 beta_metropolis_hastings_cpp <- function(x, startMu, startNu, priorParams, maxT, mhStep, noDraws) {
-    .Call(`_dirichletprocess_beta_metropolis_hastings_cpp`, x, startMu, startNu, priorParams, maxT, mhStep, noDraws)
+    .Call(`_dirichletprocesscpp_beta_metropolis_hastings_cpp`, x, startMu, startNu, priorParams, maxT, mhStep, noDraws)
 }
 
 beta_posterior_draw_cpp <- function(priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsVal) {
-    .Call(`_dirichletprocess_beta_posterior_draw_cpp`, priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsVal)
+    .Call(`_dirichletprocesscpp_beta_posterior_draw_cpp`, priorParams, maxT_val, mhStepSize_val, x_data, n_draws, mhDrawsVal)
 }
 
 nonconjugate_beta_cluster_parameter_update_cpp <- function(dp_list) {
-    .Call(`_dirichletprocess_nonconjugate_beta_cluster_parameter_update_cpp`, dp_list)
+    .Call(`_dirichletprocesscpp_nonconjugate_beta_cluster_parameter_update_cpp`, dp_list)
 }
 
 nonconjugate_beta_cluster_component_update_cpp <- function(dp_list) {
-    .Call(`_dirichletprocess_nonconjugate_beta_cluster_component_update_cpp`, dp_list)
+    .Call(`_dirichletprocesscpp_nonconjugate_beta_cluster_component_update_cpp`, dp_list)
 }
 
 #' @title Draw from an Exponential distribution prior (C++)
@@ -49,7 +49,7 @@ nonconjugate_beta_cluster_component_update_cpp <- function(dp_list) {
 #' @return A list containing the sampled rate parameters (lambda).
 #' @export
 exponential_prior_draw_cpp <- function(priorParams, n = 1L) {
-    .Call(`_dirichletprocess_exponential_prior_draw_cpp`, priorParams, n)
+    .Call(`_dirichletprocesscpp_exponential_prior_draw_cpp`, priorParams, n)
 }
 
 #' @title Calculate Exponential log-likelihood (C++)
@@ -59,7 +59,7 @@ exponential_prior_draw_cpp <- function(priorParams, n = 1L) {
 #' @return A numeric vector of log-likelihood values.
 #' @export
 exponential_log_likelihood_cpp <- function(x, lambda) {
-    .Call(`_dirichletprocess_exponential_log_likelihood_cpp`, x, lambda)
+    .Call(`_dirichletprocesscpp_exponential_log_likelihood_cpp`, x, lambda)
 }
 
 #' @title Draw from an Exponential distribution posterior (C++)
@@ -71,7 +71,7 @@ exponential_log_likelihood_cpp <- function(x, lambda) {
 #' @return A list containing the sampled rate parameters (lambda).
 #' @export
 exponential_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
-    .Call(`_dirichletprocess_exponential_posterior_draw_cpp`, priorParams, x, n)
+    .Call(`_dirichletprocesscpp_exponential_posterior_draw_cpp`, priorParams, x, n)
 }
 
 #' @title Calculate Exponential posterior parameters (C++)
@@ -82,7 +82,7 @@ exponential_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
 #' @return A list with alpha and beta posterior parameters.
 #' @export
 exponential_posterior_parameters_cpp <- function(priorParams, x) {
-    .Call(`_dirichletprocess_exponential_posterior_parameters_cpp`, priorParams, x)
+    .Call(`_dirichletprocesscpp_exponential_posterior_parameters_cpp`, priorParams, x)
 }
 
 #' @title Calculate Exponential likelihood (C++)
@@ -92,7 +92,7 @@ exponential_posterior_parameters_cpp <- function(priorParams, x) {
 #' @return A numeric vector of likelihood values.
 #' @export
 exponential_likelihood_cpp <- function(x, lambda) {
-    .Call(`_dirichletprocess_exponential_likelihood_cpp`, x, lambda)
+    .Call(`_dirichletprocesscpp_exponential_likelihood_cpp`, x, lambda)
 }
 
 #' @title Calculate Exponential predictive distribution (C++)
@@ -102,7 +102,7 @@ exponential_likelihood_cpp <- function(x, lambda) {
 #' @return A numeric vector of predictive probabilities.
 #' @export
 exponential_predictive_cpp <- function(priorParams, x) {
-    .Call(`_dirichletprocess_exponential_predictive_cpp`, priorParams, x)
+    .Call(`_dirichletprocesscpp_exponential_predictive_cpp`, priorParams, x)
 }
 
 #' @title Update cluster components (C++ conjugate exponential)
@@ -111,7 +111,7 @@ exponential_predictive_cpp <- function(priorParams, x) {
 #' @return A list with updated cluster assignments and parameters.
 #' @export
 conjugate_exponential_cluster_component_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_exponential_cluster_component_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_exponential_cluster_component_update_cpp`, dpObj)
 }
 
 #' @title Update alpha for conjugate exponential DP (C++)
@@ -120,7 +120,7 @@ conjugate_exponential_cluster_component_update_cpp <- function(dpObj) {
 #' @return Updated alpha value.
 #' @export
 conjugate_exponential_update_alpha_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_exponential_update_alpha_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_exponential_update_alpha_cpp`, dpObj)
 }
 
 #' @title Update cluster parameters (C++ conjugate exponential)
@@ -129,11 +129,27 @@ conjugate_exponential_update_alpha_cpp <- function(dpObj) {
 #' @return A list containing the updated cluster parameters.
 #' @export
 conjugate_exponential_cluster_parameter_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_exponential_cluster_parameter_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_exponential_cluster_parameter_update_cpp`, dpObj)
 }
 
 run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
-    .Call(`_dirichletprocess_run_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+    .Call(`_dirichletprocesscpp_run_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
+run_gaussian_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocesscpp_run_gaussian_fit_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
+run_normal_fixed_variance_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocesscpp_run_normal_fixed_variance_fit_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
+run_exponential_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocesscpp_run_exponential_fit_cpp`, data, mixing_dist_params, mcmc_params)
+}
+
+run_mvnormal_fit_cpp <- function(data, mixing_dist_params, mcmc_params) {
+    .Call(`_dirichletprocesscpp_run_mvnormal_fit_cpp`, data, mixing_dist_params, mcmc_params)
 }
 
 #' @title Fit Hierarchical Beta DP (C++)
@@ -145,7 +161,7 @@ run_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
 #' @return Updated hierarchical DP object.
 #' @export
 hierarchical_beta_fit_cpp <- function(dpList, iterations, updatePrior = FALSE, progressBar = TRUE) {
-    .Call(`_dirichletprocess_hierarchical_beta_fit_cpp`, dpList, iterations, updatePrior, progressBar)
+    .Call(`_dirichletprocesscpp_hierarchical_beta_fit_cpp`, dpList, iterations, updatePrior, progressBar)
 }
 
 #' @title Update cluster components for Hierarchical Beta DP (C++)
@@ -154,7 +170,7 @@ hierarchical_beta_fit_cpp <- function(dpList, iterations, updatePrior = FALSE, p
 #' @return Updated hierarchical DP object.
 #' @export
 hierarchical_beta_cluster_component_update_cpp <- function(dpList) {
-    .Call(`_dirichletprocess_hierarchical_beta_cluster_component_update_cpp`, dpList)
+    .Call(`_dirichletprocesscpp_hierarchical_beta_cluster_component_update_cpp`, dpList)
 }
 
 #' @title Update global parameters for Hierarchical Beta DP (C++)
@@ -163,7 +179,7 @@ hierarchical_beta_cluster_component_update_cpp <- function(dpList) {
 #' @return Updated hierarchical DP object.
 #' @export
 hierarchical_beta_global_parameter_update_cpp <- function(dpList) {
-    .Call(`_dirichletprocess_hierarchical_beta_global_parameter_update_cpp`, dpList)
+    .Call(`_dirichletprocesscpp_hierarchical_beta_global_parameter_update_cpp`, dpList)
 }
 
 #' @title Update G0 for Hierarchical Beta DP (C++)
@@ -172,7 +188,7 @@ hierarchical_beta_global_parameter_update_cpp <- function(dpList) {
 #' @return Updated hierarchical DP object.
 #' @export
 hierarchical_beta_update_g0_cpp <- function(dpList) {
-    .Call(`_dirichletprocess_hierarchical_beta_update_g0_cpp`, dpList)
+    .Call(`_dirichletprocesscpp_hierarchical_beta_update_g0_cpp`, dpList)
 }
 
 #' @title Update gamma for Hierarchical Beta DP (C++)
@@ -181,7 +197,7 @@ hierarchical_beta_update_g0_cpp <- function(dpList) {
 #' @return Updated hierarchical DP object.
 #' @export
 hierarchical_beta_update_gamma_cpp <- function(dpList) {
-    .Call(`_dirichletprocess_hierarchical_beta_update_gamma_cpp`, dpList)
+    .Call(`_dirichletprocesscpp_hierarchical_beta_update_gamma_cpp`, dpList)
 }
 
 #' @title Create Hierarchical Beta mixing distributions (C++)
@@ -197,7 +213,7 @@ hierarchical_beta_update_gamma_cpp <- function(dpList) {
 #' @return List of mixing distributions.
 #' @export
 hierarchical_beta_mixing_create_cpp <- function(n, priorParameters, hyperPriorParameters, alphaPrior, maxT, gammaPrior, mhStepSize, num_sticks) {
-    .Call(`_dirichletprocess_hierarchical_beta_mixing_create_cpp`, n, priorParameters, hyperPriorParameters, alphaPrior, maxT, gammaPrior, mhStepSize, num_sticks)
+    .Call(`_dirichletprocesscpp_hierarchical_beta_mixing_create_cpp`, n, priorParameters, hyperPriorParameters, alphaPrior, maxT, gammaPrior, mhStepSize, num_sticks)
 }
 
 #' @title Run Hierarchical MVNormal MCMC (C++)
@@ -208,7 +224,7 @@ hierarchical_beta_mixing_create_cpp <- function(n, priorParameters, hyperPriorPa
 #' @return List containing MCMC samples and diagnostics
 #' @export
 hierarchical_mvnormal_run <- function(data_list, hdp_params, mcmc_params) {
-    .Call(`_dirichletprocess_hierarchical_mvnormal_run`, data_list, hdp_params, mcmc_params)
+    .Call(`_dirichletprocesscpp_hierarchical_mvnormal_run`, data_list, hdp_params, mcmc_params)
 }
 
 #' @title Create Hierarchical MVNormal mixing distributions (C++)
@@ -221,7 +237,7 @@ hierarchical_mvnormal_run <- function(data_list, hdp_params, mcmc_params) {
 #' @return List representing the mixing distribution
 #' @export
 hierarchical_mvnormal_create_mixing <- function(n_groups, prior_params, alpha_prior, gamma_prior, n_sticks) {
-    .Call(`_dirichletprocess_hierarchical_mvnormal_create_mixing`, n_groups, prior_params, alpha_prior, gamma_prior, n_sticks)
+    .Call(`_dirichletprocesscpp_hierarchical_mvnormal_create_mixing`, n_groups, prior_params, alpha_prior, gamma_prior, n_sticks)
 }
 
 #' @title Update cluster assignments for Hierarchical MVNormal (C++)
@@ -231,7 +247,7 @@ hierarchical_mvnormal_create_mixing <- function(n_groups, prior_params, alpha_pr
 #' @return Updated DP object
 #' @export
 hierarchical_mvnormal_update_clusters <- function(dp_obj, global_params) {
-    .Call(`_dirichletprocess_hierarchical_mvnormal_update_clusters`, dp_obj, global_params)
+    .Call(`_dirichletprocesscpp_hierarchical_mvnormal_update_clusters`, dp_obj, global_params)
 }
 
 #' @title Fit Hierarchical MVNormal DP (C++)
@@ -243,7 +259,7 @@ hierarchical_mvnormal_update_clusters <- function(dp_obj, global_params) {
 #' @return Updated hierarchical DP object
 #' @export
 hierarchical_mvnormal_fit_cpp <- function(dp_list, iterations, update_prior = TRUE, progress_bar = TRUE) {
-    .Call(`_dirichletprocess_hierarchical_mvnormal_fit_cpp`, dp_list, iterations, update_prior, progress_bar)
+    .Call(`_dirichletprocesscpp_hierarchical_mvnormal_fit_cpp`, dp_list, iterations, update_prior, progress_bar)
 }
 
 #' @title Sample from hierarchical MVNormal posterior (C++)
@@ -254,7 +270,7 @@ hierarchical_mvnormal_fit_cpp <- function(dp_list, iterations, update_prior = TR
 #' @return Matrix of samples
 #' @export
 hierarchical_mvnormal_posterior_sample <- function(hdp_state, n_samples, group_index) {
-    .Call(`_dirichletprocess_hierarchical_mvnormal_posterior_sample`, hdp_state, n_samples, group_index)
+    .Call(`_dirichletprocesscpp_hierarchical_mvnormal_posterior_sample`, hdp_state, n_samples, group_index)
 }
 
 #' @title Draw from a Multivariate Normal-Wishart prior (C++)
@@ -265,7 +281,7 @@ hierarchical_mvnormal_posterior_sample <- function(hdp_state, n_samples, group_i
 #' @return A list containing the sampled parameters (mu and sig).
 #' @export
 mvnormal_prior_draw_cpp <- function(priorParams, n = 1L) {
-    .Call(`_dirichletprocess_mvnormal_prior_draw_cpp`, priorParams, n)
+    .Call(`_dirichletprocesscpp_mvnormal_prior_draw_cpp`, priorParams, n)
 }
 
 #' @title Draw from a Multivariate Normal-Wishart posterior (C++)
@@ -277,7 +293,7 @@ mvnormal_prior_draw_cpp <- function(priorParams, n = 1L) {
 #' @return A list containing the sampled parameters (mu and sig).
 #' @export
 mvnormal_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
-    .Call(`_dirichletprocess_mvnormal_posterior_draw_cpp`, priorParams, x, n)
+    .Call(`_dirichletprocesscpp_mvnormal_posterior_draw_cpp`, priorParams, x, n)
 }
 
 #' @title Calculate MVNormal posterior parameters (C++)
@@ -288,7 +304,7 @@ mvnormal_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
 #' @return A list of posterior parameters.
 #' @export
 mvnormal_posterior_parameters_cpp <- function(priorParams, x) {
-    .Call(`_dirichletprocess_mvnormal_posterior_parameters_cpp`, priorParams, x)
+    .Call(`_dirichletprocesscpp_mvnormal_posterior_parameters_cpp`, priorParams, x)
 }
 
 #' @title Calculate MVNormal predictive distribution (C++)
@@ -298,7 +314,7 @@ mvnormal_posterior_parameters_cpp <- function(priorParams, x) {
 #' @return A numeric vector of predictive probabilities.
 #' @export
 mvnormal_predictive_cpp <- function(priorParams, x) {
-    .Call(`_dirichletprocess_mvnormal_predictive_cpp`, priorParams, x)
+    .Call(`_dirichletprocesscpp_mvnormal_predictive_cpp`, priorParams, x)
 }
 
 #' @title Calculate MVNormal likelihood (C++)
@@ -309,7 +325,7 @@ mvnormal_predictive_cpp <- function(priorParams, x) {
 #' @return A numeric vector of likelihood values.
 #' @export
 mvnormal_likelihood_cpp <- function(x, mu, sigma) {
-    .Call(`_dirichletprocess_mvnormal_likelihood_cpp`, x, mu, sigma)
+    .Call(`_dirichletprocesscpp_mvnormal_likelihood_cpp`, x, mu, sigma)
 }
 
 #' @title Update alpha for conjugate MVNormal DP (C++)
@@ -318,7 +334,7 @@ mvnormal_likelihood_cpp <- function(x, mu, sigma) {
 #' @return Updated alpha value.
 #' @export
 conjugate_mvnormal_update_alpha_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_mvnormal_update_alpha_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_mvnormal_update_alpha_cpp`, dpObj)
 }
 
 #' @title Draw from a Multivariate Normal semi-conjugate prior (C++)
@@ -329,7 +345,7 @@ conjugate_mvnormal_update_alpha_cpp <- function(dpObj) {
 #' @return A list containing the sampled parameters (mu and sig).
 #' @export
 mvnormal2_prior_draw_cpp <- function(priorParams, n = 1L) {
-    .Call(`_dirichletprocess_mvnormal2_prior_draw_cpp`, priorParams, n)
+    .Call(`_dirichletprocesscpp_mvnormal2_prior_draw_cpp`, priorParams, n)
 }
 
 #' @title Draw from a Multivariate Normal semi-conjugate posterior (C++)
@@ -341,7 +357,7 @@ mvnormal2_prior_draw_cpp <- function(priorParams, n = 1L) {
 #' @return A list containing the sampled parameters (mu and sig).
 #' @export
 mvnormal2_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
-    .Call(`_dirichletprocess_mvnormal2_posterior_draw_cpp`, priorParams, x, n)
+    .Call(`_dirichletprocesscpp_mvnormal2_posterior_draw_cpp`, priorParams, x, n)
 }
 
 #' @title Calculate MVNormal2 likelihood (C++)
@@ -351,7 +367,7 @@ mvnormal2_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
 #' @return A numeric vector of likelihood values.
 #' @export
 mvnormal2_likelihood_cpp <- function(x, theta) {
-    .Call(`_dirichletprocess_mvnormal2_likelihood_cpp`, x, theta)
+    .Call(`_dirichletprocesscpp_mvnormal2_likelihood_cpp`, x, theta)
 }
 
 #' @title Update cluster components for MVNormal2 (C++ non-conjugate)
@@ -360,7 +376,7 @@ mvnormal2_likelihood_cpp <- function(x, theta) {
 #' @return A list with updated cluster assignments and parameters.
 #' @export
 nonconjugate_mvnormal2_cluster_component_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_nonconjugate_mvnormal2_cluster_component_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_nonconjugate_mvnormal2_cluster_component_update_cpp`, dpObj)
 }
 
 #' @title Update cluster parameters for MVNormal2 (C++ non-conjugate)
@@ -369,7 +385,7 @@ nonconjugate_mvnormal2_cluster_component_update_cpp <- function(dpObj) {
 #' @return A list containing the updated cluster parameters.
 #' @export
 nonconjugate_mvnormal2_cluster_parameter_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_nonconjugate_mvnormal2_cluster_parameter_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_nonconjugate_mvnormal2_cluster_parameter_update_cpp`, dpObj)
 }
 
 #' @title Fit Hierarchical MVNormal2 DP (C++)
@@ -381,7 +397,7 @@ nonconjugate_mvnormal2_cluster_parameter_update_cpp <- function(dpObj) {
 #' @return Updated hierarchical DP object.
 #' @export
 hierarchical_mvnormal2_fit_cpp <- function(dpList, iterations, updatePrior = FALSE, progressBar = TRUE) {
-    .Call(`_dirichletprocess_hierarchical_mvnormal2_fit_cpp`, dpList, iterations, updatePrior, progressBar)
+    .Call(`_dirichletprocesscpp_hierarchical_mvnormal2_fit_cpp`, dpList, iterations, updatePrior, progressBar)
 }
 
 #' @title Create Hierarchical MVNormal2 mixing distributions (C++)
@@ -394,7 +410,7 @@ hierarchical_mvnormal2_fit_cpp <- function(dpList, iterations, updatePrior = FAL
 #' @return List of mixing distributions.
 #' @export
 hierarchical_mvnormal2_mixing_create_cpp <- function(n, priorParameters, alphaPrior, gammaPrior, num_sticks) {
-    .Call(`_dirichletprocess_hierarchical_mvnormal2_mixing_create_cpp`, n, priorParameters, alphaPrior, gammaPrior, num_sticks)
+    .Call(`_dirichletprocesscpp_hierarchical_mvnormal2_mixing_create_cpp`, n, priorParameters, alphaPrior, gammaPrior, num_sticks)
 }
 
 #' @title Update alpha for non-conjugate MVNormal2 DP (C++)
@@ -403,7 +419,7 @@ hierarchical_mvnormal2_mixing_create_cpp <- function(n, priorParameters, alphaPr
 #' @return Updated alpha value.
 #' @export
 nonconjugate_mvnormal2_update_alpha_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_nonconjugate_mvnormal2_update_alpha_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_nonconjugate_mvnormal2_update_alpha_cpp`, dpObj)
 }
 
 #' @title Conjugate MVNormal Cluster Component Update (C++)
@@ -412,7 +428,7 @@ nonconjugate_mvnormal2_update_alpha_cpp <- function(dpObj) {
 #' @return Updated Dirichlet process object
 #' @export
 conjugate_mvnormal_cluster_component_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_mvnormal_cluster_component_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_mvnormal_cluster_component_update_cpp`, dpObj)
 }
 
 #' @title Conjugate MVNormal Cluster Parameter Update (C++)
@@ -421,11 +437,11 @@ conjugate_mvnormal_cluster_component_update_cpp <- function(dpObj) {
 #' @return Updated cluster parameters
 #' @export
 conjugate_mvnormal_cluster_parameter_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_mvnormal_cluster_parameter_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_mvnormal_cluster_parameter_update_cpp`, dpObj)
 }
 
 mvnormal_log_likelihood_cpp <- function(x, mu, Sigma) {
-    .Call(`_dirichletprocess_mvnormal_log_likelihood_cpp`, x, mu, Sigma)
+    .Call(`_dirichletprocesscpp_mvnormal_log_likelihood_cpp`, x, mu, Sigma)
 }
 
 #' @title Create a Markov DP from R object (C++)
@@ -434,7 +450,7 @@ mvnormal_log_likelihood_cpp <- function(x, mu, Sigma) {
 #' @return An updated list with C++ object reference.
 #' @export
 markov_dp_create_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_markov_dp_create_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_markov_dp_create_cpp`, dpObj)
 }
 
 #' @title Fit Markov DP (C++)
@@ -446,7 +462,7 @@ markov_dp_create_cpp <- function(dpObj) {
 #' @return Updated Markov DP object.
 #' @export
 markov_dp_fit_cpp <- function(dpObj, iterations, updatePrior = FALSE, progressBar = TRUE) {
-    .Call(`_dirichletprocess_markov_dp_fit_cpp`, dpObj, iterations, updatePrior, progressBar)
+    .Call(`_dirichletprocesscpp_markov_dp_fit_cpp`, dpObj, iterations, updatePrior, progressBar)
 }
 
 #' @title Update states for Markov DP (C++)
@@ -455,7 +471,7 @@ markov_dp_fit_cpp <- function(dpObj, iterations, updatePrior = FALSE, progressBa
 #' @return Updated Markov DP object.
 #' @export
 markov_dp_update_states_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_markov_dp_update_states_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_markov_dp_update_states_cpp`, dpObj)
 }
 
 #' @title Update alpha and beta for Markov DP (C++)
@@ -464,7 +480,7 @@ markov_dp_update_states_cpp <- function(dpObj) {
 #' @return Updated Markov DP object.
 #' @export
 markov_dp_update_alpha_beta_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_markov_dp_update_alpha_beta_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_markov_dp_update_alpha_beta_cpp`, dpObj)
 }
 
 #' @title Update parameters for Markov DP (C++)
@@ -473,15 +489,15 @@ markov_dp_update_alpha_beta_cpp <- function(dpObj) {
 #' @return Updated Markov DP object.
 #' @export
 markov_dp_param_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_markov_dp_param_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_markov_dp_param_update_cpp`, dpObj)
 }
 
 get_memory_tracking <- function() {
-    .Call(`_dirichletprocess_get_memory_tracking`)
+    .Call(`_dirichletprocesscpp_get_memory_tracking`)
 }
 
 clear_memory_tracking <- function() {
-    invisible(.Call(`_dirichletprocess_clear_memory_tracking`))
+    invisible(.Call(`_dirichletprocesscpp_clear_memory_tracking`))
 }
 
 #' @title Draw from a Normal distribution prior (C++)
@@ -492,7 +508,7 @@ clear_memory_tracking <- function() {
 #' @return A list containing the sampled parameters (mu and sigma^2).
 #' @export
 normal_prior_draw_cpp <- function(priorParams, n = 1L) {
-    .Call(`_dirichletprocess_normal_prior_draw_cpp`, priorParams, n)
+    .Call(`_dirichletprocesscpp_normal_prior_draw_cpp`, priorParams, n)
 }
 
 #' @title Draw from a Normal distribution posterior (C++)
@@ -504,7 +520,7 @@ normal_prior_draw_cpp <- function(priorParams, n = 1L) {
 #' @return A list containing the sampled parameters (mu and sigma^2).
 #' @export
 normal_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
-    .Call(`_dirichletprocess_normal_posterior_draw_cpp`, priorParams, x, n)
+    .Call(`_dirichletprocesscpp_normal_posterior_draw_cpp`, priorParams, x, n)
 }
 
 #' @title Update cluster components (C++ conjugate)
@@ -513,7 +529,7 @@ normal_posterior_draw_cpp <- function(priorParams, x, n = 1L) {
 #' @return A list with updated cluster assignments and parameters.
 #' @export
 conjugate_cluster_component_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_cluster_component_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_cluster_component_update_cpp`, dpObj)
 }
 
 #' @title Update cluster parameters (C++ conjugate)
@@ -522,7 +538,7 @@ conjugate_cluster_component_update_cpp <- function(dpObj) {
 #' @return A list containing the updated cluster parameters.
 #' @export
 conjugate_cluster_parameter_update_cpp <- function(dpObj) {
-    .Call(`_dirichletprocess_conjugate_cluster_parameter_update_cpp`, dpObj)
+    .Call(`_dirichletprocesscpp_conjugate_cluster_parameter_update_cpp`, dpObj)
 }
 
 #' @title Calculate Normal posterior parameters (C++)
@@ -533,182 +549,181 @@ conjugate_cluster_parameter_update_cpp <- function(dpObj) {
 #' @return A numeric matrix of posterior parameters.
 #' @export
 normal_posterior_parameters_cpp <- function(priorParams, x) {
-    .Call(`_dirichletprocess_normal_posterior_parameters_cpp`, priorParams, x)
+    .Call(`_dirichletprocesscpp_normal_posterior_parameters_cpp`, priorParams, x)
 }
 
 create_mcmc_runner_cpp <- function(data, mixing_params, mcmc_params) {
-    .Call(`_dirichletprocess_create_mcmc_runner_cpp`, data, mixing_params, mcmc_params)
+    .Call(`_dirichletprocesscpp_create_mcmc_runner_cpp`, data, mixing_params, mcmc_params)
 }
 
 step_assignments_cpp <- function(runner_ptr) {
-    invisible(.Call(`_dirichletprocess_step_assignments_cpp`, runner_ptr))
+    invisible(.Call(`_dirichletprocesscpp_step_assignments_cpp`, runner_ptr))
 }
 
 step_parameters_cpp <- function(runner_ptr) {
-    invisible(.Call(`_dirichletprocess_step_parameters_cpp`, runner_ptr))
+    invisible(.Call(`_dirichletprocesscpp_step_parameters_cpp`, runner_ptr))
 }
 
 step_concentration_cpp <- function(runner_ptr) {
-    invisible(.Call(`_dirichletprocess_step_concentration_cpp`, runner_ptr))
+    invisible(.Call(`_dirichletprocesscpp_step_concentration_cpp`, runner_ptr))
 }
 
 perform_iteration_cpp <- function(runner_ptr) {
-    invisible(.Call(`_dirichletprocess_perform_iteration_cpp`, runner_ptr))
+    invisible(.Call(`_dirichletprocesscpp_perform_iteration_cpp`, runner_ptr))
 }
 
 get_state_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_state_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_state_cpp`, runner_ptr)
 }
 
 get_results_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_results_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_results_cpp`, runner_ptr)
 }
 
 is_complete_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_is_complete_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_is_complete_cpp`, runner_ptr)
 }
 
 set_labels_cpp <- function(runner_ptr, labels) {
-    invisible(.Call(`_dirichletprocess_set_labels_cpp`, runner_ptr, labels))
+    invisible(.Call(`_dirichletprocesscpp_set_labels_cpp`, runner_ptr, labels))
 }
 
 set_params_cpp <- function(runner_ptr, params) {
-    invisible(.Call(`_dirichletprocess_set_params_cpp`, runner_ptr, params))
+    invisible(.Call(`_dirichletprocesscpp_set_params_cpp`, runner_ptr, params))
 }
 
 set_parameter_bounds_cpp <- function(runner_ptr, lower, upper) {
-    invisible(.Call(`_dirichletprocess_set_parameter_bounds_cpp`, runner_ptr, lower, upper))
+    invisible(.Call(`_dirichletprocesscpp_set_parameter_bounds_cpp`, runner_ptr, lower, upper))
 }
 
 get_auxiliary_params_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_auxiliary_params_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_auxiliary_params_cpp`, runner_ptr)
 }
 
 set_update_flags_cpp <- function(runner_ptr, clusters, params, alpha) {
-    invisible(.Call(`_dirichletprocess_set_update_flags_cpp`, runner_ptr, clusters, params, alpha))
+    invisible(.Call(`_dirichletprocesscpp_set_update_flags_cpp`, runner_ptr, clusters, params, alpha))
 }
 
 get_cluster_likelihoods_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_cluster_likelihoods_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_cluster_likelihoods_cpp`, runner_ptr)
 }
 
 get_membership_matrix_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_membership_matrix_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_membership_matrix_cpp`, runner_ptr)
 }
 
 get_cluster_statistics_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_cluster_statistics_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_cluster_statistics_cpp`, runner_ptr)
 }
 
 merge_clusters_cpp <- function(runner_ptr, cluster1, cluster2) {
-    invisible(.Call(`_dirichletprocess_merge_clusters_cpp`, runner_ptr, cluster1, cluster2))
+    invisible(.Call(`_dirichletprocesscpp_merge_clusters_cpp`, runner_ptr, cluster1, cluster2))
 }
 
 split_cluster_cpp <- function(runner_ptr, cluster_id, split_prob) {
-    invisible(.Call(`_dirichletprocess_split_cluster_cpp`, runner_ptr, cluster_id, split_prob))
+    invisible(.Call(`_dirichletprocesscpp_split_cluster_cpp`, runner_ptr, cluster_id, split_prob))
 }
 
 set_temperature_cpp <- function(runner_ptr, temp) {
-    invisible(.Call(`_dirichletprocess_set_temperature_cpp`, runner_ptr, temp))
+    invisible(.Call(`_dirichletprocesscpp_set_temperature_cpp`, runner_ptr, temp))
 }
 
 set_auxiliary_count_cpp <- function(runner_ptr, m) {
-    invisible(.Call(`_dirichletprocess_set_auxiliary_count_cpp`, runner_ptr, m))
+    invisible(.Call(`_dirichletprocesscpp_set_auxiliary_count_cpp`, runner_ptr, m))
 }
 
 sample_predictive_cpp <- function(runner_ptr, n_samples) {
-    .Call(`_dirichletprocess_sample_predictive_cpp`, runner_ptr, n_samples)
+    .Call(`_dirichletprocesscpp_sample_predictive_cpp`, runner_ptr, n_samples)
 }
 
 get_log_posterior_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_log_posterior_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_log_posterior_cpp`, runner_ptr)
 }
 
 get_cluster_entropies_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_cluster_entropies_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_cluster_entropies_cpp`, runner_ptr)
 }
 
 get_clustering_entropy_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_clustering_entropy_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_clustering_entropy_cpp`, runner_ptr)
 }
 
 get_convergence_diagnostics_cpp <- function(runner_ptr) {
-    .Call(`_dirichletprocess_get_convergence_diagnostics_cpp`, runner_ptr)
+    .Call(`_dirichletprocesscpp_get_convergence_diagnostics_cpp`, runner_ptr)
 }
 
 weibull_prior_draw_cpp <- function(priorParams, n = 1L) {
-    .Call(`_dirichletprocess_weibull_prior_draw_cpp`, priorParams, n)
+    .Call(`_dirichletprocesscpp_weibull_prior_draw_cpp`, priorParams, n)
 }
 
 weibull_likelihood_cpp <- function(x, alpha, lambda) {
-    .Call(`_dirichletprocess_weibull_likelihood_cpp`, x, alpha, lambda)
+    .Call(`_dirichletprocesscpp_weibull_likelihood_cpp`, x, alpha, lambda)
 }
 
 weibull_prior_density_cpp <- function(alpha, priorParams) {
-    .Call(`_dirichletprocess_weibull_prior_density_cpp`, alpha, priorParams)
+    .Call(`_dirichletprocesscpp_weibull_prior_density_cpp`, alpha, priorParams)
 }
 
 weibull_posterior_draw_cpp <- function(priorParams, mhStepSize, x, n = 1L) {
-    .Call(`_dirichletprocess_weibull_posterior_draw_cpp`, priorParams, mhStepSize, x, n)
+    .Call(`_dirichletprocesscpp_weibull_posterior_draw_cpp`, priorParams, mhStepSize, x, n)
 }
 
 weibull_prior_parameters_update_cpp <- function(priorParams, hyperPriorParams, clusterParameters, n = 1L) {
-    .Call(`_dirichletprocess_weibull_prior_parameters_update_cpp`, priorParams, hyperPriorParams, clusterParameters, n)
+    .Call(`_dirichletprocesscpp_weibull_prior_parameters_update_cpp`, priorParams, hyperPriorParams, clusterParameters, n)
 }
 
 nonconjugate_weibull_cluster_parameter_update_cpp <- function(dp_list) {
-    .Call(`_dirichletprocess_nonconjugate_weibull_cluster_parameter_update_cpp`, dp_list)
+    .Call(`_dirichletprocesscpp_nonconjugate_weibull_cluster_parameter_update_cpp`, dp_list)
 }
 
 nonconjugate_weibull_cluster_component_update_cpp <- function(dp_list) {
-    .Call(`_dirichletprocess_nonconjugate_weibull_cluster_component_update_cpp`, dp_list)
+    .Call(`_dirichletprocesscpp_nonconjugate_weibull_cluster_component_update_cpp`, dp_list)
 }
 
 cpp_beta2_prior_draw <- function(gamma_prior, maxT, n) {
-    .Call(`_dirichletprocess_cpp_beta2_prior_draw`, gamma_prior, maxT, n)
+    .Call(`_dirichletprocesscpp_cpp_beta2_prior_draw`, gamma_prior, maxT, n)
 }
 
 cpp_beta2_posterior_draw <- function(data, gamma_prior, maxT, mh_step_size, n, mh_draws) {
-    .Call(`_dirichletprocess_cpp_beta2_posterior_draw`, data, gamma_prior, maxT, mh_step_size, n, mh_draws)
+    .Call(`_dirichletprocesscpp_cpp_beta2_posterior_draw`, data, gamma_prior, maxT, mh_step_size, n, mh_draws)
 }
 
 cpp_beta2_likelihood <- function(x, mu, nu, maxT) {
-    .Call(`_dirichletprocess_cpp_beta2_likelihood`, x, mu, nu, maxT)
+    .Call(`_dirichletprocesscpp_cpp_beta2_likelihood`, x, mu, nu, maxT)
 }
 
 run_hierarchical_mcmc_cpp <- function(datasets, mixing_dist_params, mcmc_params) {
-    .Call(`_dirichletprocess_run_hierarchical_mcmc_cpp`, datasets, mixing_dist_params, mcmc_params)
+    .Call(`_dirichletprocesscpp_run_hierarchical_mcmc_cpp`, datasets, mixing_dist_params, mcmc_params)
 }
 
 normal_likelihood_cpp <- function(x, mu, sigma) {
-    .Call(`_dirichletprocess_normal_likelihood_cpp`, x, mu, sigma)
+    .Call(`_dirichletprocesscpp_normal_likelihood_cpp`, x, mu, sigma)
 }
 
 likelihood_cpp <- function(mdObj, x, theta) {
-    .Call(`_dirichletprocess_likelihood_cpp`, mdObj, x, theta)
+    .Call(`_dirichletprocesscpp_likelihood_cpp`, mdObj, x, theta)
 }
 
 likelihood_normal_cpp <- function(mdObj, x, theta) {
-    .Call(`_dirichletprocess_likelihood_normal_cpp`, mdObj, x, theta)
+    .Call(`_dirichletprocesscpp_likelihood_normal_cpp`, mdObj, x, theta)
 }
 
 run_markov_mcmc_cpp <- function(data, mixing_dist_params, mcmc_params) {
-    .Call(`_dirichletprocess_run_markov_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
+    .Call(`_dirichletprocesscpp_run_markov_mcmc_cpp`, data, mixing_dist_params, mcmc_params)
 }
 
 cpp_normal_fixed_variance_prior_draw <- function(mu0, sigma0, sigma, n) {
-    .Call(`_dirichletprocess_cpp_normal_fixed_variance_prior_draw`, mu0, sigma0, sigma, n)
+    .Call(`_dirichletprocesscpp_cpp_normal_fixed_variance_prior_draw`, mu0, sigma0, sigma, n)
 }
 
 cpp_normal_fixed_variance_posterior_draw <- function(data, mu0, sigma0, sigma, n) {
-    .Call(`_dirichletprocess_cpp_normal_fixed_variance_posterior_draw`, data, mu0, sigma0, sigma, n)
+    .Call(`_dirichletprocesscpp_cpp_normal_fixed_variance_posterior_draw`, data, mu0, sigma0, sigma, n)
 }
 
 cpp_normal_fixed_variance_likelihood <- function(x, mu, sigma) {
-    .Call(`_dirichletprocess_cpp_normal_fixed_variance_likelihood`, x, mu, sigma)
+    .Call(`_dirichletprocesscpp_cpp_normal_fixed_variance_likelihood`, x, mu, sigma)
 }
 
 cpp_normal_fixed_variance_posterior_parameters <- function(data, mu0, sigma0, sigma) {
-    .Call(`_dirichletprocess_cpp_normal_fixed_variance_posterior_parameters`, data, mu0, sigma0, sigma)
+    .Call(`_dirichletprocesscpp_cpp_normal_fixed_variance_posterior_parameters`, data, mu0, sigma0, sigma)
 }
-

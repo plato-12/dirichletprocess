@@ -9,98 +9,63 @@ PriorParametersUpdate <- function(mdObj, clusterParameters, n = 1){
   UseMethod("PriorParametersUpdate", mdObj)
 }
 
+PriorUpdateModelLabel <- function(mdObj) {
+  model_classes <- setdiff(class(mdObj),
+                           c("list", "conjugate", "nonconjugate", "hierarchical"))
+
+  if (length(model_classes) > 0) {
+    return(model_classes[[1]])
+  }
+
+  return(paste(class(mdObj), collapse = "/"))
+}
+
+SupportsPriorUpdate <- function(mdObj) {
+  inherits(mdObj, "beta") || inherits(mdObj, "weibull")
+}
+
+PriorUpdateUnsupportedMessage <- function(mdObj, context = "updatePrior=TRUE") {
+  paste0(context,
+         " is not supported for model family '",
+         PriorUpdateModelLabel(mdObj),
+         "'. This model does not define hyperprior parameters or a ",
+         "PriorParametersUpdate() method. Supported families are 'beta' and ",
+         "'weibull' (including hierarchical beta via inherited beta support).")
+}
+
+AssertPriorUpdateSupported <- function(mdObj, context = "updatePrior=TRUE") {
+  if (!SupportsPriorUpdate(mdObj)) {
+    stop(PriorUpdateUnsupportedMessage(mdObj, context), call. = FALSE)
+  }
+
+  invisible(TRUE)
+}
+
 #' @export
 #' @rdname PriorParametersUpdate
 PriorParametersUpdate.normal <- function(mdObj, clusterParameters, n = 1) {
-  # For conjugate normal distributions, we typically don't update prior parameters
-  # Return the original object unchanged
-  if (getOption("dirichletprocess.verbose", FALSE)) {
-    warning("Prior parameter update not implemented for conjugate normal distributions")
-  }
-  return(mdObj)
+  stop(PriorUpdateUnsupportedMessage(mdObj, "PriorParametersUpdate()"),
+       call. = FALSE)
 }
 
 #' @export
 #' @rdname PriorParametersUpdate
 PriorParametersUpdate.conjugate <- function(mdObj, clusterParameters, n = 1) {
-  # For conjugate distributions, we typically don't update prior parameters
-  # Return the original object unchanged
-  if (getOption("dirichletprocess.verbose", FALSE)) {
-    warning("Prior parameter update not typically used for conjugate distributions")
-  }
-  return(mdObj)
+  stop(PriorUpdateUnsupportedMessage(mdObj, "PriorParametersUpdate()"),
+       call. = FALSE)
 }
 
 #' @export
 #' @rdname PriorParametersUpdate
 PriorParametersUpdate.exponential <- function(mdObj, clusterParameters, n = 1) {
-  # For exponential distributions, implement empirical Bayes update
-  if (length(clusterParameters) == 0) {
-    return(mdObj)
-  }
-
-  # Extract rate parameters from cluster parameters
-  rates <- numeric(length(clusterParameters))
-  for (i in seq_along(clusterParameters)) {
-    if (is.list(clusterParameters[[i]]) && length(clusterParameters[[i]]) > 0) {
-      rates[i] <- clusterParameters[[i]][[1]]
-    } else if (is.numeric(clusterParameters[[i]])) {
-      rates[i] <- clusterParameters[[i]][1]
-    }
-  }
-
-  # Remove any invalid rates
-  rates <- rates[rates > 0 & is.finite(rates)]
-
-  if (length(rates) > 0) {
-    # Update prior parameters based on observed rates
-    mdObj$priorParameters[1] <- mean(rates)
-    mdObj$priorParameters[2] <- var(rates) + mean(rates)^2
-  }
-
-  return(mdObj)
-}
-
-#' @export
-#' @rdname PriorParametersUpdate
-PriorParametersUpdate.weibull <- function(mdObj, clusterParameters, n = 1) {
-  # For Weibull distributions, implement empirical Bayes update
-  if (length(clusterParameters) == 0) {
-    return(mdObj)
-  }
-
-  # Extract shape and scale parameters
-  shapes <- numeric(length(clusterParameters))
-  scales <- numeric(length(clusterParameters))
-
-  for (i in seq_along(clusterParameters)) {
-    if (is.list(clusterParameters[[i]]) && length(clusterParameters[[i]]) >= 2) {
-      shapes[i] <- clusterParameters[[i]][[1]]
-      scales[i] <- clusterParameters[[i]][[2]]
-    }
-  }
-
-  # Remove invalid parameters
-  valid_idx <- shapes > 0 & scales > 0 & is.finite(shapes) & is.finite(scales)
-  shapes <- shapes[valid_idx]
-  scales <- scales[valid_idx]
-
-  if (length(shapes) > 0) {
-    # Simple empirical Bayes update
-    mdObj$priorParameters[1] <- mean(shapes)
-    mdObj$priorParameters[2] <- mean(scales)
-  }
-
-  return(mdObj)
+  stop(PriorUpdateUnsupportedMessage(mdObj, "PriorParametersUpdate()"),
+       call. = FALSE)
 }
 
 
 #' @export
 #' @rdname PriorParametersUpdate
 PriorParametersUpdate.default <- function(mdObj, clusterParameters, n = 1) {
-  # Default implementation - return unchanged
-  if (getOption("dirichletprocess.verbose", FALSE)) {
-    warning("PriorParametersUpdate not implemented for this distribution type: ", class(mdObj))
-  }
-  return(mdObj)
+  stop(PriorUpdateUnsupportedMessage(mdObj, "PriorParametersUpdate()"),
+       call. = FALSE)
 }

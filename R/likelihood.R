@@ -9,6 +9,173 @@ LikelihoodDP <- function(dpobj){
 
   clusters_parameters <- dpobj$clusterParameters
 
+  if (inherits(dpobj, "normal_inverse_gamma") || inherits(dpobj, "normal")) {
+    # Match the repaired R Gaussian likelihood bookkeeping exactly, including
+    # the original vapply + dim-reset behavior that `Fit()` stores in
+    # likelihoodChain before each update.
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
+  if (inherits(dpobj, "normalFixedVariance") ||
+      inherits(dpobj$mixingDistribution, "normalFixedVariance")) {
+    # Match the repaired R fixed-variance normal bookkeeping exactly for
+    # diagnostics and the stored likelihoodChain.
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
+  if (inherits(dpobj, "exponential") ||
+      inherits(dpobj$mixingDistribution, "exponential")) {
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
+  if (inherits(dpobj, "beta") ||
+      inherits(dpobj$mixingDistribution, "beta")) {
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
+  if (inherits(dpobj, "beta2") ||
+      inherits(dpobj$mixingDistribution, "beta2")) {
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
+  if (inherits(dpobj, "weibull") ||
+      inherits(dpobj$mixingDistribution, "weibull")) {
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
+  if (inherits(dpobj, "mvnormal2") ||
+      inherits(dpobj$mixingDistribution, "mvnormal2")) {
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
+  if (inherits(dpobj, "mvnormal") ||
+      inherits(dpobj$mixingDistribution, "mvnormal")) {
+    covModel <- if (is.null(dpobj$mixingDistribution$priorParameters$covModel)) {
+      "FULL"
+    } else {
+      as.character(dpobj$mixingDistribution$priorParameters$covModel)
+    }
+
+    if (!identical(covModel, "FULL")) {
+      stop("LikelihoodDP for mvnormal in dirichletprocess is only supported for covModel = 'FULL'.",
+           call. = FALSE)
+    }
+
+    likelihoodValues <- vapply(
+      seq_len(nrow(dpobj$data)),
+      function(i) Likelihood(dpobj$mixingDistribution,
+                             dpobj$data[i, , drop = FALSE],
+                             clusters_parameters),
+      numeric(dpobj$numberClusters)
+    )
+
+    dim(likelihoodValues) <- c(nrow(dpobj$data), dpobj$numberClusters)
+
+    weight <- dpobj$pointsPerCluster / dpobj$n
+
+    likelihoodValues <- as.matrix(likelihoodValues) %*% weight
+
+    return(likelihoodValues)
+  }
+
   # For multivariate normal with pre-allocated arrays, we need to extract only active clusters
   if (inherits(dpobj, "mvnormal") && is.list(clusters_parameters)) {
     # Create a subset of parameters for only active clusters

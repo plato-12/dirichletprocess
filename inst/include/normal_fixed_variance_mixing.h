@@ -34,6 +34,7 @@ public:
   // Conjugate specific methods
   arma::vec posterior_parameters(const arma::mat& cluster_data) const;
   double predictive_density(double x) const;
+  double predictive_probability(const arma::vec& data_point) const override;
 };
 
 } // namespace dirichletprocess

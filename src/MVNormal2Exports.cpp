@@ -35,22 +35,32 @@
 
 //' @title Calculate MVNormal2 likelihood (C++)
 //' @description C++ implementation for calculating multivariate normal likelihood.
-//' @param x A numeric vector of a single data point.
+//' @param x A numeric matrix of data points.
 //' @param theta A list containing mu and sig parameters.
-//' @return A numeric vector of likelihood values.
+//' @return A numeric matrix of likelihood values with one row per observation
+//'   and one column per cluster.
 //' @export
  // [[Rcpp::export]]
- Rcpp::NumericVector mvnormal2_likelihood_cpp(Rcpp::NumericMatrix x,
+ Rcpp::NumericMatrix mvnormal2_likelihood_cpp(Rcpp::NumericMatrix x,
                                               Rcpp::List theta) {
    dp::MVNormal2MixingDistribution md(Rcpp::List::create());
    arma::mat x_arma = Rcpp::as<arma::mat>(x);
-   
-   // Handle each row of the matrix
-   Rcpp::NumericVector result(x_arma.n_rows);
-   for (size_t i = 0; i < x_arma.n_rows; i++) {
+
+   arma::vec first_row = x_arma.row(0).t();
+   Rcpp::NumericVector first_result = md.likelihood(first_row, theta);
+   int n_clusters = first_result.size();
+   Rcpp::NumericMatrix result(x_arma.n_rows, n_clusters);
+
+   for (int k = 0; k < n_clusters; ++k) {
+     result(0, k) = first_result[k];
+   }
+
+   for (size_t i = 1; i < x_arma.n_rows; i++) {
      arma::vec x_row = x_arma.row(i).t();
      Rcpp::NumericVector row_result = md.likelihood(x_row, theta);
-     result[i] = row_result[0];
+     for (int k = 0; k < n_clusters; ++k) {
+       result(i, k) = row_result[k];
+     }
    }
    return result;
  }

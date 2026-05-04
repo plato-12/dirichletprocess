@@ -1,7 +1,15 @@
-# Declare global variables for R CMD check  
-utils::globalVariables(c("x1", "x2", "Cluster", "..density..", "y"))
+# Declare global variables for R CMD check
+utils::globalVariables(c("x1", "x2", "Cluster", "y",
+                         "Lower", "Mean", "Upper"))
 
 plot_dirichletprocess <- function(x, ...) {
+  if (inherits(x, "hierarchical")) {
+    stop(
+      "plot_dirichletprocess() is not defined for top-level hierarchical HDP objects in the rewritten R path. Plot a restaurant-specific DP instead, for example plot_dirichletprocess(x$indDP[[j]], ...).",
+      call. = FALSE
+    )
+  }
+
   mdobj <- x$mixingDistribution
   UseMethod("plot_dirichletprocess", mdobj)
 }
@@ -37,6 +45,19 @@ plot_dirichletprocess.mvnormal <- function(x, ...) {
   plot_dirichletprocess_multivariate(x)
 }
 
+ordinary_plot_summary_frame <- function(x, x_grid, ci_size) {
+  storage <- dp_existing_sample_storage(x)
+
+  if (length(storage$storedIterations) < 2L) {
+    return(NULL)
+  }
+
+  tryCatch(
+    PosteriorSummary(x, x_grid, burnin = 0, thinning = 1, level = 1 - ci_size),
+    error = function(e) NULL
+  )
+}
+
 #' @export
 #' @rdname plot.dirichletprocess
 plot_dirichletprocess_univariate <- function(x,
@@ -58,7 +79,7 @@ plot_dirichletprocess_univariate <- function(x,
                                            bw = ifelse(is.null(data_bw), "nrd0", data_bw))
   } else if (data_method == "hist" | data_method == "histogram") {
     graph <- graph + ggplot2::geom_histogram(ggplot2::aes(x = dt,
-                                                          y = ..density..),
+                                                          y = ggplot2::after_stat(density)),
                                              fill = data_fill,
                                              binwidth = data_bw)
   } else if (data_method != "none") {
@@ -71,21 +92,32 @@ plot_dirichletprocess_univariate <- function(x,
     x_grid <- seq(xlim[1], xlim[2], length.out = xgrid_pts)
   }
 
-  if (single) {
-    posteriorFit <- replicate(quant_pts, PosteriorFunction(x)(x_grid))
+  posterior_summary <- ordinary_plot_summary_frame(x, x_grid, ci_size)
+
+  if (!is.null(posterior_summary)) {
+    graph <- graph + ggplot2::geom_line(
+      data = posterior_summary,
+      ggplot2::aes(x = x, y = Lower, colour = "Posterior"),
+      linetype = 2
+    )
+    graph <- graph + ggplot2::geom_line(
+      data = posterior_summary,
+      ggplot2::aes(x = x, y = Mean, colour = "Posterior")
+    )
+    graph <- graph + ggplot2::geom_line(
+      data = posterior_summary,
+      ggplot2::aes(x = x, y = Upper, colour = "Posterior"),
+      linetype = 2
+    )
   } else {
-    its <- length(x$alphaChain)
-    inds <- round(seq(its/2, 2, length.out = quant_pts))
-    posteriorFit <- sapply(inds, function(i) PosteriorFunction(x, i)(x_grid))
+    message(
+      "Credible intervals are unavailable because this object has no usable stored MCMC samples. Fit with storeSamples = TRUE to enable PosteriorSummary()-based intervals."
+    )
+    graph <- graph + ggplot2::geom_line(
+      data = data.frame(x = x_grid, y = LikelihoodFunction(x)(x_grid)),
+      ggplot2::aes(x = x, y = y, colour = "Posterior")
+    )
   }
-
-  posteriorCI <- apply(posteriorFit, 1,
-                       quantile, probs = c(ci_size/2, 0.5, 1 - ci_size/2),
-                       na.rm = TRUE)
-
-  graph <- graph + ggplot2::geom_line(data=data.frame(x=x_grid, y=posteriorCI[1,]), ggplot2::aes(x=x,y=y, colour="Posterior"), linetype=2)
-  graph <- graph + ggplot2::geom_line(data=data.frame(x=x_grid, y=posteriorCI[2,]), ggplot2::aes(x=x,y=y, colour="Posterior"))
-  graph <- graph + ggplot2::geom_line(data=data.frame(x=x_grid, y=posteriorCI[3,]), ggplot2::aes(x=x,y=y, colour="Posterior"), linetype=2)
 
   if (likelihood) {
     graph <- graph + ggplot2::stat_function(fun = function(z) LikelihoodFunction(x)(z),

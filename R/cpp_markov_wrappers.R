@@ -108,7 +108,7 @@ param_update.cpp <- function(dpObj) {
 #' @param use_cpp Logical indicating whether to use C++ implementations
 #' @export
 enable_cpp_markov_samplers <- function(use_cpp = TRUE) {
-  options(dirichletprocess.use_cpp_markov = use_cpp)
+  options(dirichletprocesscpp.use_cpp_markov = use_cpp)
 
   if (use_cpp) {
     message("C++ samplers enabled for Markov Dirichlet processes (HMM)")
@@ -124,5 +124,5 @@ enable_cpp_markov_samplers <- function(use_cpp = TRUE) {
 #' @return Logical indicating if C++ Markov samplers are enabled
 #' @export
 using_cpp_markov_samplers <- function() {
-  getOption("dirichletprocess.use_cpp_markov", FALSE)
+  getOption("dirichletprocesscpp.use_cpp_markov", FALSE)
 }

@@ -2,7 +2,6 @@
 % Please edit documentation in R/dirichletprocess.R
 \docType{package}
 \name{dirichletprocess}
-\alias{dirichletprocess-package}
 \alias{dirichletprocess}
 \title{A flexible package for fitting Bayesian non-parametric models.}
 \description{

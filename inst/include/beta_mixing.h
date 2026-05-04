@@ -11,9 +11,14 @@ private:
   double alpha0;  // Prior shape parameter for alpha
   double beta0;   // Prior shape parameter for beta
   double maxT;    // Upper bound of Beta distribution (default 1)
+  double mh_step_mu;
+  double mh_step_nu;
+  int mh_draws;
 
 public:
-  BetaMixing(double alpha0, double beta0, double maxT = 1.0);
+  BetaMixing(double alpha0, double beta0, double maxT = 1.0,
+             double mh_step_mu = 1.0, double mh_step_nu = 1.0,
+             int mh_draws = 250);
 
   // Override virtual methods from base class
   double log_likelihood(const arma::vec& data_point,

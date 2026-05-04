@@ -27,8 +27,19 @@ Initialise.conjugate <- function(dpObj, posterior = TRUE, m=NULL, verbose=NULL, 
     dpObj$clusterParameters <- PriorDraw(dpObj$mixingDistribution, numInitialClusters)
   }
 
-  # For multivariate normal, ensure we have enough space for future clusters
-  if (inherits(dpObj, "mvnormal")) {
+  covModel <- if (inherits(dpObj, "mvnormal")) {
+    if (is.null(dpObj$mixingDistribution$priorParameters$covModel)) {
+      "FULL"
+    } else {
+      as.character(dpObj$mixingDistribution$priorParameters$covModel)
+    }
+  } else {
+    NULL
+  }
+
+  # The repaired R mvnormal path stores only active FULL-model clusters.
+  # Keep the legacy preallocated layout only for the extra non-FULL variants.
+  if (inherits(dpObj, "mvnormal") && !identical(covModel, "FULL")) {
     # Get current dimensions
     mu_dim <- dim(dpObj$clusterParameters$mu)
     sig_dim <- dim(dpObj$clusterParameters$sig)
@@ -286,6 +297,5 @@ Initialise.mvnormal.EVI <- function(dpObj, posterior = TRUE, m = NULL, verbose =
 Initialise.mvnormal.VVI <- function(dpObj, posterior = TRUE, m = NULL, verbose = NULL, numInitialClusters = 1) {
   return(Initialise.conjugate(dpObj, posterior, m, verbose, numInitialClusters))
 }
-
 
 
