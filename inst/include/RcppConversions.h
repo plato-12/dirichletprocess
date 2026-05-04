@@ -4,7 +4,7 @@
 
 #include <RcppArmadillo.h>
 #include <memory>
-#include "DirichletProcess.h"
+#include "dirichletprocess.h"
 
 namespace dp {
 

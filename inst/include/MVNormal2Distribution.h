@@ -3,7 +3,7 @@
 #define MVNORMAL2_DISTRIBUTION_H
 
 #include <RcppArmadillo.h>
-#include "DirichletProcess.h" // Assumes MixingDistribution is also included/forward-declared via this or another header
+#include "dirichletprocess.h" // Assumes MixingDistribution is also included/forward-declared via this or another header
 
 namespace dp {
 

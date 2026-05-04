@@ -29,6 +29,48 @@ Model your data nonparametrically in as little as four lines of code.
 
 ## Installation
 
+### System requirements
+
+`dirichletprocess` ships compiled C++ samplers (via Rcpp + RcppArmadillo)
+with optional OpenMP parallelism, so a working C++17 toolchain is
+required to install from source:
+
+- **R** ≥ 4.0
+- **C++17 compiler** — `g++` on Linux, Apple `clang++` on macOS, or
+  Rtools on Windows
+- **OpenMP runtime** — built into `g++`/Rtools; on macOS install
+  `libomp` (`brew install libomp`) and configure `~/.R/Makevars` per the
+  CRAN macOS instructions at <https://mac.r-project.org/openmp/>. The
+  package will still install without OpenMP, but compiled paths run
+  single-threaded.
+- **LAPACK/BLAS** — provided by your R install; no extra setup needed
+- **(Optional) LaTeX** — only needed if you want to build the PDF
+  vignette locally (`R CMD build` with vignettes, or
+  `devtools::install_github(..., build_vignettes = TRUE)`). TinyTeX
+  (`tinytex::install_tinytex()`) is the easiest option.
+
+### R package dependencies
+
+Imports (auto-installed): `Rcpp` (≥ 1.0.11), `RcppArmadillo`, `gtools`,
+`ggplot2`, `mvtnorm`, `abind`. Suggested (only required for tests and
+vignettes): `testthat`, `knitr`, `rmarkdown`, `tidyr`, `dplyr`, `coda`,
+`pkgload`.
+
+If installing fails on a fresh R session because a build dependency is
+missing, you can pre-install everything in one shot:
+
+``` r
+install.packages(c(
+  "Rcpp", "RcppArmadillo", "gtools", "ggplot2", "mvtnorm", "abind"
+))
+# Optional, only for tests/vignettes:
+install.packages(c(
+  "testthat", "knitr", "rmarkdown", "tidyr", "dplyr", "coda", "pkgload"
+))
+```
+
+### Installing the package
+
 You can install the stable release of dirichletprocess from CRAN:
 
 ``` r
